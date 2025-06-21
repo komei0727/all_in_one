@@ -1,0 +1,8 @@
+[tools]
+node = "20.19.2"
+pnpm = "9.15.2"
+
+[env]
+_.file = [".env"]
+_.path = ['./node_modules/.bin']
+NODE_ENV = "development"
