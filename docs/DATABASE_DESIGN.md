@@ -16,27 +16,56 @@ PostgreSQLを使用したリレーショナルデータベース設計。
 
 ## テーブル設計
 
+### categories（カテゴリー）テーブル
+
+食材のカテゴリーを管理するマスタテーブル。
+
+| カラム名    | 型        | 制約                   | 説明                 |
+| ----------- | --------- | ---------------------- | -------------------- |
+| id          | TEXT      | PRIMARY KEY            | CUID形式の一意識別子 |
+| name        | TEXT      | NOT NULL, UNIQUE       | カテゴリー名         |
+| description | TEXT      | NULL                   | カテゴリーの説明     |
+| created_at  | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時             |
+| updated_at  | TIMESTAMP | NOT NULL               | 更新日時             |
+
+### units（単位）テーブル
+
+食材の単位を管理するマスタテーブル。
+
+| カラム名    | 型        | 制約                   | 説明                 |
+| ----------- | --------- | ---------------------- | -------------------- |
+| id          | TEXT      | PRIMARY KEY            | CUID形式の一意識別子 |
+| name        | TEXT      | NOT NULL, UNIQUE       | 単位名               |
+| description | TEXT      | NULL                   | 単位の説明           |
+| created_at  | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時             |
+| updated_at  | TIMESTAMP | NOT NULL               | 更新日時             |
+
 ### ingredients（食材）テーブル
 
 食材の基本情報を管理するメインテーブル。
 
-| カラム名        | 型        | 制約                         | 説明                       |
-| --------------- | --------- | ---------------------------- | -------------------------- |
-| id              | TEXT      | PRIMARY KEY                  | CUID形式の一意識別子       |
-| name            | TEXT      | NOT NULL                     | 食材名                     |
-| quantity        | DECIMAL   | NULL                         | 数量                       |
-| unit            | TEXT      | NULL                         | 単位（個、g、ml等）        |
-| expiration_date | TIMESTAMP | NULL                         | 賞味期限                   |
-| category        | TEXT      | NULL                         | カテゴリ（野菜、肉・魚等） |
-| status          | ENUM      | NOT NULL DEFAULT 'AVAILABLE' | 在庫状態                   |
-| created_at      | TIMESTAMP | NOT NULL DEFAULT NOW()       | 作成日時                   |
-| updated_at      | TIMESTAMP | NOT NULL                     | 更新日時                   |
+| カラム名         | 型        | 制約                   | 説明                       |
+| ---------------- | --------- | ---------------------- | -------------------------- |
+| id               | TEXT      | PRIMARY KEY            | CUID形式の一意識別子       |
+| name             | TEXT      | NOT NULL               | 食材名                     |
+| category_id      | TEXT      | NOT NULL, FOREIGN KEY  | カテゴリーID               |
+| quantity         | DECIMAL   | NOT NULL               | 数量                       |
+| unit_id          | TEXT      | NOT NULL, FOREIGN KEY  | 単位ID                     |
+| expiry_date      | TIMESTAMP | NULL                   | 賞味期限                   |
+| best_before_date | TIMESTAMP | NULL                   | 消費期限                   |
+| purchase_date    | TIMESTAMP | NOT NULL               | 購入日                     |
+| price            | INTEGER   | NULL                   | 価格（円単位）             |
+| storage_location | ENUM      | NOT NULL               | 保存場所（冷蔵/冷凍/常温） |
+| memo             | TEXT      | NULL                   | メモ                       |
+| created_at       | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                   |
+| updated_at       | TIMESTAMP | NOT NULL               | 更新日時                   |
 
 **インデックス**:
 
-- `idx_ingredients_status` - status検索の高速化
-- `idx_ingredients_expiration_date` - 期限切れ食材の検索
-- `idx_ingredients_category` - カテゴリ別一覧の高速化
+- `idx_ingredients_category_id` - カテゴリー別検索の高速化
+- `idx_ingredients_unit_id` - 単位別検索の高速化
+- `idx_ingredients_expiry_date` - 賞味期限切れ食材の検索
+- `idx_ingredients_best_before_date` - 消費期限切れ食材の検索
 
 ### 今後追加予定のテーブル
 
@@ -76,53 +105,42 @@ CREATE TABLE user_households (
 
 ## データ型定義
 
-### IngredientStatus（食材ステータス）
+### StorageLocation（保存場所）
 
 ```typescript
-enum IngredientStatus {
-  AVAILABLE  // あり
-  LOW        // 少ない
-  OUT        // なし
+enum StorageLocation {
+  REFRIGERATED     // 冷蔵
+  FROZEN          // 冷凍
+  ROOM_TEMPERATURE // 常温
 }
 ```
 
-### カテゴリマスタ
+### 初期カテゴリマスタ
 
 ```typescript
-const CATEGORIES = ['野菜', '肉・魚', '乳製品', '調味料', '飲料', 'その他'] as const
+const INITIAL_CATEGORIES = [
+  { name: '野菜', description: '野菜類' },
+  { name: '肉・魚', description: '肉類・魚介類' },
+  { name: '乳製品', description: '牛乳・チーズ・ヨーグルトなど' },
+  { name: '調味料', description: '醤油・味噌・スパイスなど' },
+  { name: '飲料', description: '水・ジュース・お茶など' },
+  { name: 'その他', description: 'その他の食材' },
+] as const
 ```
 
-### 単位マスタ
+### 初期単位マスタ
 
 ```typescript
-const UNITS = ['個', 'g', 'kg', 'ml', 'L', '本', 'パック', '袋'] as const
-```
-
-## Prismaスキーマ
-
-```prisma
-model Ingredient {
-  id             String    @id @default(cuid())
-  name           String
-  quantity       Float?
-  unit           String?
-  expirationDate DateTime? @map("expiration_date")
-  category       String?
-  status         IngredientStatus @default(AVAILABLE)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@index([expirationDate])
-  @@index([category])
-  @@map("ingredients")
-}
-
-enum IngredientStatus {
-  AVAILABLE
-  LOW
-  OUT
-}
+const INITIAL_UNITS = [
+  { name: '個', description: '個数' },
+  { name: 'g', description: 'グラム' },
+  { name: 'kg', description: 'キログラム' },
+  { name: 'ml', description: 'ミリリットル' },
+  { name: 'L', description: 'リットル' },
+  { name: '本', description: '本数' },
+  { name: 'パック', description: 'パック' },
+  { name: '袋', description: '袋' },
+] as const
 ```
 
 ## マイグレーション戦略
@@ -148,13 +166,35 @@ pnpm db:push
 ### リポジトリパターン
 
 ```typescript
+// Ingredient Repository
 interface IngredientRepository {
   findAll(): Promise<Ingredient[]>
   findById(id: string): Promise<Ingredient | null>
-  findByStatus(status: IngredientStatus): Promise<Ingredient[]>
+  findByCategory(categoryId: string): Promise<Ingredient[]>
+  findByStorageLocation(location: StorageLocation): Promise<Ingredient[]>
   findExpiringSoon(days: number): Promise<Ingredient[]>
   create(data: CreateIngredientInput): Promise<Ingredient>
   update(id: string, data: UpdateIngredientInput): Promise<Ingredient>
+  delete(id: string): Promise<void>
+}
+
+// Category Repository
+interface CategoryRepository {
+  findAll(): Promise<Category[]>
+  findById(id: string): Promise<Category | null>
+  findByName(name: string): Promise<Category | null>
+  create(data: CreateCategoryInput): Promise<Category>
+  update(id: string, data: UpdateCategoryInput): Promise<Category>
+  delete(id: string): Promise<void>
+}
+
+// Unit Repository
+interface UnitRepository {
+  findAll(): Promise<Unit[]>
+  findById(id: string): Promise<Unit | null>
+  findByName(name: string): Promise<Unit | null>
+  create(data: CreateUnitInput): Promise<Unit>
+  update(id: string, data: UpdateUnitInput): Promise<Unit>
   delete(id: string): Promise<void>
 }
 ```
