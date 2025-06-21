@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { IngredientEntity, IngredientStatus } from '@/modules/ingredients/server/domain/entities/ingredient'
+import {
+  IngredientEntity,
+  IngredientStatus,
+} from '@/modules/ingredients/server/domain/entities/ingredient'
 import { INGREDIENT_STATUS } from '@/modules/ingredients/shared/constants'
 
 describe('IngredientEntity', () => {
@@ -188,6 +191,119 @@ describe('IngredientEntity', () => {
         createdAt: props.createdAt,
         updatedAt: props.updatedAt,
       })
+    })
+  })
+
+  describe('calculateStatus', () => {
+    it('should return AVAILABLE when quantity is undefined', () => {
+      const ingredient = new IngredientEntity({
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: undefined,
+        status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      expect(ingredient.calculateStatus()).toBe('AVAILABLE')
+    })
+
+    it('should return AVAILABLE when quantity is null', () => {
+      const ingredient = new IngredientEntity({
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: null as any,
+        status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      expect(ingredient.calculateStatus()).toBe('AVAILABLE')
+    })
+
+    it('should return OUT when quantity is 0', () => {
+      const ingredient = new IngredientEntity({
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: 0,
+        status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      expect(ingredient.calculateStatus()).toBe('OUT')
+    })
+
+    it('should return LOW when quantity is less than 5', () => {
+      const ingredient = new IngredientEntity({
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: 4,
+        status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      expect(ingredient.calculateStatus()).toBe('LOW')
+    })
+
+    it('should return AVAILABLE when quantity is 5 or more', () => {
+      const ingredient = new IngredientEntity({
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: 5,
+        status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      expect(ingredient.calculateStatus()).toBe('AVAILABLE')
+    })
+  })
+
+  describe('updateStatusBasedOnQuantity', () => {
+    it('should update status based on quantity', () => {
+      const ingredient = new IngredientEntity({
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: 0,
+        status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      ingredient.updateStatusBasedOnQuantity()
+
+      expect(ingredient.status).toBe('OUT')
+    })
+  })
+
+  describe('static create', () => {
+    it('should create ingredient with calculated status', () => {
+      const props = {
+        id: 'test-id',
+        name: 'Tomato',
+        quantity: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+
+      const ingredient = IngredientEntity.create(props)
+
+      expect(ingredient.status).toBe('LOW')
+    })
+
+    it('should create ingredient with AVAILABLE status when quantity is undefined', () => {
+      const props = {
+        id: 'test-id',
+        name: 'Tomato',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+
+      const ingredient = IngredientEntity.create(props)
+
+      expect(ingredient.status).toBe('AVAILABLE')
     })
   })
 })

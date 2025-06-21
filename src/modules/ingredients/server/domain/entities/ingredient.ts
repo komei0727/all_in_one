@@ -84,4 +84,43 @@ export class IngredientEntity {
   toObject(): IngredientProps {
     return { ...this.props }
   }
+
+  /**
+   * Calculate status based on quantity
+   * This centralizes the business logic for status determination
+   */
+  calculateStatus(): IngredientStatus {
+    if (this.props.quantity === undefined || this.props.quantity === null) {
+      return 'AVAILABLE' as IngredientStatus
+    }
+
+    if (this.props.quantity === 0) {
+      return 'OUT' as IngredientStatus
+    }
+
+    if (this.props.quantity < 5) {
+      return 'LOW' as IngredientStatus
+    }
+
+    return 'AVAILABLE' as IngredientStatus
+  }
+
+  /**
+   * Update status based on current quantity
+   */
+  updateStatusBasedOnQuantity(): void {
+    this.props.status = this.calculateStatus()
+  }
+
+  /**
+   * Create a new ingredient with calculated status
+   */
+  static create(props: Omit<IngredientProps, 'status'>): IngredientEntity {
+    const ingredient = new IngredientEntity({
+      ...props,
+      status: 'AVAILABLE' as IngredientStatus, // temporary status
+    })
+    ingredient.updateStatusBasedOnQuantity()
+    return ingredient
+  }
 }
