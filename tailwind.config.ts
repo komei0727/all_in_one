@@ -8,7 +8,16 @@ const config: Config = {
     './src/modules/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      borderColor: {
+        border: 'hsl(var(--border))',
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        border: 'hsl(var(--border))',
+      },
+    },
   },
   plugins: [],
 }
