@@ -8,7 +8,7 @@
   ],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
-  "ignorePatterns": ["src/generated/**/*", "*.config.js", "*.config.mjs"],
+  "ignorePatterns": ["src/generated/**/*", "*.config.js", "*.config.mjs", ".claude"],
   "rules": {
     "no-console": "warn",
     "no-unused-vars": "off",
