@@ -18,16 +18,7 @@ export const INGREDIENT_CATEGORIES = [
   'OTHER',
 ] as const
 
-export const INGREDIENT_UNITS = [
-  'g',
-  'kg',
-  'ml',
-  'l',
-  'piece',
-  'pack',
-  'bunch',
-  'bottle',
-] as const
+export const INGREDIENT_UNITS = ['g', 'kg', 'ml', 'l', 'piece', 'pack', 'bunch', 'bottle'] as const
 
 // Sort options
 export const SORT_OPTIONS = {

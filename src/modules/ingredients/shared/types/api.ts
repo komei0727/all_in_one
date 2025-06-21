@@ -78,13 +78,15 @@ export interface PaginationInfo {
 }
 
 // Response type for listing ingredients
-export interface GetIngredientsResponse extends SuccessResponse<{
-  items: IngredientResponse[]
-  pagination: PaginationInfo
-}> {}
+export interface GetIngredientsResponse
+  extends SuccessResponse<{
+    items: IngredientResponse[]
+    pagination: PaginationInfo
+  }> {}
 
 // Response type for getting expiring ingredients
-export interface GetExpiringIngredientsResponse extends SuccessResponse<{
-  items: IngredientResponse[]
-  count: number
-}> {}
+export interface GetExpiringIngredientsResponse
+  extends SuccessResponse<{
+    items: IngredientResponse[]
+    count: number
+  }> {}
