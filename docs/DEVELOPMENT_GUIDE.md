@@ -288,10 +288,10 @@ function App() {
 **1. pnpmコマンドが見つからない**
 
 ```bash
-# miseを使用している場合
-mise exec -- pnpm <command>
+# miseが有効化されていることを確認
+mise doctor
 
-# または
+# miseをアクティベート
 eval "$(mise activate bash)"
 ```
 
