@@ -33,3 +33,6 @@ next-env.d.ts
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+# Generated files
+src/generated/**/*
