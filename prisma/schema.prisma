@@ -13,3 +13,61 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// Storage location enum for ingredients
+enum StorageLocation {
+  REFRIGERATED     // 冷蔵
+  FROZEN          // 冷凍
+  ROOM_TEMPERATURE // 常温
+}
+
+// Category model - represents ingredient categories
+model Category {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  ingredients Ingredient[]
+
+  @@map("categories")
+}
+
+// Unit model - represents measurement units
+model Unit {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  ingredients Ingredient[]
+
+  @@map("units")
+}
+
+// Ingredient model - main model for food ingredients
+model Ingredient {
+  id               String           @id @default(cuid())
+  name             String
+  categoryId       String
+  quantity         Float
+  unitId           String
+  expiryDate       DateTime?        // 賞味期限
+  bestBeforeDate   DateTime?        // 消費期限
+  purchaseDate     DateTime
+  price            Int?             // 価格（円単位）
+  storageLocation  StorageLocation
+  memo             String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  category         Category         @relation(fields: [categoryId], references: [id])
+  unit             Unit            @relation(fields: [unitId], references: [id])
+
+  @@index([categoryId])
+  @@index([unitId])
+  @@index([expiryDate])
+  @@index([bestBeforeDate])
+  @@map("ingredients")
+}
