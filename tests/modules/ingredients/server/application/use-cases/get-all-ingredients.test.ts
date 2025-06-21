@@ -53,15 +53,15 @@ describe('GetAllIngredientsUseCase', () => {
 
     const result = await useCase.execute({ page: 1, limit: 20 })
 
-    expect(result.data.items).toHaveLength(2)
-    expect(result.data.pagination).toEqual({
+    expect(result.items).toHaveLength(2)
+    expect(result.pagination).toEqual({
       total: 10,
       page: 1,
       limit: 20,
       totalPages: 1,
     })
-    expect(result.data.items[0].id).toBe('1')
-    expect(result.data.items[0].name).toBe('Tomato')
+    expect(result.items[0].id).toBe('1')
+    expect(result.items[0].name).toBe('Tomato')
   })
 
   it('should pass filter parameters to repository', async () => {
@@ -92,7 +92,7 @@ describe('GetAllIngredientsUseCase', () => {
 
     const result = await useCase.execute({ page: 1, limit: 10 })
 
-    expect(result.data.pagination.totalPages).toBe(5)
+    expect(result.pagination.totalPages).toBe(5)
   })
 
   it('should return 1 total page when total is 0', async () => {
@@ -103,7 +103,7 @@ describe('GetAllIngredientsUseCase', () => {
 
     const result = await useCase.execute({ page: 1, limit: 10 })
 
-    expect(result.data.pagination.totalPages).toBe(1)
+    expect(result.pagination.totalPages).toBe(1)
   })
 
   it('should map entities to response DTOs', async () => {
@@ -126,7 +126,7 @@ describe('GetAllIngredientsUseCase', () => {
 
     const result = await useCase.execute({})
 
-    const item = result.data.items[0]
+    const item = result.items[0]
     expect(item).toEqual({
       id: '1',
       name: 'Tomato',
@@ -156,7 +156,7 @@ describe('GetAllIngredientsUseCase', () => {
 
     const result = await useCase.execute({})
 
-    const item = result.data.items[0]
+    const item = result.items[0]
     expect(item.quantity).toBeUndefined()
     expect(item.unit).toBeUndefined()
     expect(item.expirationDate).toBeUndefined()

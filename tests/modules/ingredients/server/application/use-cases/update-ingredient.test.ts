@@ -107,9 +107,7 @@ describe('UpdateIngredientUseCase', () => {
       name: 'New Name',
     }
 
-    await expect(useCase.execute('non-existent', input)).rejects.toThrow(
-      IngredientNotFoundError
-    )
+    await expect(useCase.execute('non-existent', input)).rejects.toThrow(IngredientNotFoundError)
 
     expect(mockRepository.update).not.toHaveBeenCalled()
   })

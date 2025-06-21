@@ -52,10 +52,10 @@ describe('GetExpiringIngredientsUseCase', () => {
 
     const result = await useCase.execute({ days: 7 })
 
-    expect(result.data.items).toHaveLength(2)
-    expect(result.data.count).toBe(2)
-    expect(result.data.items[0].name).toBe('Milk')
-    expect(result.data.items[1].name).toBe('Yogurt')
+    expect(result).toHaveLength(2)
+    // count is now result.length since we return array directly
+    expect(result[0].name).toBe('Milk')
+    expect(result[1].name).toBe('Yogurt')
 
     expect(mockRepository.findExpiringWithinDays).toHaveBeenCalledWith(7)
   })
@@ -65,9 +65,7 @@ describe('GetExpiringIngredientsUseCase', () => {
 
     await useCase.execute({})
 
-    expect(mockRepository.findExpiringWithinDays).toHaveBeenCalledWith(
-      DEFAULT_EXPIRING_DAYS
-    )
+    expect(mockRepository.findExpiringWithinDays).toHaveBeenCalledWith(DEFAULT_EXPIRING_DAYS)
   })
 
   it('should return empty array when no ingredients are expiring', async () => {
@@ -75,8 +73,8 @@ describe('GetExpiringIngredientsUseCase', () => {
 
     const result = await useCase.execute({ days: 3 })
 
-    expect(result.data.items).toHaveLength(0)
-    expect(result.data.count).toBe(0)
+    expect(result).toHaveLength(0)
+    // count is result.length
   })
 
   it('should map entities to response DTOs correctly', async () => {
@@ -98,7 +96,7 @@ describe('GetExpiringIngredientsUseCase', () => {
 
     const result = await useCase.execute({ days: 30 })
 
-    expect(result.data.items[0]).toEqual({
+    expect(result[0]).toEqual({
       id: '1',
       name: 'Milk',
       quantity: 1,
@@ -125,7 +123,7 @@ describe('GetExpiringIngredientsUseCase', () => {
 
     const result = await useCase.execute({ days: 365 })
 
-    const item = result.data.items[0]
+    const item = result[0]
     expect(item.quantity).toBeUndefined()
     expect(item.unit).toBeUndefined()
     expect(item.category).toBeUndefined()

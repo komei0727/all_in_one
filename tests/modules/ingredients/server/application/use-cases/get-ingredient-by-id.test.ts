@@ -58,9 +58,7 @@ describe('GetIngredientByIdUseCase', () => {
   it('should throw IngredientNotFoundError when not found', async () => {
     vi.mocked(mockRepository.findById).mockResolvedValue(null)
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow(
-      IngredientNotFoundError
-    )
+    await expect(useCase.execute('non-existent')).rejects.toThrow(IngredientNotFoundError)
 
     expect(mockRepository.findById).toHaveBeenCalledWith('non-existent')
   })

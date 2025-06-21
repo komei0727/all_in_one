@@ -44,9 +44,7 @@ describe('DeleteIngredientUseCase', () => {
   it('should throw IngredientNotFoundError when ingredient not found', async () => {
     vi.mocked(mockRepository.findById).mockResolvedValue(null)
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow(
-      IngredientNotFoundError
-    )
+    await expect(useCase.execute('non-existent')).rejects.toThrow(IngredientNotFoundError)
 
     expect(mockRepository.findById).toHaveBeenCalledWith('non-existent')
     expect(mockRepository.delete).not.toHaveBeenCalled()

@@ -1,7 +1,7 @@
-import type { IIngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 import type { IngredientResponse } from '../../../shared/types/api'
-import { IngredientMapper } from '../mappers/ingredient-mapper'
+import type { IIngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 import { IngredientNotFoundError } from '../errors'
+import { IngredientMapper } from '../mappers/ingredient-mapper'
 
 export class GetIngredientByIdUseCase {
   constructor(private readonly repository: IIngredientRepository) {}
