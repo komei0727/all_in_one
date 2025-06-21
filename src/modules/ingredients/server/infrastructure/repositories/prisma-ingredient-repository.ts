@@ -1,11 +1,12 @@
 import type { PrismaClient, Ingredient, Prisma } from '@/generated/prisma'
-import { IngredientEntity } from '../../domain/entities/ingredient'
+
+import { INGREDIENT_STATUS, PAGINATION_DEFAULTS } from '../../../shared/constants'
+import { IngredientEntity, type IngredientStatus } from '../../domain/entities/ingredient'
 import type {
   IIngredientRepository,
   FindAllParams,
   FindAllResult,
 } from '../../domain/repositories/ingredient-repository.interface'
-import { INGREDIENT_STATUS, PAGINATION_DEFAULTS } from '../../../shared/constants'
 
 export class PrismaIngredientRepository implements IIngredientRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -105,7 +106,7 @@ export class PrismaIngredientRepository implements IIngredientRepository {
     const data = await this.toPrismaData(ingredient)
 
     const created = await this.prisma.ingredient.create({
-      data,
+      data: data as Prisma.IngredientCreateInput,
       include: {
         category: true,
         unit: true,
@@ -120,7 +121,7 @@ export class PrismaIngredientRepository implements IIngredientRepository {
 
     const updated = await this.prisma.ingredient.update({
       where: { id: ingredient.id },
-      data,
+      data: data as Prisma.IngredientUpdateInput,
       include: {
         category: true,
         unit: true,
@@ -151,31 +152,29 @@ export class PrismaIngredientRepository implements IIngredientRepository {
       unit: { id: string; name: string } | null
     }
   ): IngredientEntity {
-    // Calculate status based on quantity
-    let status: (typeof INGREDIENT_STATUS)[keyof typeof INGREDIENT_STATUS] = INGREDIENT_STATUS.AVAILABLE
-    if (ingredient.quantity === 0) {
-      status = INGREDIENT_STATUS.OUT
-    } else if (ingredient.quantity && ingredient.quantity <= 5) {
-      status = INGREDIENT_STATUS.LOW
-    }
-
-    return new IngredientEntity({
+    // Create entity without status first
+    const entity = new IngredientEntity({
       id: ingredient.id,
       name: ingredient.name,
       quantity: ingredient.quantity || undefined,
       unit: ingredient.unit?.name,
       expirationDate: ingredient.expiryDate || undefined,
       category: ingredient.category?.name,
-      status,
+      status: INGREDIENT_STATUS.AVAILABLE as IngredientStatus, // temporary status
       createdAt: ingredient.createdAt,
       updatedAt: ingredient.updatedAt,
     })
+
+    // Calculate and update status based on quantity
+    entity.updateStatusBasedOnQuantity()
+
+    return entity
   }
 
   private async toPrismaData(
     ingredient: IngredientEntity
   ): Promise<Prisma.IngredientCreateInput | Prisma.IngredientUpdateInput> {
-    const data: any = {
+    const data: Record<string, unknown> = {
       name: ingredient.name,
       quantity: ingredient.quantity || 0,
       expiryDate: ingredient.expirationDate || null,
@@ -203,6 +202,6 @@ export class PrismaIngredientRepository implements IIngredientRepository {
       }
     }
 
-    return data
+    return data as Prisma.IngredientCreateInput
   }
 }

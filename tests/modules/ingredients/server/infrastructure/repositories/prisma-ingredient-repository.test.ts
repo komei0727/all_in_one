@@ -1,24 +1,34 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { IngredientEntity } from '@/modules/ingredients/server/domain/entities/ingredient'
 import { INGREDIENT_STATUS } from '@/modules/ingredients/shared/constants'
-import type { PrismaClient } from '@/generated/prisma'
+import type { PrismaClient, Ingredient, Category, Unit } from '@/generated/prisma'
+
+// Create properly typed mocks
+const mockIngredientFindMany = vi.fn() as MockedFunction<any>
+const mockIngredientCount = vi.fn() as MockedFunction<any>
+const mockIngredientFindUnique = vi.fn() as MockedFunction<any>
+const mockIngredientCreate = vi.fn() as MockedFunction<any>
+const mockIngredientUpdate = vi.fn() as MockedFunction<any>
+const mockIngredientDelete = vi.fn() as MockedFunction<any>
+const mockCategoryFindUnique = vi.fn() as MockedFunction<any>
+const mockUnitFindUnique = vi.fn() as MockedFunction<any>
 
 // Mock PrismaClient
 const mockPrismaClient = {
   ingredient: {
-    findMany: vi.fn(),
-    count: vi.fn(),
-    findUnique: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
+    findMany: mockIngredientFindMany,
+    count: mockIngredientCount,
+    findUnique: mockIngredientFindUnique,
+    create: mockIngredientCreate,
+    update: mockIngredientUpdate,
+    delete: mockIngredientDelete,
   },
   category: {
-    findUnique: vi.fn(),
+    findUnique: mockCategoryFindUnique,
   },
   unit: {
-    findUnique: vi.fn(),
+    findUnique: mockUnitFindUnique,
   },
 } as unknown as PrismaClient
 
@@ -52,8 +62,8 @@ describe('PrismaIngredientRepository', () => {
         },
       ]
 
-      mockPrismaClient.ingredient.findMany.mockResolvedValue(mockIngredients)
-      mockPrismaClient.ingredient.count.mockResolvedValue(1)
+      mockIngredientFindMany.mockResolvedValue(mockIngredients)
+      mockIngredientCount.mockResolvedValue(1)
 
       const result = await repository.findAll({})
 
@@ -62,7 +72,7 @@ describe('PrismaIngredientRepository', () => {
       expect(result.items[0]).toBeInstanceOf(IngredientEntity)
       expect(result.items[0].name).toBe('Tomato')
 
-      expect(mockPrismaClient.ingredient.findMany).toHaveBeenCalledWith({
+      expect(mockIngredientFindMany).toHaveBeenCalledWith({
         include: {
           category: true,
           unit: true,
@@ -75,8 +85,8 @@ describe('PrismaIngredientRepository', () => {
     })
 
     it('should apply filters correctly', async () => {
-      mockPrismaClient.ingredient.findMany.mockResolvedValue([])
-      mockPrismaClient.ingredient.count.mockResolvedValue(0)
+      mockIngredientFindMany.mockResolvedValue([])
+      mockIngredientCount.mockResolvedValue(0)
 
       await repository.findAll({
         page: 2,
@@ -86,7 +96,7 @@ describe('PrismaIngredientRepository', () => {
         order: 'desc',
       })
 
-      expect(mockPrismaClient.ingredient.findMany).toHaveBeenCalledWith({
+      expect(mockIngredientFindMany).toHaveBeenCalledWith({
         include: {
           category: true,
           unit: true,
@@ -123,7 +133,7 @@ describe('PrismaIngredientRepository', () => {
         updatedAt: new Date('2024-01-01'),
       }
 
-      mockPrismaClient.ingredient.findUnique.mockResolvedValue(mockIngredient)
+      mockIngredientFindUnique.mockResolvedValue(mockIngredient)
 
       const result = await repository.findById('1')
 
@@ -133,7 +143,7 @@ describe('PrismaIngredientRepository', () => {
     })
 
     it('should return null when not found', async () => {
-      mockPrismaClient.ingredient.findUnique.mockResolvedValue(null)
+      mockIngredientFindUnique.mockResolvedValue(null)
 
       const result = await repository.findById('non-existent')
 
@@ -172,15 +182,15 @@ describe('PrismaIngredientRepository', () => {
         updatedAt: new Date(),
       }
 
-      mockPrismaClient.unit.findUnique.mockResolvedValue({ id: 'unit-1', name: 'kg' })
-      mockPrismaClient.category.findUnique.mockResolvedValue({ id: 'cat-1', name: 'VEGETABLE' })
-      mockPrismaClient.ingredient.create.mockResolvedValue(mockCreated)
+      mockUnitFindUnique.mockResolvedValue({ id: 'unit-1', name: 'kg' })
+      mockCategoryFindUnique.mockResolvedValue({ id: 'cat-1', name: 'VEGETABLE' })
+      mockIngredientCreate.mockResolvedValue(mockCreated)
 
       const result = await repository.create(newIngredient)
 
       expect(result).toBeInstanceOf(IngredientEntity)
       expect(result.name).toBe('Carrot')
-      expect(mockPrismaClient.ingredient.create).toHaveBeenCalled()
+      expect(mockIngredientCreate).toHaveBeenCalled()
     })
   })
 
@@ -213,7 +223,7 @@ describe('PrismaIngredientRepository', () => {
         updatedAt: new Date(),
       }
 
-      mockPrismaClient.ingredient.update.mockResolvedValue(mockUpdated)
+      mockIngredientUpdate.mockResolvedValue(mockUpdated)
 
       const result = await repository.update(ingredient)
 
@@ -225,11 +235,11 @@ describe('PrismaIngredientRepository', () => {
 
   describe('delete', () => {
     it('should delete ingredient', async () => {
-      mockPrismaClient.ingredient.delete.mockResolvedValue({} as any)
+      mockIngredientDelete.mockResolvedValue({} as any)
 
       await repository.delete('1')
 
-      expect(mockPrismaClient.ingredient.delete).toHaveBeenCalledWith({
+      expect(mockIngredientDelete).toHaveBeenCalledWith({
         where: { id: '1' },
       })
     })
@@ -260,7 +270,7 @@ describe('PrismaIngredientRepository', () => {
         },
       ]
 
-      mockPrismaClient.ingredient.findMany.mockResolvedValue(mockIngredients)
+      mockIngredientFindMany.mockResolvedValue(mockIngredients)
 
       const result = await repository.findExpiringWithinDays(7)
 
@@ -269,7 +279,7 @@ describe('PrismaIngredientRepository', () => {
       expect(result[0].name).toBe('Expiring Tomato')
 
       // Check the date range in the query
-      const findManyCall = mockPrismaClient.ingredient.findMany.mock.calls[0][0]
+      const findManyCall = mockIngredientFindMany.mock.calls[0][0] as any
       expect(findManyCall.where.expiryDate).toBeDefined()
       expect(findManyCall.where.expiryDate.lte).toBeInstanceOf(Date)
     })
