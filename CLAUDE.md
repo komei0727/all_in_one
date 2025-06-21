@@ -51,40 +51,50 @@ src/
 
 ## 3. 共通コマンド
 
+このプロジェクトではmiseのタスクランナーを使用しています。
+
 ### 開発
 
 ```bash
-pnpm dev          # 開発サーバー起動
-pnpm build        # プロダクションビルド
-pnpm start        # プロダクションサーバー起動
+mise run dev          # 開発サーバー起動
+mise run build        # プロダクションビルド
+mise run start        # プロダクションサーバー起動
 ```
 
 ### データベース
 
 ```bash
-pnpm db:up        # Docker PostgreSQL起動
-pnpm db:down      # Docker PostgreSQL停止
-pnpm db:migrate   # マイグレーション実行
-pnpm db:push      # スキーマ同期（開発用）
-pnpm db:studio    # Prisma Studio起動
-pnpm db:seed      # シードデータ投入
+mise run db:up        # Docker PostgreSQL起動
+mise run db:down      # Docker PostgreSQL停止
+mise run db:migrate   # マイグレーション実行
+mise run db:push      # スキーマ同期（開発用）
+mise run db:studio    # Prisma Studio起動
+mise run db:seed      # シードデータ投入
 ```
 
 ### コード品質
 
 ```bash
-pnpm lint         # ESLintチェック
-pnpm lint:fix     # ESLint自動修正
-pnpm format       # Prettierフォーマット
-pnpm format:check # フォーマットチェック
-pnpm type-check   # TypeScript型チェック
-pnpm test         # テスト実行
+mise run lint         # ESLintチェック
+mise run lint:fix     # ESLint自動修正
+mise run format       # Prettierフォーマット
+mise run format:check # フォーマットチェック
+mise run type-check   # TypeScript型チェック
+mise run test         # テスト実行
+```
+
+### 便利なコマンド
+
+```bash
+mise run check        # 型チェック、リント、フォーマットを一括実行
+mise run setup        # 初期セットアップ（依存関係、DB、マイグレーション、シード）
+mise tasks            # 利用可能なタスクの一覧を表示
 ```
 
 ### UIコンポーネント追加
 
 ```bash
-pnpm dlx shadcn@latest add <component-name>
+mise exec -- pnpm dlx shadcn@latest add <component-name>
 ```
 
 ## 4. コードスタイル

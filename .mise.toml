@@ -6,3 +6,75 @@ pnpm = "9.15.2"
 _.file = [".env"]
 _.path = ['./node_modules/.bin']
 NODE_ENV = "development"
+
+[tasks.dev]
+description = "開発サーバーを起動"
+run = "pnpm dev"
+
+[tasks.build]
+description = "プロダクションビルド"
+run = "pnpm build"
+
+[tasks.start]
+description = "プロダクションサーバーを起動"
+run = "pnpm start"
+
+[tasks.lint]
+description = "コードの品質チェック"
+run = "pnpm lint"
+
+[tasks."lint:fix"]
+description = "コードの自動修正"
+run = "pnpm lint:fix"
+
+[tasks.format]
+description = "コードフォーマット"
+run = "pnpm format"
+
+[tasks."format:check"]
+description = "フォーマットチェック"
+run = "pnpm format:check"
+
+[tasks."type-check"]
+description = "TypeScript型チェック"
+run = "pnpm type-check"
+
+[tasks.test]
+description = "テスト実行"
+run = "pnpm test"
+
+[tasks."db:up"]
+description = "Docker PostgreSQLを起動"
+run = "pnpm db:up"
+
+[tasks."db:down"]
+description = "Docker PostgreSQLを停止"
+run = "pnpm db:down"
+
+[tasks."db:migrate"]
+description = "マイグレーション実行"
+run = "pnpm db:migrate"
+
+[tasks."db:push"]
+description = "スキーマ同期（開発用）"
+run = "pnpm db:push"
+
+[tasks."db:studio"]
+description = "Prisma Studioを起動"
+run = "pnpm db:studio"
+
+[tasks."db:seed"]
+description = "シードデータ投入"
+run = "pnpm db:seed"
+
+[tasks.install]
+description = "依存関係をインストール"
+run = "pnpm install"
+
+[tasks.check]
+description = "コード品質の総合チェック"
+run = ["pnpm type-check", "pnpm lint", "pnpm format:check"]
+
+[tasks.setup]
+description = "プロジェクトの初期セットアップ"
+run = ["pnpm install", "pnpm db:up", "pnpm db:push", "pnpm db:seed"]
