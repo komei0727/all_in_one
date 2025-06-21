@@ -260,8 +260,8 @@ pnpm exec prisma init
 ### huskyのエラーが出る場合
 
 ```bash
-# mise経由でコマンドを実行するように修正済み
-# 例: mise exec -- pnpm exec lint-staged
+# pnpmコマンドを直接実行
+# 例: pnpm exec lint-staged
 ```
 
 ### データベース接続エラー

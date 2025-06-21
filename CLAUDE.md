@@ -51,50 +51,46 @@ src/
 
 ## 3. 共通コマンド
 
-このプロジェクトではmiseのタスクランナーを使用しています。
-
 ### 開発
 
 ```bash
-mise run dev          # 開発サーバー起動
-mise run build        # プロダクションビルド
-mise run start        # プロダクションサーバー起動
+pnpm dev          # 開発サーバー起動
+pnpm build        # プロダクションビルド
+pnpm start        # プロダクションサーバー起動
 ```
 
 ### データベース
 
 ```bash
-mise run db:up        # Docker PostgreSQL起動
-mise run db:down      # Docker PostgreSQL停止
-mise run db:migrate   # マイグレーション実行
-mise run db:push      # スキーマ同期（開発用）
-mise run db:studio    # Prisma Studio起動
-mise run db:seed      # シードデータ投入
+pnpm db:up        # Docker PostgreSQL起動
+pnpm db:down      # Docker PostgreSQL停止
+pnpm db:migrate   # マイグレーション実行
+pnpm db:push      # スキーマ同期（開発用）
+pnpm db:studio    # Prisma Studio起動
+pnpm db:seed      # シードデータ投入
 ```
 
 ### コード品質
 
 ```bash
-mise run lint         # ESLintチェック
-mise run lint:fix     # ESLint自動修正
-mise run format       # Prettierフォーマット
-mise run format:check # フォーマットチェック
-mise run type-check   # TypeScript型チェック
-mise run test         # テスト実行
+pnpm lint         # ESLintチェック
+pnpm lint:fix     # ESLint自動修正
+pnpm format       # Prettierフォーマット
+pnpm format:check # フォーマットチェック
+pnpm type-check   # TypeScript型チェック
+pnpm test         # テスト実行
 ```
 
 ### 便利なコマンド
 
 ```bash
-mise run check        # 型チェック、リント、フォーマットを一括実行
-mise run setup        # 初期セットアップ（依存関係、DB、マイグレーション、シード）
-mise tasks            # 利用可能なタスクの一覧を表示
+pnpm type-check && pnpm lint && pnpm format:check  # 型チェック、リント、フォーマットを一括実行
 ```
 
 ### UIコンポーネント追加
 
 ```bash
-mise exec -- pnpm dlx shadcn@latest add <component-name>
+pnpm dlx shadcn@latest add <component-name>
 ```
 
 ## 4. コードスタイル
@@ -139,6 +135,7 @@ Conventional Commitsに従う：
 3. 実装（TDD推奨）
 4. テスト実行: `pnpm test && pnpm type-check && pnpm lint`
 5. コミット（自動フォーマット適用）
+   - コミットは論理的な変更単位でまとめる
 6. Pull Request作成
 
 ### ファイル作成規則
