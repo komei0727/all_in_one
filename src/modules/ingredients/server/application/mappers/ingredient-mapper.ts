@@ -1,5 +1,5 @@
-import { IngredientEntity } from '../../domain/entities/ingredient'
 import type { IngredientResponse } from '../../../shared/types/api'
+import { IngredientEntity } from '../../domain/entities/ingredient'
 
 export class IngredientMapper {
   static toResponse(entity: IngredientEntity): IngredientResponse {
