@@ -1,103 +1,177 @@
-# アーキテクチャ設計資料
+# Enhanced Modular Monolith アーキテクチャ設計書
 
-本ディレクトリには、食材管理アプリケーションのアーキテクチャ設計に関する包括的な資料が含まれています。
+## 概要
 
-## 📁 ファイル構成
+本プロジェクトは **Enhanced Modular Monolith** アーキテクチャを採用しています。これは従来のモジュラーモノリスにドメイン駆動設計（DDD）のベストプラクティスを完全に適用し、レイヤードアーキテクチャと CQRS パターンを組み合わせた先進的なアーキテクチャです。
 
-### 🏗️ **メイン設計書**
+## アーキテクチャの特徴
 
-- **[ARCHITECTURE_ENHANCED.md](./ARCHITECTURE_ENHANCED.md)** - Enhanced Modular Monolith の完全設計仕様書
-  - 全体アーキテクチャと詳細ディレクトリ構造
-  - 各層の責務定義と実装例
-  - データフローとイベント駆動アーキテクチャ
-  - パフォーマンス最適化とテスト戦略
-  - 運用・デプロイガイド
+### 主な特徴
 
-### 📊 **比較分析資料**
+- 🏗️ **モジュール独立性**: 各ビジネス機能が完全に独立したモジュールとして実装
+- 🎯 **ドメイン中心設計**: ビジネスロジックがアーキテクチャの中核
+- 🔄 **CQRS パターン**: 読み書き責務の明確な分離による最適化
+- 📡 **Event-Driven**: ドメインイベントによるモジュール間の疎結合
+- 🚀 **将来の拡張性**: マイクロサービスへの自然な移行パス
 
-- **[ARCHITECTURE_PATTERNS_COMPARISON.md](./ARCHITECTURE_PATTERNS_COMPARISON.md)** - 9つのアーキテクチャパターン詳細比較
-  - Traditional Monolith から Microfrontends まで
-  - 実装例、評価、適用場面の詳細分析
-  - コンテキスト別・チーム規模別推奨パターン
-  - ROI計算と採用決定理由
+### システム構成図
 
-### 📋 **移行提案書**
+```mermaid
+flowchart TB
+    subgraph "Client Layer"
+        UI[React UI]
+    end
 
-- **[ARCHITECTURE_ENHANCEMENT_PROPOSAL.md](./ARCHITECTURE_ENHANCEMENT_PROPOSAL.md)** - 段階的移行計画
-  - 現状の課題分析と改善提案
-  - 詳細なコード例と実装パターン
-  - 3フェーズの実装ロードマップ
-  - リスク軽減策と期待効果
+    subgraph "Server Layer"
+        subgraph "Presentation"
+            API[API Routes]
+        end
 
-## 🎯 **採用アーキテクチャ**
+        subgraph "Application"
+            CMD[Commands]
+            QRY[Queries]
+        end
 
-### Enhanced Modular Monolith
+        subgraph "Domain"
+            ENT[Entities]
+            VO[Value Objects]
+            EVT[Domain Events]
+        end
 
-従来のモジュラーモノリスを進化させた、以下の要素を統合した先進的なアーキテクチャ：
+        subgraph "Infrastructure"
+            REPO[Repositories]
+            BUS[Event Bus]
+        end
+    end
 
-- 🏗️ **モジュール独立性**: 各ビジネス機能が完全に独立
-- 🎯 **ドメイン中心設計**: DDDによるビジネスロジック中心化
-- 🔄 **CQRS パターン**: 読み書き責務の最適分離
-- 🔌 **Hexagonal 境界**: 外部システムとの疎結合
-- 📡 **Event-Driven**: ドメインイベントによる非同期処理
+    subgraph "External"
+        DB[(Database)]
+        CACHE[(Cache)]
+    end
 
-## 🚀 **実装ロードマップ**
+    UI --> API
+    API --> CMD
+    API --> QRY
+    CMD --> ENT
+    QRY --> REPO
+    ENT --> EVT
+    EVT --> BUS
+    REPO --> DB
+    REPO --> CACHE
+```
 
-### Phase 1: 基盤強化（4-6週間）
+## アーキテクチャドキュメント構成
 
-- Domain Layer構築（Entities, Value Objects, Domain Services）
-- Application Layer構築（Command/Query Handlers）
-- Infrastructure Layer構築（Repository実装、Event Bus）
+本アーキテクチャの詳細は、以下の構造で整理されています：
 
-### Phase 2: API & Client層改善（3-4週間）
+### 📁 [core/](./core/) - コアコンセプト
 
-- CQRS対応API層の実装
-- Anti-Corruption Layer実装
-- Client層の最適化
+- [**アーキテクチャ概要**](./core/OVERVIEW.md) - 全体構造と設計原則
+- [**レイヤー責務定義**](./core/LAYERS.md) - 各レイヤーの詳細な責務
+- [**モジュール構成**](./core/MODULE_STRUCTURE.md) - ディレクトリ構造と命名規則
 
-### Phase 3: 高度機能（2-3週間）
+### 📁 [implementation/](./implementation/) - 実装パターン
 
-- Event-Driven機能の拡充
-- パフォーマンス最適化
-- 監視・ログ機能の追加
+- [**CQRS パターン**](./implementation/CQRS_PATTERN.md) - Command/Query分離の実装
+- [**ドメインイベント**](./implementation/DOMAIN_EVENTS.md) - イベント駆動の実装
+- [**リポジトリパターン**](./implementation/REPOSITORY_PATTERN.md) - データアクセスの抽象化
+- [**値オブジェクト**](./implementation/VALUE_OBJECTS.md) - 不変性とビジネスルール
 
-## 📈 **期待される効果**
+### 📁 [operations/](./operations/) - 運用ガイド
 
-- **開発効率30-50%向上**: 明確な責務分離による並行開発
-- **保守コスト40-60%削減**: 変更の影響範囲限定
-- **技術負債蓄積防止**: アーキテクチャ原則による制御
-- **将来への拡張性**: マイクロサービス化への自然な移行パス
+- [**監視・ログ設計**](./operations/MONITORING_LOGGING.md) - 可観測性の実装
+- [**セキュリティ実装**](./operations/SECURITY.md) - セキュリティのベストプラクティス
+- [**パフォーマンス最適化**](./operations/PERFORMANCE_OPTIMIZATION.md) - 最適化手法
+- [**デプロイメント戦略**](./operations/DEPLOYMENT.md) - CI/CDと本番運用
 
-## 🔗 **関連資料**
+## クイックスタート
 
-- [プロジェクト全体のアーキテクチャ概要](../ARCHITECTURE.md)
-- [DDD設計資料](../domain/)
-- [API設計資料](../api/)
-- [データベース設計資料](../database/)
-- [画面設計資料](../screens/)
+### 1. アーキテクチャを理解する
 
-## 📚 **読み進め方**
+まず以下のドキュメントを順に読んで、アーキテクチャの基本を理解してください：
 
-### 🆕 **新規参加者向け**
+1. [アーキテクチャ概要](./core/OVERVIEW.md) - 全体像の把握
+2. [レイヤー責務定義](./core/LAYERS.md) - 各層の役割
+3. [モジュール構成](./core/MODULE_STRUCTURE.md) - プロジェクト構造
 
-1. [ARCHITECTURE_ENHANCED.md](./ARCHITECTURE_ENHANCED.md) - 全体概要の理解
-2. [../ARCHITECTURE.md](../ARCHITECTURE.md) - 簡潔な要約
-3. プロジェクト固有のドメイン設計資料
+### 2. 実装パターンを学ぶ
 
-### 🔍 **詳細検討者向け**
+次に、具体的な実装方法を学びます：
 
-1. [ARCHITECTURE_PATTERNS_COMPARISON.md](./ARCHITECTURE_PATTERNS_COMPARISON.md) - 選択根拠の理解
-2. [ARCHITECTURE_ENHANCED.md](./ARCHITECTURE_ENHANCED.md) - 実装詳細の確認
-3. [ARCHITECTURE_ENHANCEMENT_PROPOSAL.md](./ARCHITECTURE_ENHANCEMENT_PROPOSAL.md) - 移行計画の詳細
+1. [CQRSパターン](./implementation/CQRS_PATTERN.md) - 基本的な実装フロー
+2. [値オブジェクト](./implementation/VALUE_OBJECTS.md) - ドメインモデルの基礎
 
-### 🛠️ **実装者向け**
+### 3. 新機能を実装する
 
-1. [ARCHITECTURE_ENHANCED.md](./ARCHITECTURE_ENHANCED.md) の実装例確認
-2. [../domain/](../domain/) の DDD設計資料
-3. [../api/](../api/) の API設計資料
-4. 段階的実装の開始
+新しい機能を追加する際の基本的なステップ：
 
----
+```typescript
+// 1. 値オブジェクトを定義
+export class IngredientName extends ValueObject<string> {
+  protected validate(value: string): void {
+    if (!value || value.length > 50) {
+      throw new DomainError('Invalid ingredient name')
+    }
+  }
+}
 
-> **💡 ヒント**  
-> アーキテクチャの理解を深めるため、図表や実装例を中心に読み進めることをお勧めします。疑問点があれば、関連する設計資料も併せて参照してください。
+// 2. エンティティを作成
+export class Ingredient extends AggregateRoot<IngredientId> {
+  consume(amount: number): void {
+    // ビジネスロジック
+    this.addDomainEvent(new IngredientConsumedEvent(/*...*/))
+  }
+}
+
+// 3. コマンドハンドラーを実装
+export class ConsumeIngredientHandler {
+  async handle(command: ConsumeIngredientCommand): Promise<void> {
+    const ingredient = await this.repo.findById(command.ingredientId)
+    ingredient.consume(command.amount)
+    await this.repo.save(ingredient)
+  }
+}
+```
+
+## ベストプラクティス
+
+### ドメイン中心の設計
+
+- ビジネスロジックは必ずドメイン層に配置
+- 技術的な詳細はインフラストラクチャ層に隔離
+- ドメインイベントでモジュール間を疎結合に
+
+### テスタビリティ
+
+- 依存性注入によるテスト容易性
+- ドメインロジックの単体テスト
+- 統合テストでのシナリオ検証
+
+### パフォーマンス
+
+- CQRSによる読み書きの最適化
+- 適切なキャッシング戦略
+- 非同期処理の活用
+
+## 関連資料
+
+### 参考アーキテクチャ
+
+- [アーキテクチャパターン比較](./ARCHITECTURE_PATTERNS_COMPARISON.md) - 他のパターンとの詳細比較
+
+### プロジェクトドキュメント
+
+- [開発ガイド](../DEVELOPMENT_GUIDE.md) - 開発環境のセットアップ
+- [API仕様](../API_SPECIFICATION.md) - APIエンドポイント一覧
+- [データベース設計](../DATABASE_DESIGN.md) - スキーマ定義
+
+## まとめ
+
+Enhanced Modular Monolith は、以下の利点を提供します：
+
+- **開発効率**: 明確な構造による高い開発生産性
+- **保守性**: ドメイン中心設計による理解しやすいコード
+- **拡張性**: 将来のマイクロサービス化への準備
+- **パフォーマンス**: CQRSとキャッシングによる最適化
+
+詳細な実装方法については、各ドキュメントを参照してください。
