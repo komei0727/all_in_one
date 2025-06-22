@@ -1,44 +1,26 @@
+import { UnitId, UnitName, UnitSymbol, DisplayOrder } from '../value-objects'
+
 /**
  * Unit Entity
  *
  * 単位を表すドメインエンティティ
- * ビジネスルール:
- * - 単位名は必須
- * - 記号は必須
- * - 表示順序のデフォルトは0
+ * 値オブジェクトを使用してビジネスルールを保証
  */
 export class Unit {
-  constructor(
-    private readonly props: {
-      id: string
-      name: string
-      symbol: string
-      displayOrder?: number
-    }
-  ) {
-    // ビジネスルールの検証
-    if (!props.name || props.name.trim() === '') {
-      throw new Error('Unit name cannot be empty')
-    }
-    if (!props.symbol || props.symbol.trim() === '') {
-      throw new Error('Unit symbol cannot be empty')
-    }
-  }
+  readonly id: UnitId
+  readonly name: UnitName
+  readonly symbol: UnitSymbol
+  readonly displayOrder: DisplayOrder
 
-  get id(): string {
-    return this.props.id
-  }
-
-  get name(): string {
-    return this.props.name
-  }
-
-  get symbol(): string {
-    return this.props.symbol
-  }
-
-  get displayOrder(): number {
-    return this.props.displayOrder ?? 0
+  constructor(props: { id: string; name: string; symbol: string; displayOrder?: number }) {
+    // 値オブジェクトに変換（バリデーションは値オブジェクト内で実行される）
+    this.id = new UnitId(props.id)
+    this.name = new UnitName(props.name)
+    this.symbol = new UnitSymbol(props.symbol)
+    this.displayOrder =
+      props.displayOrder !== undefined
+        ? new DisplayOrder(props.displayOrder)
+        : DisplayOrder.default()
   }
 
   /**
@@ -47,10 +29,10 @@ export class Unit {
    */
   toJSON() {
     return {
-      id: this.id,
-      name: this.name,
-      symbol: this.symbol,
-      displayOrder: this.displayOrder,
+      id: this.id.getValue(),
+      name: this.name.getValue(),
+      symbol: this.symbol.getValue(),
+      displayOrder: this.displayOrder.getValue(),
     }
   }
 }

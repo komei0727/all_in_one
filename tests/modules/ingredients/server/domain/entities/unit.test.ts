@@ -7,7 +7,7 @@ import { Unit } from '@/modules/ingredients/server/domain/entities/unit'
  *
  * テスト対象:
  * - 単位エンティティの生成とバリデーション
- * - ビジネスルールの適用（名前、記号の必須チェック、表示順のデフォルト値）
+ * - ビジネスルールの適用（値オブジェクトによる）
  * - シリアライズ機能
  */
 describe('Unit Entity', () => {
@@ -26,14 +26,14 @@ describe('Unit Entity', () => {
       const unit = new Unit(unitData)
 
       // Assert
-      expect(unit.id).toBe('unit1')
-      expect(unit.name).toBe('グラム')
-      expect(unit.symbol).toBe('g')
-      expect(unit.displayOrder).toBe(1)
+      expect(unit.id.getValue()).toBe('unit1')
+      expect(unit.name.getValue()).toBe('グラム')
+      expect(unit.symbol.getValue()).toBe('g')
+      expect(unit.displayOrder.getValue()).toBe(1)
     })
 
     it('should throw error if name is empty', () => {
-      // 単位名が空の場合、ビジネスルールによりエラーがスローされることを確認
+      // 単位名が空の場合、値オブジェクトのバリデーションによりエラーがスローされることを確認
       // Arrange
       const unitData = {
         id: 'unit1',
@@ -43,11 +43,11 @@ describe('Unit Entity', () => {
       }
 
       // Act & Assert
-      expect(() => new Unit(unitData)).toThrow('Unit name cannot be empty')
+      expect(() => new Unit(unitData)).toThrow('単位名は必須です')
     })
 
     it('should throw error if symbol is empty', () => {
-      // 記号が空の場合、ビジネスルールによりエラーがスローされることを確認
+      // 記号が空の場合、値オブジェクトのバリデーションによりエラーがスローされることを確認
       // Arrange
       const unitData = {
         id: 'unit1',
@@ -57,7 +57,7 @@ describe('Unit Entity', () => {
       }
 
       // Act & Assert
-      expect(() => new Unit(unitData)).toThrow('Unit symbol cannot be empty')
+      expect(() => new Unit(unitData)).toThrow('単位記号は必須です')
     })
 
     it('should use default display order if not provided', () => {
@@ -73,7 +73,7 @@ describe('Unit Entity', () => {
       const unit = new Unit(unitData)
 
       // Assert
-      expect(unit.displayOrder).toBe(0)
+      expect(unit.displayOrder.getValue()).toBe(0)
     })
   })
 
