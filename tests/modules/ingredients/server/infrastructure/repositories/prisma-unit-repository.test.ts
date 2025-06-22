@@ -1,6 +1,6 @@
+import { PrismaClient, UnitType } from '@prisma/client'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { PrismaClient, UnitType } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'

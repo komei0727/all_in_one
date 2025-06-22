@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 
 import { Unit } from '../../domain/entities/unit.entity'
 import { UnitRepository } from '../../domain/repositories/unit-repository.interface'

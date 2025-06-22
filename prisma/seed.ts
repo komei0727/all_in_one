@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { PrismaClient, StorageLocation, UnitType } from '../src/generated/prisma'
+import { PrismaClient, StorageLocation, UnitType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
