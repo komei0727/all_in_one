@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { IngredientId } from '@/modules/ingredients/server/domain/value-objects/ingredient-id.vo'
+import { IngredientId } from '@/modules/ingredients/server/domain/value-objects'
 
 describe('IngredientId', () => {
   describe('constructor', () => {

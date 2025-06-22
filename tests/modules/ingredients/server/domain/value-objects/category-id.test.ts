@@ -1,73 +1,55 @@
 import { describe, it, expect } from 'vitest'
 
-import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
-import { CategoryId } from '@/modules/ingredients/server/domain/value-objects/category-id.vo'
+import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
+import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 
-/**
- * CategoryId値オブジェクトのテスト
- *
- * テスト対象:
- * - 正常な値の受け入れ
- * - 空文字列の拒否
- * - 等価性判定
- */
 describe('CategoryId', () => {
-  describe('constructor', () => {
-    it('should create with valid string', () => {
-      // Arrange & Act
-      const id = new CategoryId('cat123')
-
-      // Assert
-      expect(id.getValue()).toBe('cat123')
+  describe('create', () => {
+    // 正常系のテスト
+    it('有効なIDでインスタンスを生成できる', () => {
+      const id = 'cat_123'
+      const categoryId = CategoryId.create(id)
+      expect(categoryId.getValue()).toBe(id)
     })
 
-    it('should throw error for empty string', () => {
-      // Arrange & Act & Assert
-      expect(() => new CategoryId('')).toThrow(RequiredFieldException)
+    it('UUID形式のIDを許可する', () => {
+      const id = '550e8400-e29b-41d4-a716-446655440000'
+      const categoryId = CategoryId.create(id)
+      expect(categoryId.getValue()).toBe(id)
     })
 
-    it('should throw error for whitespace only string', () => {
-      // Arrange & Act & Assert
-      expect(() => new CategoryId('   ')).toThrow(RequiredFieldException)
+    // 異常系のテスト
+    it('空文字の場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => CategoryId.create('')).toThrow(RequiredFieldException)
+      expect(() => CategoryId.create('')).toThrow('カテゴリーID is required')
     })
 
-    it('should accept UUID format', () => {
-      // Arrange & Act
-      const uuid = '123e4567-e89b-12d3-a456-426614174000'
-      const id = new CategoryId(uuid)
+    it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => CategoryId.create('   ')).toThrow(RequiredFieldException)
+    })
 
-      // Assert
-      expect(id.getValue()).toBe(uuid)
+    it('undefinedの場合はRequiredFieldExceptionをスローする', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(() => CategoryId.create(undefined as any)).toThrow(RequiredFieldException)
+    })
+
+    it('nullの場合はRequiredFieldExceptionをスローする', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(() => CategoryId.create(null as any)).toThrow(RequiredFieldException)
     })
   })
 
   describe('equals', () => {
-    it('should return true for same values', () => {
-      // Arrange
-      const id1 = new CategoryId('cat123')
-      const id2 = new CategoryId('cat123')
-
-      // Act & Assert
+    it('同じ値の場合はtrueを返す', () => {
+      const id1 = CategoryId.create('cat_123')
+      const id2 = CategoryId.create('cat_123')
       expect(id1.equals(id2)).toBe(true)
     })
 
-    it('should return false for different values', () => {
-      // Arrange
-      const id1 = new CategoryId('cat123')
-      const id2 = new CategoryId('cat456')
-
-      // Act & Assert
+    it('異なる値の場合はfalseを返す', () => {
+      const id1 = CategoryId.create('cat_123')
+      const id2 = CategoryId.create('cat_456')
       expect(id1.equals(id2)).toBe(false)
-    })
-  })
-
-  describe('toString', () => {
-    it('should return string representation', () => {
-      // Arrange
-      const id = new CategoryId('cat123')
-
-      // Act & Assert
-      expect(id.toString()).toBe('cat123')
     })
   })
 })

@@ -1,113 +1,76 @@
 import { describe, it, expect } from 'vitest'
 
-import { InvalidFieldException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
-import { DisplayOrder } from '@/modules/ingredients/server/domain/value-objects/display-order.vo'
+import { InvalidFieldException } from '@/modules/ingredients/server/domain/exceptions'
+import { DisplayOrder } from '@/modules/ingredients/server/domain/value-objects'
 
-/**
- * DisplayOrder値オブジェクトのテスト
- *
- * テスト対象:
- * - 正常な値の受け入れ
- * - 負の値の拒否
- * - デフォルト値
- * - 等価性判定
- * - 比較操作
- */
 describe('DisplayOrder', () => {
-  describe('constructor', () => {
-    it('should create with valid number', () => {
-      // Arrange & Act
-      const order = new DisplayOrder(10)
-
-      // Assert
-      expect(order.getValue()).toBe(10)
+  describe('create', () => {
+    // 正常系のテスト
+    it('有効な表示順序でインスタンスを生成できる', () => {
+      const order = DisplayOrder.create(1)
+      expect(order.getValue()).toBe(1)
     })
 
-    it('should create with zero', () => {
-      // Arrange & Act
-      const order = new DisplayOrder(0)
-
-      // Assert
+    it('0を許可する', () => {
+      const order = DisplayOrder.create(0)
       expect(order.getValue()).toBe(0)
     })
 
-    it('should throw error for negative number', () => {
-      // Arrange & Act & Assert
-      expect(() => new DisplayOrder(-1)).toThrow(InvalidFieldException)
+    it('大きな整数を許可する', () => {
+      const order = DisplayOrder.create(9999)
+      expect(order.getValue()).toBe(9999)
     })
 
-    it('should throw error for decimal number', () => {
-      // Arrange & Act & Assert
-      expect(() => new DisplayOrder(1.5)).toThrow(InvalidFieldException)
+    // 異常系のテスト
+    it('負の数の場合はInvalidFieldExceptionをスローする', () => {
+      expect(() => DisplayOrder.create(-1)).toThrow(InvalidFieldException)
+      expect(() => DisplayOrder.create(-1)).toThrow('0以上の整数である必要があります')
+    })
+
+    it('小数の場合はInvalidFieldExceptionをスローする', () => {
+      expect(() => DisplayOrder.create(1.5)).toThrow(InvalidFieldException)
+      expect(() => DisplayOrder.create(1.5)).toThrow('整数である必要があります')
     })
   })
 
   describe('default', () => {
-    it('should create default order with value 0', () => {
-      // Arrange & Act
+    it('デフォルト値として0を返す', () => {
       const order = DisplayOrder.default()
-
-      // Assert
       expect(order.getValue()).toBe(0)
     })
   })
 
-  describe('equals', () => {
-    it('should return true for same values', () => {
-      // Arrange
-      const order1 = new DisplayOrder(10)
-      const order2 = new DisplayOrder(10)
-
-      // Act & Assert
-      expect(order1.equals(order2)).toBe(true)
-    })
-
-    it('should return false for different values', () => {
-      // Arrange
-      const order1 = new DisplayOrder(10)
-      const order2 = new DisplayOrder(20)
-
-      // Act & Assert
-      expect(order1.equals(order2)).toBe(false)
-    })
-  })
-
   describe('isLessThan', () => {
-    it('should return true when value is less than other', () => {
-      // Arrange
-      const order1 = new DisplayOrder(10)
-      const order2 = new DisplayOrder(20)
-
-      // Act & Assert
+    it('小さい値の場合はtrueを返す', () => {
+      const order1 = DisplayOrder.create(1)
+      const order2 = DisplayOrder.create(2)
       expect(order1.isLessThan(order2)).toBe(true)
     })
 
-    it('should return false when value is greater than other', () => {
-      // Arrange
-      const order1 = new DisplayOrder(20)
-      const order2 = new DisplayOrder(10)
-
-      // Act & Assert
+    it('大きい値の場合はfalseを返す', () => {
+      const order1 = DisplayOrder.create(2)
+      const order2 = DisplayOrder.create(1)
       expect(order1.isLessThan(order2)).toBe(false)
     })
 
-    it('should return false when values are equal', () => {
-      // Arrange
-      const order1 = new DisplayOrder(10)
-      const order2 = new DisplayOrder(10)
-
-      // Act & Assert
+    it('同じ値の場合はfalseを返す', () => {
+      const order1 = DisplayOrder.create(1)
+      const order2 = DisplayOrder.create(1)
       expect(order1.isLessThan(order2)).toBe(false)
     })
   })
 
-  describe('toString', () => {
-    it('should return string representation', () => {
-      // Arrange
-      const order = new DisplayOrder(42)
+  describe('equals', () => {
+    it('同じ値の場合はtrueを返す', () => {
+      const order1 = DisplayOrder.create(1)
+      const order2 = DisplayOrder.create(1)
+      expect(order1.equals(order2)).toBe(true)
+    })
 
-      // Act & Assert
-      expect(order.toString()).toBe('42')
+    it('異なる値の場合はfalseを返す', () => {
+      const order1 = DisplayOrder.create(1)
+      const order2 = DisplayOrder.create(2)
+      expect(order1.equals(order2)).toBe(false)
     })
   })
 })

@@ -1,73 +1,55 @@
 import { describe, it, expect } from 'vitest'
 
-import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
-import { UnitId } from '@/modules/ingredients/server/domain/value-objects/unit-id.vo'
+import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
+import { UnitId } from '@/modules/ingredients/server/domain/value-objects'
 
-/**
- * UnitId値オブジェクトのテスト
- *
- * テスト対象:
- * - 正常な値の受け入れ
- * - 空文字列の拒否
- * - 等価性判定
- */
 describe('UnitId', () => {
-  describe('constructor', () => {
-    it('should create with valid string', () => {
-      // Arrange & Act
-      const id = new UnitId('unit123')
-
-      // Assert
-      expect(id.getValue()).toBe('unit123')
+  describe('create', () => {
+    // 正常系のテスト
+    it('有効なIDでインスタンスを生成できる', () => {
+      const id = 'unit_123'
+      const unitId = UnitId.create(id)
+      expect(unitId.getValue()).toBe(id)
     })
 
-    it('should throw error for empty string', () => {
-      // Arrange & Act & Assert
-      expect(() => new UnitId('')).toThrow(RequiredFieldException)
+    it('UUID形式のIDを許可する', () => {
+      const id = '550e8400-e29b-41d4-a716-446655440000'
+      const unitId = UnitId.create(id)
+      expect(unitId.getValue()).toBe(id)
     })
 
-    it('should throw error for whitespace only string', () => {
-      // Arrange & Act & Assert
-      expect(() => new UnitId('   ')).toThrow(RequiredFieldException)
+    // 異常系のテスト
+    it('空文字の場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => UnitId.create('')).toThrow(RequiredFieldException)
+      expect(() => UnitId.create('')).toThrow('単位ID is required')
     })
 
-    it('should accept UUID format', () => {
-      // Arrange & Act
-      const uuid = '987e6543-e21b-12d3-a456-426614174000'
-      const id = new UnitId(uuid)
+    it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => UnitId.create('   ')).toThrow(RequiredFieldException)
+    })
 
-      // Assert
-      expect(id.getValue()).toBe(uuid)
+    it('undefinedの場合はRequiredFieldExceptionをスローする', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(() => UnitId.create(undefined as any)).toThrow(RequiredFieldException)
+    })
+
+    it('nullの場合はRequiredFieldExceptionをスローする', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(() => UnitId.create(null as any)).toThrow(RequiredFieldException)
     })
   })
 
   describe('equals', () => {
-    it('should return true for same values', () => {
-      // Arrange
-      const id1 = new UnitId('unit123')
-      const id2 = new UnitId('unit123')
-
-      // Act & Assert
+    it('同じ値の場合はtrueを返す', () => {
+      const id1 = UnitId.create('unit_123')
+      const id2 = UnitId.create('unit_123')
       expect(id1.equals(id2)).toBe(true)
     })
 
-    it('should return false for different values', () => {
-      // Arrange
-      const id1 = new UnitId('unit123')
-      const id2 = new UnitId('unit456')
-
-      // Act & Assert
+    it('異なる値の場合はfalseを返す', () => {
+      const id1 = UnitId.create('unit_123')
+      const id2 = UnitId.create('unit_456')
       expect(id1.equals(id2)).toBe(false)
-    })
-  })
-
-  describe('toString', () => {
-    it('should return string representation', () => {
-      // Arrange
-      const id = new UnitId('unit123')
-
-      // Act & Assert
-      expect(id.toString()).toBe('unit123')
     })
   })
 })

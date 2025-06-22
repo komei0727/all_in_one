@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  StorageLocation,
-  StorageType,
-} from '@/modules/ingredients/server/domain/value-objects/storage-location.vo'
+import { StorageLocation, StorageType } from '@/modules/ingredients/server/domain/value-objects'
 
 describe('StorageLocation', () => {
   describe('constructor', () => {

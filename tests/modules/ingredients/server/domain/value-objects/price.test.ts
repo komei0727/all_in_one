@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { Price } from '@/modules/ingredients/server/domain/value-objects/price.vo'
+import { Price } from '@/modules/ingredients/server/domain/value-objects'
 
 describe('Price', () => {
   describe('constructor', () => {
