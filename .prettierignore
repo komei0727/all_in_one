@@ -39,3 +39,6 @@ src/generated/**/*
 
 # Claude configuration files
 .claude/
+
+# Worktree
+.worktree/

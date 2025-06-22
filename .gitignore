@@ -38,3 +38,5 @@ next-env.d.ts
 
 # Claude configuration
 CLAUDE.md
+# worktree
+.worktree/
