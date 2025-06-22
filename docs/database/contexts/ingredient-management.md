@@ -10,50 +10,58 @@
 
 食材エンティティを管理するメインテーブル。集約ルートとして機能します。
 
-| カラム名         | 型        | 制約                   | 説明                                             |
-| ---------------- | --------- | ---------------------- | ------------------------------------------------ |
-| id               | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                             |
-| name             | TEXT      | NOT NULL               | 食材名                                           |
-| category_id      | TEXT      | NOT NULL, FOREIGN KEY  | カテゴリーID                                     |
-| unit_id          | TEXT      | NOT NULL, FOREIGN KEY  | 単位ID                                           |
-| storage_location | TEXT      | NOT NULL               | 保存場所（REFRIGERATED/FROZEN/ROOM_TEMPERATURE） |
-| storage_detail   | TEXT      | NULL                   | 保存場所の詳細（例：ドアポケット）               |
-| best_before_date | TIMESTAMP | NULL                   | 賞味期限                                         |
-| expiry_date      | TIMESTAMP | NULL                   | 消費期限                                         |
-| notes            | TEXT      | NULL                   | メモ                                             |
-| created_at       | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                                         |
-| updated_at       | TIMESTAMP | NOT NULL               | 更新日時                                         |
-| deleted_at       | TIMESTAMP | NULL                   | 論理削除日時                                     |
-| created_by       | TEXT      | NOT NULL               | 作成ユーザーID                                   |
-| updated_by       | TEXT      | NOT NULL               | 更新ユーザーID                                   |
+| カラム名    | 型        | 制約                                    | 説明                 |
+| ----------- | --------- | --------------------------------------- | -------------------- |
+| id          | TEXT      | PRIMARY KEY                             | CUID形式の一意識別子 |
+| name        | TEXT      | NOT NULL                                | 食材名               |
+| category_id | TEXT      | NOT NULL, FOREIGN KEY (CASCADE制約付き) | カテゴリーID         |
+| memo        | TEXT      | NULL                                    | メモ                 |
+| created_at  | TIMESTAMP | NOT NULL DEFAULT NOW()                  | 作成日時             |
+| updated_at  | TIMESTAMP | NOT NULL                                | 更新日時             |
+| deleted_at  | TIMESTAMP | NULL                                    | 論理削除日時         |
+| created_by  | TEXT      | NULL                                    | 作成ユーザーID       |
+| updated_by  | TEXT      | NULL                                    | 更新ユーザーID       |
+
+**ユニーク制約**:
+
+- `[name, category_id, deleted_at]` - 同一カテゴリー内での食材名の重複を防ぐ
 
 **インデックス**:
 
 - `idx_ingredients_category_id` - カテゴリー別検索の高速化
-- `idx_ingredients_storage_location` - 保存場所別検索の高速化
-- `idx_ingredients_best_before_date` - 賞味期限ソートの高速化
-- `idx_ingredients_expiry_date` - 消費期限ソートの高速化
 - `idx_ingredients_deleted_at` - 論理削除フィルタリング
 - `idx_ingredients_name_deleted` - 食材名検索（削除済み除外）
 
 ### ingredient_stocks（食材在庫）テーブル
 
-食材の在庫情報を管理するテーブル。数量の変更履歴を保持します。
+食材の在庫情報を管理するテーブル。食材ごとに複数の在庫を管理可能です。
 
-| カラム名       | 型        | 制約                   | 説明                 |
-| -------------- | --------- | ---------------------- | -------------------- |
-| id             | TEXT      | PRIMARY KEY            | CUID形式の一意識別子 |
-| ingredient_id  | TEXT      | NOT NULL, FOREIGN KEY  | 食材ID               |
-| quantity       | DECIMAL   | NOT NULL               | 現在の在庫数量       |
-| purchase_date  | TIMESTAMP | NOT NULL               | 購入日               |
-| purchase_price | INTEGER   | NULL                   | 購入価格（円単位）   |
-| created_at     | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時             |
-| updated_at     | TIMESTAMP | NOT NULL               | 更新日時             |
+| カラム名                | 型            | 制約                                     | 説明                                            |
+| ----------------------- | ------------- | ---------------------------------------- | ----------------------------------------------- |
+| id                      | TEXT          | PRIMARY KEY                              | CUID形式の一意識別子                            |
+| ingredient_id           | TEXT          | NOT NULL, FOREIGN KEY (CASCADE制約付き)  | 食材ID                                          |
+| quantity                | FLOAT         | NOT NULL                                 | 現在の在庫数量                                  |
+| unit_id                 | TEXT          | NOT NULL, FOREIGN KEY (RESTRICT制約付き) | 単位ID                                          |
+| storage_location_type   | ENUM          | NOT NULL                                 | 保管場所タイプ（REFRIGERATED/FROZEN/ROOM_TEMP） |
+| storage_location_detail | TEXT          | NULL                                     | 保管場所の詳細（例：ドアポケット）              |
+| best_before_date        | TIMESTAMP     | NULL                                     | 賞味期限                                        |
+| expiry_date             | TIMESTAMP     | NULL                                     | 消費期限                                        |
+| purchase_date           | TIMESTAMP     | NOT NULL                                 | 購入日                                          |
+| price                   | DECIMAL(10,2) | NULL                                     | 価格（小数点対応）                              |
+| is_active               | BOOLEAN       | NOT NULL DEFAULT TRUE                    | アクティブな在庫かどうか                        |
+| created_at              | TIMESTAMP     | NOT NULL DEFAULT NOW()                   | 作成日時                                        |
+| updated_at              | TIMESTAMP     | NOT NULL                                 | 更新日時                                        |
+| deleted_at              | TIMESTAMP     | NULL                                     | 論理削除日時                                    |
+| created_by              | TEXT          | NULL                                     | 作成ユーザーID                                  |
+| updated_by              | TEXT          | NULL                                     | 更新ユーザーID                                  |
 
 **インデックス**:
 
-- `idx_ingredient_stocks_ingredient_id` - 食材IDによる検索
+- `idx_ingredient_stocks_ingredient_id_is_active` - 食材IDとアクティブフラグの複合インデックス
 - `idx_ingredient_stocks_purchase_date` - 購入日によるソート
+- `idx_ingredient_stocks_best_before_date` - 賞味期限によるソート
+- `idx_ingredient_stocks_expiry_date` - 消費期限によるソート
+- `idx_ingredient_stocks_deleted_at` - 論理削除フィルタリング
 
 ### ingredient_stock_histories（在庫履歴）テーブル
 
@@ -155,25 +163,30 @@ CREATE VIEW active_ingredients_view AS
 SELECT
   i.*,
   c.name as category_name,
+  s.quantity as current_quantity,
+  s.unit_id,
   u.name as unit_name,
   u.symbol as unit_symbol,
-  s.quantity as current_quantity,
+  s.storage_location_type,
+  s.storage_location_detail,
   s.purchase_date,
-  s.purchase_price,
+  s.price,
+  s.best_before_date,
+  s.expiry_date,
   CASE
-    WHEN i.expiry_date IS NOT NULL AND i.expiry_date < CURRENT_DATE THEN true
-    WHEN i.best_before_date IS NOT NULL AND i.best_before_date < CURRENT_DATE THEN true
+    WHEN s.expiry_date IS NOT NULL AND s.expiry_date < CURRENT_DATE THEN true
+    WHEN s.best_before_date IS NOT NULL AND s.best_before_date < CURRENT_DATE THEN true
     ELSE false
   END as is_expired,
   CASE
-    WHEN i.expiry_date IS NOT NULL THEN DATE_PART('day', i.expiry_date - CURRENT_DATE)
-    WHEN i.best_before_date IS NOT NULL THEN DATE_PART('day', i.best_before_date - CURRENT_DATE)
+    WHEN s.expiry_date IS NOT NULL THEN DATE_PART('day', s.expiry_date - CURRENT_DATE)
+    WHEN s.best_before_date IS NOT NULL THEN DATE_PART('day', s.best_before_date - CURRENT_DATE)
     ELSE NULL
   END as days_until_expiry
 FROM ingredients i
 JOIN categories c ON i.category_id = c.id
-JOIN units u ON i.unit_id = u.id
-LEFT JOIN ingredient_stocks s ON i.id = s.ingredient_id
+LEFT JOIN ingredient_stocks s ON i.id = s.ingredient_id AND s.is_active = true AND s.deleted_at IS NULL
+LEFT JOIN units u ON s.unit_id = u.id
 WHERE i.deleted_at IS NULL;
 ```
 
@@ -191,8 +204,8 @@ SELECT
   u.symbol as unit_symbol
 FROM ingredients i
 JOIN categories c ON i.category_id = c.id
-JOIN units u ON i.unit_id = u.id
-JOIN ingredient_stocks s ON i.id = s.ingredient_id
+JOIN ingredient_stocks s ON i.id = s.ingredient_id AND s.is_active = true AND s.deleted_at IS NULL
+JOIN units u ON s.unit_id = u.id
 WHERE i.deleted_at IS NULL
   AND s.quantity <= 1; -- 将来的に動的な閾値に変更
 ```
@@ -212,24 +225,40 @@ WHERE i.deleted_at IS NULL
 -- 1. 新しいカラムを追加
 ALTER TABLE ingredients
 ADD COLUMN deleted_at TIMESTAMP NULL,
-ADD COLUMN created_by TEXT NOT NULL DEFAULT 'system',
-ADD COLUMN updated_by TEXT NOT NULL DEFAULT 'system',
-ADD COLUMN storage_detail TEXT NULL;
+ADD COLUMN created_by TEXT NULL,
+ADD COLUMN updated_by TEXT NULL;
 
--- 2. ingredient_stocksテーブルにデータを移行
-INSERT INTO ingredient_stocks (id, ingredient_id, quantity, purchase_date, purchase_price, created_at, updated_at)
-SELECT
-  gen_random_uuid(),
-  id,
-  quantity,
-  purchase_date,
-  price,
-  created_at,
-  updated_at
-FROM ingredients;
+-- 2. ユニーク制約を追加
+ALTER TABLE ingredients
+ADD CONSTRAINT unique_ingredient_name_category_deleted
+UNIQUE (name, category_id, deleted_at);
 
--- 3. ingredientsテーブルから数量関連カラムを削除（別トランザクションで実行）
--- ALTER TABLE ingredients DROP COLUMN quantity, DROP COLUMN purchase_date, DROP COLUMN price;
+-- 3. 単位テーブルのシンボルにユニーク制約を追加
+ALTER TABLE units
+ADD CONSTRAINT unique_unit_symbol UNIQUE (symbol);
+
+-- 4. ingredient_stocksテーブルに監査フィールドを追加
+ALTER TABLE ingredient_stocks
+ADD COLUMN deleted_at TIMESTAMP NULL,
+ADD COLUMN created_by TEXT NULL,
+ADD COLUMN updated_by TEXT NULL;
+
+-- 5. 価格フィールドの型を変更
+ALTER TABLE ingredient_stocks
+ALTER COLUMN price TYPE DECIMAL(10,2);
+
+-- 6. 外部キー制約のカスケード設定
+ALTER TABLE ingredients
+DROP CONSTRAINT ingredients_category_id_fkey,
+ADD CONSTRAINT ingredients_category_id_fkey
+  FOREIGN KEY (category_id) REFERENCES categories(id)
+  ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE ingredient_stocks
+DROP CONSTRAINT ingredient_stocks_ingredient_id_fkey,
+ADD CONSTRAINT ingredient_stocks_ingredient_id_fkey
+  FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
+  ON DELETE CASCADE ON UPDATE CASCADE;
 ```
 
 ## パフォーマンス考慮事項
@@ -277,7 +306,8 @@ CREATE POLICY "Users can view own stock history" ON ingredient_stock_histories
 
 ## 更新履歴
 
-| 日付       | 内容                                             | 作成者  |
-| ---------- | ------------------------------------------------ | ------- |
-| 2025-01-22 | 初版作成 - DDD設計に基づくテーブル構成           | @system |
-| 2025-01-22 | 論理削除、イベントストア、在庫履歴テーブルを追加 | @system |
+| 日付       | 内容                                                       | 作成者  |
+| ---------- | ---------------------------------------------------------- | ------- |
+| 2025-01-22 | 初版作成 - DDD設計に基づくテーブル構成                     | @system |
+| 2025-01-22 | 論理削除、イベントストア、在庫履歴テーブルを追加           | @system |
+| 2025-01-22 | 食材と在庫の分離、監査フィールドの追加、外部キー制約の強化 | @system |
