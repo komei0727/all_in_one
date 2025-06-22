@@ -17,10 +17,10 @@
     "prepare": "husky",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "db:push": "dotenv -e .env.local -- prisma db push",
+    "db:seed": "dotenv -e .env.local -- prisma db seed",
+    "db:studio": "dotenv -e .env.local -- prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
@@ -46,6 +46,7 @@
     "@typescript-eslint/parser": "7.18.0",
     "@vitejs/plugin-react": "4.3.3",
     "@vitest/coverage-v8": "^3.2.4",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.22",
     "eslint-config-prettier": "9.1.0",
