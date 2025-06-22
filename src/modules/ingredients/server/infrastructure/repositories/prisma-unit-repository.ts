@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 
 import { Unit } from '../../domain/entities/unit.entity'
 import { UnitRepository } from '../../domain/repositories/unit-repository.interface'
+import { UnitId } from '../../domain/value-objects'
 
 /**
  * PrismaUnitRepository
@@ -35,9 +36,9 @@ export class PrismaUnitRepository implements UnitRepository {
   /**
    * IDによる単位の取得
    */
-  async findById(id: string): Promise<Unit | null> {
+  async findById(id: UnitId): Promise<Unit | null> {
     const unit = await this.prisma.unit.findUnique({
-      where: { id },
+      where: { id: id.getValue() },
     })
 
     if (!unit) {

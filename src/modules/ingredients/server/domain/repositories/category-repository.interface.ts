@@ -1,4 +1,5 @@
 import { Category } from '../entities/category.entity'
+import { CategoryId } from '../value-objects'
 
 /**
  * CategoryRepository Interface
@@ -18,5 +19,5 @@ export interface CategoryRepository {
    * @param id カテゴリーID
    * @returns カテゴリーエンティティ、存在しない場合はnull
    */
-  findById(id: string): Promise<Category | null>
+  findById(id: CategoryId): Promise<Category | null>
 }

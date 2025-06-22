@@ -1,4 +1,5 @@
 import { Unit } from '../entities/unit.entity'
+import { UnitId } from '../value-objects'
 
 /**
  * UnitRepository Interface
@@ -18,5 +19,5 @@ export interface UnitRepository {
    * @param id 単位ID
    * @returns 単位エンティティ、存在しない場合はnull
    */
-  findById(id: string): Promise<Unit | null>
+  findById(id: UnitId): Promise<Unit | null>
 }
