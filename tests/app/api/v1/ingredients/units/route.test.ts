@@ -2,21 +2,13 @@ import { NextRequest } from 'next/server'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GET } from '@/app/api/v1/ingredients/units/route'
-import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units'
+import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/units/get-units.handler'
 
 // モジュールのモック
-vi.mock('@/modules/ingredients/server/application/queries/get-units', () => ({
-  GetUnitsQueryHandler: vi.fn().mockImplementation(() => ({
-    execute: vi.fn(),
+vi.mock('@/modules/ingredients/server/api/handlers/units/get-units.handler', () => ({
+  GetUnitsHandler: vi.fn().mockImplementation(() => ({
+    handle: vi.fn(),
   })),
-}))
-
-vi.mock('@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository', () => ({
-  PrismaUnitRepository: vi.fn(),
-}))
-
-vi.mock('@/lib/prisma/client', () => ({
-  prisma: {},
 }))
 
 /**
@@ -28,20 +20,18 @@ vi.mock('@/lib/prisma/client', () => ({
  * - HTTPレスポンスの形式
  */
 describe('GET /api/v1/ingredients/units', () => {
-  let mockQueryHandler: { execute: ReturnType<typeof vi.fn> }
+  let mockHandler: { handle: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockQueryHandler = {
-      execute: vi.fn(),
+    mockHandler = {
+      handle: vi.fn(),
     }
-    vi.mocked(GetUnitsQueryHandler).mockImplementation(
-      () => mockQueryHandler as unknown as GetUnitsQueryHandler
-    )
+    vi.mocked(GetUnitsHandler).mockImplementation(() => mockHandler as unknown as GetUnitsHandler)
   })
 
-  it('should return units from query handler', async () => {
-    // クエリハンドラーの結果をHTTPレスポンスとして返すことを確認
+  it('should return units from handler', async () => {
+    // ハンドラーの結果をHTTPレスポンスとして返すことを確認
     // Arrange
     const mockResult = {
       units: [
@@ -49,7 +39,7 @@ describe('GET /api/v1/ingredients/units', () => {
         { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
       ],
     }
-    mockQueryHandler.execute.mockResolvedValue(mockResult)
+    mockHandler.handle.mockResolvedValue(mockResult)
 
     // Act
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients/units')
@@ -64,13 +54,13 @@ describe('GET /api/v1/ingredients/units', () => {
         { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
       ],
     })
-    expect(mockQueryHandler.execute).toHaveBeenCalledOnce()
+    expect(mockHandler.handle).toHaveBeenCalledOnce()
   })
 
   it('should handle errors gracefully', async () => {
     // エラーが発生した場合、適切なHTTPエラーレスポンスを返すことを確認
     // Arrange
-    mockQueryHandler.execute.mockRejectedValue(new Error('Database error'))
+    mockHandler.handle.mockRejectedValue(new Error('Database error'))
 
     // Act
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients/units')

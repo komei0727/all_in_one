@@ -2,24 +2,13 @@ import { NextRequest } from 'next/server'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GET } from '@/app/api/v1/ingredients/categories/route'
-import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories'
+import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/categories/get-categories.handler'
 
 // モジュールのモック
-vi.mock('@/modules/ingredients/server/application/queries/get-categories', () => ({
-  GetCategoriesQueryHandler: vi.fn().mockImplementation(() => ({
-    execute: vi.fn(),
+vi.mock('@/modules/ingredients/server/api/handlers/categories/get-categories.handler', () => ({
+  GetCategoriesHandler: vi.fn().mockImplementation(() => ({
+    handle: vi.fn(),
   })),
-}))
-
-vi.mock(
-  '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository',
-  () => ({
-    PrismaCategoryRepository: vi.fn(),
-  })
-)
-
-vi.mock('@/lib/prisma/client', () => ({
-  prisma: {},
 }))
 
 /**
@@ -31,20 +20,20 @@ vi.mock('@/lib/prisma/client', () => ({
  * - HTTPレスポンスの形式
  */
 describe('GET /api/v1/ingredients/categories', () => {
-  let mockQueryHandler: { execute: ReturnType<typeof vi.fn> }
+  let mockHandler: { handle: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockQueryHandler = {
-      execute: vi.fn(),
+    mockHandler = {
+      handle: vi.fn(),
     }
-    vi.mocked(GetCategoriesQueryHandler).mockImplementation(
-      () => mockQueryHandler as unknown as GetCategoriesQueryHandler
+    vi.mocked(GetCategoriesHandler).mockImplementation(
+      () => mockHandler as unknown as GetCategoriesHandler
     )
   })
 
-  it('should return categories from query handler', async () => {
-    // クエリハンドラーの結果をHTTPレスポンスとして返すことを確認
+  it('should return categories from handler', async () => {
+    // ハンドラーの結果をHTTPレスポンスとして返すことを確認
     // Arrange
     const mockResult = {
       categories: [
@@ -52,7 +41,7 @@ describe('GET /api/v1/ingredients/categories', () => {
         { id: 'cat2', name: '肉類', displayOrder: 2 },
       ],
     }
-    mockQueryHandler.execute.mockResolvedValue(mockResult)
+    mockHandler.handle.mockResolvedValue(mockResult)
 
     // Act
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients/categories')
@@ -67,13 +56,13 @@ describe('GET /api/v1/ingredients/categories', () => {
         { id: 'cat2', name: '肉類', displayOrder: 2 },
       ],
     })
-    expect(mockQueryHandler.execute).toHaveBeenCalledOnce()
+    expect(mockHandler.handle).toHaveBeenCalledOnce()
   })
 
   it('should handle errors gracefully', async () => {
     // エラーが発生した場合、適切なHTTPエラーレスポンスを返すことを確認
     // Arrange
-    mockQueryHandler.execute.mockRejectedValue(new Error('Database error'))
+    mockHandler.handle.mockRejectedValue(new Error('Database error'))
 
     // Act
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients/categories')
