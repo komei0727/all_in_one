@@ -31,12 +31,7 @@ export class GetUnitsQueryHandler {
 
     // エンティティをDTOに変換
     return {
-      units: units.map((unit) => ({
-        id: unit.id,
-        name: unit.name,
-        symbol: unit.symbol,
-        displayOrder: unit.displayOrder,
-      })),
+      units: units.map((unit) => unit.toJSON()),
     }
   }
 }

@@ -59,7 +59,7 @@ describe('PrismaUnitRepository', () => {
           updatedAt: new Date(),
         },
       ]
-      vi.mocked(prisma.unit.findMany).mockResolvedValue(mockDbUnits as any)
+      vi.mocked(prisma.unit.findMany).mockResolvedValue(mockDbUnits)
 
       // Act
       const result = await repository.findAllActive()
@@ -67,16 +67,16 @@ describe('PrismaUnitRepository', () => {
       // Assert
       expect(result).toHaveLength(2)
       expect(result[0]).toBeInstanceOf(Unit)
-      expect(result[0].id).toBe('unit1')
-      expect(result[0].name).toBe('グラム')
-      expect(result[0].symbol).toBe('g')
-      expect(result[0].displayOrder).toBe(1)
+      expect(result[0].id.getValue()).toBe('unit1')
+      expect(result[0].name.getValue()).toBe('グラム')
+      expect(result[0].symbol.getValue()).toBe('g')
+      expect(result[0].displayOrder.getValue()).toBe(1)
 
       expect(result[1]).toBeInstanceOf(Unit)
-      expect(result[1].id).toBe('unit2')
-      expect(result[1].name).toBe('キログラム')
-      expect(result[1].symbol).toBe('kg')
-      expect(result[1].displayOrder).toBe(2)
+      expect(result[1].id.getValue()).toBe('unit2')
+      expect(result[1].name.getValue()).toBe('キログラム')
+      expect(result[1].symbol.getValue()).toBe('kg')
+      expect(result[1].displayOrder.getValue()).toBe(2)
 
       // Prismaクエリの確認
       expect(prisma.unit.findMany).toHaveBeenCalledWith({
@@ -113,17 +113,17 @@ describe('PrismaUnitRepository', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       }
-      vi.mocked(prisma.unit.findUnique).mockResolvedValue(mockDbUnit as any)
+      vi.mocked(prisma.unit.findUnique).mockResolvedValue(mockDbUnit)
 
       // Act
       const result = await repository.findById('unit1')
 
       // Assert
       expect(result).toBeInstanceOf(Unit)
-      expect(result?.id).toBe('unit1')
-      expect(result?.name).toBe('グラム')
-      expect(result?.symbol).toBe('g')
-      expect(result?.displayOrder).toBe(1)
+      expect(result?.id.getValue()).toBe('unit1')
+      expect(result?.name.getValue()).toBe('グラム')
+      expect(result?.symbol.getValue()).toBe('g')
+      expect(result?.displayOrder.getValue()).toBe(1)
 
       expect(prisma.unit.findUnique).toHaveBeenCalledWith({
         where: { id: 'unit1' },

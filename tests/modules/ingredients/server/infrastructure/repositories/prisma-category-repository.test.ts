@@ -63,14 +63,14 @@ describe('PrismaCategoryRepository', () => {
       // Assert
       expect(result).toHaveLength(2)
       expect(result[0]).toBeInstanceOf(Category)
-      expect(result[0].id).toBe('cat1')
-      expect(result[0].name).toBe('野菜')
-      expect(result[0].displayOrder).toBe(1)
+      expect(result[0].id.getValue()).toBe('cat1')
+      expect(result[0].name.getValue()).toBe('野菜')
+      expect(result[0].displayOrder.getValue()).toBe(1)
 
       expect(result[1]).toBeInstanceOf(Category)
-      expect(result[1].id).toBe('cat2')
-      expect(result[1].name).toBe('肉類')
-      expect(result[1].displayOrder).toBe(2)
+      expect(result[1].id.getValue()).toBe('cat2')
+      expect(result[1].name.getValue()).toBe('肉類')
+      expect(result[1].displayOrder.getValue()).toBe(2)
 
       // Prismaクエリの確認
       expect(prisma.category.findMany).toHaveBeenCalledWith({
@@ -112,9 +112,9 @@ describe('PrismaCategoryRepository', () => {
 
       // Assert
       expect(result).toBeInstanceOf(Category)
-      expect(result?.id).toBe('cat1')
-      expect(result?.name).toBe('野菜')
-      expect(result?.displayOrder).toBe(1)
+      expect(result?.id.getValue()).toBe('cat1')
+      expect(result?.name.getValue()).toBe('野菜')
+      expect(result?.displayOrder.getValue()).toBe(1)
 
       expect(prisma.category.findUnique).toHaveBeenCalledWith({
         where: { id: 'cat1' },

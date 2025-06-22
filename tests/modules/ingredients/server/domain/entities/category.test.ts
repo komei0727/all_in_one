@@ -7,7 +7,7 @@ import { Category } from '@/modules/ingredients/server/domain/entities/category'
  *
  * テスト対象:
  * - カテゴリーエンティティの生成とバリデーション
- * - ビジネスルールの適用（名前の必須チェック、表示順のデフォルト値）
+ * - ビジネスルールの適用（値オブジェクトによる）
  * - シリアライズ機能
  */
 describe('Category Entity', () => {
@@ -25,13 +25,13 @@ describe('Category Entity', () => {
       const category = new Category(categoryData)
 
       // Assert
-      expect(category.id).toBe('cat1')
-      expect(category.name).toBe('野菜')
-      expect(category.displayOrder).toBe(1)
+      expect(category.id.getValue()).toBe('cat1')
+      expect(category.name.getValue()).toBe('野菜')
+      expect(category.displayOrder.getValue()).toBe(1)
     })
 
     it('should throw error if name is empty', () => {
-      // カテゴリー名が空の場合、ビジネスルールによりエラーがスローされることを確認
+      // カテゴリー名が空の場合、値オブジェクトのバリデーションによりエラーがスローされることを確認
       // Arrange
       const categoryData = {
         id: 'cat1',
@@ -40,7 +40,7 @@ describe('Category Entity', () => {
       }
 
       // Act & Assert
-      expect(() => new Category(categoryData)).toThrow('Category name cannot be empty')
+      expect(() => new Category(categoryData)).toThrow('カテゴリー名は必須です')
     })
 
     it('should use default display order if not provided', () => {
@@ -55,7 +55,7 @@ describe('Category Entity', () => {
       const category = new Category(categoryData)
 
       // Assert
-      expect(category.displayOrder).toBe(0)
+      expect(category.displayOrder.getValue()).toBe(0)
     })
   })
 

@@ -30,11 +30,7 @@ export class GetCategoriesQueryHandler {
 
     // エンティティをDTOに変換
     return {
-      categories: categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        displayOrder: category.displayOrder,
-      })),
+      categories: categories.map((category) => category.toJSON()),
     }
   }
 }

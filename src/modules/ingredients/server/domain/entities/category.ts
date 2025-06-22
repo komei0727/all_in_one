@@ -1,35 +1,24 @@
+import { CategoryId, CategoryName, DisplayOrder } from '../value-objects'
+
 /**
  * Category Entity
  *
  * 食材カテゴリーを表すドメインエンティティ
- * ビジネスルール:
- * - カテゴリー名は必須
- * - 表示順序のデフォルトは0
+ * 値オブジェクトを使用してビジネスルールを保証
  */
 export class Category {
-  constructor(
-    private readonly props: {
-      id: string
-      name: string
-      displayOrder?: number
-    }
-  ) {
-    // ビジネスルールの検証
-    if (!props.name || props.name.trim() === '') {
-      throw new Error('Category name cannot be empty')
-    }
-  }
+  readonly id: CategoryId
+  readonly name: CategoryName
+  readonly displayOrder: DisplayOrder
 
-  get id(): string {
-    return this.props.id
-  }
-
-  get name(): string {
-    return this.props.name
-  }
-
-  get displayOrder(): number {
-    return this.props.displayOrder ?? 0
+  constructor(props: { id: string; name: string; displayOrder?: number }) {
+    // 値オブジェクトに変換（バリデーションは値オブジェクト内で実行される）
+    this.id = new CategoryId(props.id)
+    this.name = new CategoryName(props.name)
+    this.displayOrder =
+      props.displayOrder !== undefined
+        ? new DisplayOrder(props.displayOrder)
+        : DisplayOrder.default()
   }
 
   /**
@@ -38,9 +27,9 @@ export class Category {
    */
   toJSON() {
     return {
-      id: this.id,
-      name: this.name,
-      displayOrder: this.displayOrder,
+      id: this.id.getValue(),
+      name: this.name.getValue(),
+      displayOrder: this.displayOrder.getValue(),
     }
   }
 }
