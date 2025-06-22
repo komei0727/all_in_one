@@ -125,7 +125,7 @@ pnpm db:push
 ## 関連ドキュメント
 
 - [アーキテクチャ設計](../ARCHITECTURE.md)
-- [API仕様](../API_SPECIFICATION.md)
+- [API仕様](../api/)
 - [ドメインモデル](../domain/README.md)
 
 ## 更新履歴

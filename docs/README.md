@@ -1,82 +1,100 @@
-# プロジェクトドキュメント
+# プロジェクト設計資料
 
-## 📚 ドキュメント一覧
+本プロジェクトの設計に関する包括的な資料集です。
 
-### 基本ドキュメント
+## 📁 ディレクトリ構成
 
-- [ユーザーストーリー](./USER_STORY.md) - 機能要件とユーザー視点の要求
-- [実装計画書](./IMPLEMENTATION_PLAN.md) - 技術スタックと全体構成
+### 🏗️ アーキテクチャ設計
 
-### 設計ドキュメント
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - アーキテクチャ概要
+- **[architecture/](./architecture/)** - 詳細なアーキテクチャ設計資料
+  - Enhanced Modular Monolith の完全設計仕様
+  - アーキテクチャパターン比較分析
+  - 段階的移行計画
 
-- [アーキテクチャ設計書](./ARCHITECTURE.md) - システム構造とモジュール設計
-- [データベース設計書](./DATABASE_DESIGN.md) - テーブル構造とリレーション
-- [API仕様書](./API_SPECIFICATION.md) - RESTful APIエンドポイント
+### 🎯 ドメイン設計（DDD）
 
-### 開発ドキュメント
+- **[domain/](./domain/)** - ドメイン駆動設計資料
+  - ドメインモデルと境界コンテキスト
+  - ユビキタス言語とドメインサービス
+  - 集約とリポジトリパターン
 
-- [セットアップ手順書](./SETUP_GUIDE.md) - 環境構築の詳細手順
-- [開発ガイド](./DEVELOPMENT_GUIDE.md) - 開発フローとベストプラクティス
+### 📊 API設計
 
-## 🏗️ プロジェクト概要
+- **[api/](./api/)** - 詳細なAPI設計資料
+  - RESTful API エンドポイント
+  - リクエスト/レスポンス仕様
+  - エラーハンドリング
 
-**食材管理アプリケーション**
+### 🗃️ データベース設計
 
-一人暮らしの方向けの在庫管理と賞味期限管理により、食材の無駄を削減するWebアプリケーション。
+- **[database/](./database/)** - 詳細なDB設計資料
+  - DDDに基づくテーブル設計
+  - マイグレーション戦略
+  - インデックス最適化
 
-### 主な機能
+### 📱 画面設計
 
-- 📦 食材の在庫管理
-- ⏰ 賞味期限アラート
-- 📱 モバイル対応
-- 🔍 カテゴリ別管理
+- **[screens/](./screens/)** - 画面設計資料
+  - UI/UX設計とワイヤーフレーム
+  - API連携仕様
+  - ユーザーフロー
 
-## 🛠️ 技術スタック
+### 📋 基本設計書
 
-- **フロントエンド**: Next.js 14.2, React 18.3, TypeScript 5.4
-- **スタイリング**: Tailwind CSS 3.4, shadcn/ui
-- **バックエンド**: Next.js API Routes, Prisma 6.x
-- **データベース**: PostgreSQL 15 (Docker/Supabase)
-- **開発ツール**: ESLint, Prettier, Vitest, Husky
+- **[USER_STORY.md](./USER_STORY.md)** - ユーザーストーリーと機能要求
+- **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** - 開発環境セットアップ
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** - 開発ガイドライン
+- **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - 実装計画
 
-## 🚀 クイックスタート
+## 🎯 読み進め方
 
-```bash
-# 依存関係のインストール
-pnpm install
+### 🆕 新規参加者向け
 
-# 環境変数の設定
-cp .env.local.example .env.local
+1. **[USER_STORY.md](./USER_STORY.md)** - プロジェクト概要とビジネス価値
+2. **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** - 開発環境構築
+3. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - アーキテクチャ概要
+4. **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** - 開発ルールとワークフロー
 
-# データベースの起動
-pnpm db:up
+### 🏗️ アーキテクト・設計者向け
 
-# 開発サーバーの起動
-pnpm dev
-```
+1. **[architecture/ARCHITECTURE_ENHANCED.md](./architecture/ARCHITECTURE_ENHANCED.md)** - 完全なアーキテクチャ設計
+2. **[architecture/ARCHITECTURE_PATTERNS_COMPARISON.md](./architecture/ARCHITECTURE_PATTERNS_COMPARISON.md)** - パターン比較分析
+3. **[domain/](./domain/)** - ドメインモデリング詳細
+4. **[database/](./database/)** - データベース設計
 
-詳細は[セットアップ手順書](./SETUP_GUIDE.md)を参照してください。
+### 🔧 実装者向け
 
-## 📂 プロジェクト構造
+1. **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - 実装ロードマップ
+2. **[api/](./api/)** - API詳細仕様とエンドポイント
+3. **[screens/](./screens/)** - 画面詳細仕様とUI設計
+4. **[database/](./database/)** - テーブル設計とマイグレーション
 
-```
-src/
-├── app/              # Next.js App Router
-├── modules/          # ビジネスモジュール（垂直スライス）
-│   ├── ingredients/  # 食材管理
-│   └── shared/       # 共有リソース
-├── lib/              # アプリケーション基盤
-└── styles/           # グローバルスタイル
-```
+### 📊 技術的詳細を確認したい場合
 
-詳細は[アーキテクチャ設計書](./ARCHITECTURE.md)を参照してください。
+1. **[domain/contexts/ingredient-management/](./domain/contexts/ingredient-management/)** - DDD実装詳細
+2. **[api/endpoints/](./api/endpoints/)** - API実装仕様
 
-## 🤝 コントリビューション
+## 🌟 推奨学習パス
 
-1. Issueを作成または既存のIssueを選択
-2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'feat: add amazing feature'`)
-4. ブランチをプッシュ (`git push origin feature/amazing-feature`)
-5. Pull Requestを作成
+### Phase 1: 理解 (1-2日)
 
-詳細は[開発ガイド](./DEVELOPMENT_GUIDE.md)を参照してください。
+- プロジェクト概要とビジネス要件
+- アーキテクチャの全体像
+- 開発環境セットアップ
+
+### Phase 2: 設計深掘り (3-5日)
+
+- Enhanced Modular Monolith の詳細
+- DDD原則と実装パターン
+- API設計とデータモデル
+
+### Phase 3: 実装準備 (1-2日)
+
+- 実装計画と優先順位
+- 開発ワークフローとルール
+- 具体的な実装例の確認
+
+---
+
+> 💡 **ヒント**: アーキテクチャの理解を深めるため、図表や実装例を中心に読み進めることをお勧めします。疑問点があれば、関連する設計資料も併せて参照してください。
