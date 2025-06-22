@@ -39,7 +39,7 @@ export abstract class DomainEvent {
   }
 
   abstract get eventName(): string
-  
+
   toJSON(): Record<string, any> {
     return {
       id: this.id,
@@ -47,7 +47,7 @@ export abstract class DomainEvent {
       aggregateId: this.aggregateId,
       version: this.version,
       occurredAt: this.occurredAt.toISOString(),
-      payload: this.getPayload()
+      payload: this.getPayload(),
     }
   }
 
@@ -81,15 +81,15 @@ export class IngredientConsumedEvent extends DomainEvent {
       ingredientName: this.ingredientName,
       previousQuantity: {
         amount: this.previousQuantity.amount,
-        unit: this.previousQuantity.unit.symbol
+        unit: this.previousQuantity.unit.symbol,
       },
       newQuantity: {
         amount: this.newQuantity.amount,
-        unit: this.newQuantity.unit.symbol
+        unit: this.newQuantity.unit.symbol,
       },
       consumedAmount: this.consumedAmount,
       reason: this.reason,
-      consumedBy: this.consumedBy
+      consumedBy: this.consumedBy,
     }
   }
 }
@@ -115,8 +115,8 @@ export class IngredientExpiredEvent extends DomainEvent {
       expiryDate: this.expiryDate.toISOString(),
       remainingQuantity: {
         amount: this.remainingQuantity.amount,
-        unit: this.remainingQuantity.unit.symbol
-      }
+        unit: this.remainingQuantity.unit.symbol,
+      },
     }
   }
 }
@@ -171,19 +171,14 @@ export class Ingredient extends AggregateRoot<IngredientId> {
 
     // 在庫切れチェック
     if (this.isOutOfStock()) {
-      this.addDomainEvent(
-        new IngredientOutOfStockEvent(
-          this.id.value,
-          this._name.value
-        )
-      )
+      this.addDomainEvent(new IngredientOutOfStockEvent(this.id.value, this._name.value))
     }
   }
 
   checkExpiry(): void {
     if (this.isExpired() && !this._isMarkedAsExpired) {
       this._isMarkedAsExpired = true
-      
+
       this.addDomainEvent(
         new IngredientExpiredEvent(
           this.id.value,
@@ -216,10 +211,7 @@ export class EventBus {
     return this.instance
   }
 
-  register<T extends DomainEvent>(
-    eventName: string,
-    handler: EventHandler<T>
-  ): void {
+  register<T extends DomainEvent>(eventName: string, handler: EventHandler<T>): void {
     const handlers = this.handlers.get(eventName) || []
     handlers.push(handler)
     this.handlers.set(eventName, handlers)
@@ -227,13 +219,9 @@ export class EventBus {
 
   async publish(event: DomainEvent): Promise<void> {
     const handlers = this.handlers.get(event.eventName) || []
-    
+
     // 並列実行
-    await Promise.all(
-      handlers.map(handler => 
-        this.executeHandler(handler, event)
-      )
-    )
+    await Promise.all(handlers.map((handler) => this.executeHandler(handler, event)))
   }
 
   async publishAll(events: readonly DomainEvent[]): Promise<void> {
@@ -243,17 +231,11 @@ export class EventBus {
     }
   }
 
-  private async executeHandler(
-    handler: EventHandler<any>,
-    event: DomainEvent
-  ): Promise<void> {
+  private async executeHandler(handler: EventHandler<any>, event: DomainEvent): Promise<void> {
     try {
       await handler.handle(event)
     } catch (error) {
-      console.error(
-        `Error handling event ${event.eventName}:`,
-        error
-      )
+      console.error(`Error handling event ${event.eventName}:`, error)
       // エラーを記録するが、他のハンドラーの実行は継続
     }
   }
@@ -276,7 +258,7 @@ export class StockNotificationHandler implements EventHandler<IngredientOutOfSto
 
     // 通知送信
     await Promise.all(
-      users.map(user =>
+      users.map((user) =>
         this.notificationService.send({
           userId: user.id,
           type: 'STOCK_OUT',
@@ -284,8 +266,8 @@ export class StockNotificationHandler implements EventHandler<IngredientOutOfSto
           message: `${event.ingredientName}の在庫が切れました`,
           data: {
             ingredientId: event.aggregateId,
-            ingredientName: event.ingredientName
-          }
+            ingredientName: event.ingredientName,
+          },
         })
       )
     )
@@ -305,7 +287,7 @@ export class ExpiryAlertHandler implements EventHandler<IngredientExpiredEvent> 
       ingredientId: event.aggregateId,
       ingredientName: event.ingredientName,
       expiryDate: event.expiryDate,
-      remainingQuantity: event.remainingQuantity
+      remainingQuantity: event.remainingQuantity,
     })
 
     // 分析データ記録
@@ -313,10 +295,7 @@ export class ExpiryAlertHandler implements EventHandler<IngredientExpiredEvent> 
       ingredientId: event.aggregateId,
       ingredientName: event.ingredientName,
       wastedAmount: event.remainingQuantity.amount,
-      wastedValue: await this.calculateWastedValue(
-        event.aggregateId,
-        event.remainingQuantity
-      )
+      wastedValue: await this.calculateWastedValue(event.aggregateId, event.remainingQuantity),
     })
   }
 }
@@ -353,32 +332,27 @@ export class EventStore {
 
   async saveAll(events: readonly DomainEvent[]): Promise<void> {
     await this.prisma.domainEvent.createMany({
-      data: events.map(event => ({
+      data: events.map((event) => ({
         id: event.id,
         aggregateId: event.aggregateId,
         eventName: event.eventName,
         eventData: JSON.stringify(event.toJSON()),
         occurredAt: event.occurredAt,
-        version: event.version
-      }))
+        version: event.version,
+      })),
     })
   }
 
-  async findByAggregateId(
-    aggregateId: string,
-    fromVersion?: number
-  ): Promise<DomainEvent[]> {
+  async findByAggregateId(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
     const records = await this.prisma.domainEvent.findMany({
       where: {
         aggregateId,
-        ...(fromVersion && { version: { gte: fromVersion } })
+        ...(fromVersion && { version: { gte: fromVersion } }),
       },
-      orderBy: { version: 'asc' }
+      orderBy: { version: 'asc' },
     })
 
-    return records.map(record => 
-      this.deserializeEvent(record)
-    )
+    return records.map((record) => this.deserializeEvent(record))
   }
 }
 ```
@@ -406,14 +380,12 @@ export class RecipeIngredientSyncHandler implements EventHandler<IngredientConsu
 
   async handle(event: IngredientConsumedEvent): Promise<void> {
     // 該当食材を使用するレシピを検索
-    const recipes = await this.recipeRepository.findByIngredientId(
-      event.aggregateId
-    )
+    const recipes = await this.recipeRepository.findByIngredientId(event.aggregateId)
 
     // 各レシピの利用可能状態を更新
     for (const recipe of recipes) {
       const isAvailable = await this.recipeService.checkAvailability(recipe)
-      
+
       if (recipe.isAvailable !== isAvailable) {
         recipe.updateAvailability(isAvailable)
         await this.recipeRepository.save(recipe)
@@ -434,36 +406,23 @@ export class IngredientsModuleContainer {
     // 在庫切れ通知
     eventBus.register(
       'ingredient.outOfStock',
-      new StockNotificationHandler(
-        this.notificationService,
-        this.userRepository
-      )
+      new StockNotificationHandler(this.notificationService, this.userRepository)
     )
 
     // 賞味期限アラート
     eventBus.register(
       'ingredient.expired',
-      new ExpiryAlertHandler(
-        this.notificationService,
-        this.analyticsService
-      )
+      new ExpiryAlertHandler(this.notificationService, this.analyticsService)
     )
 
     // 消費統計更新
     eventBus.register(
       'ingredient.consumed',
-      new ConsumptionStatisticsHandler(
-        this.statisticsRepository
-      )
+      new ConsumptionStatisticsHandler(this.statisticsRepository)
     )
 
     // Read Model更新
-    eventBus.register(
-      'ingredient.consumed',
-      new IngredientProjectionHandler(
-        this.prisma
-      )
-    )
+    eventBus.register('ingredient.consumed', new IngredientProjectionHandler(this.prisma))
   }
 }
 ```
@@ -494,7 +453,7 @@ export class BatchEventProcessor {
 
   async add(event: DomainEvent): Promise<void> {
     this.queue.push(event)
-    
+
     if (!this.timer) {
       this.timer = setTimeout(() => this.flush(), 100)
     }
@@ -526,7 +485,7 @@ export class IdempotentEventHandler<T extends DomainEvent> {
 
   async handle(event: T): Promise<void> {
     const key = `event:${event.id}`
-    
+
     // 既に処理済みかチェック
     if (await this.cache.exists(key)) {
       return
@@ -534,7 +493,7 @@ export class IdempotentEventHandler<T extends DomainEvent> {
 
     // 処理実行
     await this.handler.handle(event)
-    
+
     // 処理済みマーク（24時間保持）
     await this.cache.set(key, true, 86400)
   }
@@ -546,13 +505,10 @@ export class IdempotentEventHandler<T extends DomainEvent> {
 ```typescript
 // 順序保証
 export class OrderedEventProcessor {
-  async processInOrder(
-    aggregateId: string,
-    events: DomainEvent[]
-  ): Promise<void> {
+  async processInOrder(aggregateId: string, events: DomainEvent[]): Promise<void> {
     // バージョン順にソート
     const sorted = events.sort((a, b) => a.version - b.version)
-    
+
     // 順番に処理
     for (const event of sorted) {
       await this.eventBus.publish(event)

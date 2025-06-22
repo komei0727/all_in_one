@@ -96,7 +96,7 @@ services:
       dockerfile: Dockerfile
       target: builder
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://user:password@postgres:5432/food_management_dev
@@ -113,7 +113,7 @@ services:
   postgres:
     image: postgres:15-alpine
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
@@ -125,7 +125,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -137,7 +137,7 @@ services:
       dockerfile: Dockerfile
       target: dev-deps
     ports:
-      - "5555:5555"
+      - '5555:5555'
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/food_management_dev
     command: npx prisma studio
@@ -198,23 +198,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.19'
-          
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
-          
+
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-          
+
       - name: Setup pnpm cache
         uses: actions/cache@v3
         with:
@@ -222,16 +222,16 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-            
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        
+
       - name: Run tests
         run: |
           pnpm test
           pnpm type-check
           pnpm lint
-          
+
       - name: Build application
         run: pnpm build
 
@@ -241,17 +241,17 @@ jobs:
     permissions:
       contents: read
       packages: write
-      
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Log in to Container Registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v4
@@ -263,7 +263,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
-            
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -280,7 +280,7 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.5
@@ -322,10 +322,10 @@ const environments: Record<string, EnvironmentConfig> = {
     features: {
       analytics: false,
       notifications: true,
-      experimentalFeatures: true
-    }
+      experimentalFeatures: true,
+    },
   },
-  
+
   staging: {
     name: 'staging',
     apiUrl: 'https://staging.food-management.app',
@@ -335,10 +335,10 @@ const environments: Record<string, EnvironmentConfig> = {
     features: {
       analytics: true,
       notifications: true,
-      experimentalFeatures: true
-    }
+      experimentalFeatures: true,
+    },
   },
-  
+
   production: {
     name: 'production',
     apiUrl: 'https://food-management.app',
@@ -348,9 +348,9 @@ const environments: Record<string, EnvironmentConfig> = {
     features: {
       analytics: true,
       notifications: true,
-      experimentalFeatures: false
-    }
-  }
+      experimentalFeatures: false,
+    },
+  },
 }
 
 export function getConfig(): EnvironmentConfig {
@@ -374,26 +374,26 @@ const prisma = new PrismaClient()
 
 async function migrate() {
   console.log('Starting database migration...')
-  
+
   try {
     // 1. バックアップを作成
     await createBackup()
-    
+
     // 2. マイグレーションを実行
     const { stdout, stderr } = await execAsync('npx prisma migrate deploy')
     console.log('Migration output:', stdout)
     if (stderr) console.error('Migration errors:', stderr)
-    
+
     // 3. データ整合性チェック
     await verifyDataIntegrity()
-    
+
     // 4. インデックスの再構築
     await rebuildIndexes()
-    
+
     console.log('Migration completed successfully')
   } catch (error) {
     console.error('Migration failed:', error)
-    
+
     // ロールバック
     await rollback()
     process.exit(1)
@@ -405,12 +405,10 @@ async function migrate() {
 async function createBackup() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const backupFile = `backup-${timestamp}.sql`
-  
+
   console.log(`Creating backup: ${backupFile}`)
-  
-  await execAsync(
-    `pg_dump ${process.env.DATABASE_URL} > backups/${backupFile}`
-  )
+
+  await execAsync(`pg_dump ${process.env.DATABASE_URL} > backups/${backupFile}`)
 }
 
 async function verifyDataIntegrity() {
@@ -418,13 +416,13 @@ async function verifyDataIntegrity() {
   const checks = await Promise.all([
     prisma.ingredient.count(),
     prisma.category.count(),
-    prisma.user.count()
+    prisma.user.count(),
   ])
-  
+
   console.log('Data integrity check:', {
     ingredients: checks[0],
     categories: checks[1],
-    users: checks[2]
+    users: checks[2],
   })
 }
 
@@ -455,37 +453,33 @@ export class ZeroDowntimeMigration {
       ALTER TABLE ${table} 
       ADD COLUMN IF NOT EXISTS ${column} ${definition}
     `
-    
+
     // 2. アプリケーションをデプロイ（新旧両方のコードが動作）
-    
+
     // 3. データをバックフィル
     await this.backfillData(table, column)
-    
+
     // 4. NOT NULL制約を追加
     await prisma.$executeRaw`
       ALTER TABLE ${table} 
       ALTER COLUMN ${column} SET NOT NULL
     `
   }
-  
+
   async renameColumn(table: string, oldName: string, newName: string) {
     // 1. 新しいカラムを追加
     await this.duplicateColumn(table, oldName, newName)
-    
+
     // 2. トリガーで同期を保つ
     await this.createSyncTrigger(table, oldName, newName)
-    
+
     // 3. アプリケーションを更新
-    
+
     // 4. 古いカラムを削除
     await this.dropColumn(table, oldName)
   }
-  
-  private async createSyncTrigger(
-    table: string, 
-    source: string, 
-    target: string
-  ) {
+
+  private async createSyncTrigger(table: string, source: string, target: string) {
     await prisma.$executeRaw`
       CREATE OR REPLACE FUNCTION sync_${table}_${source}_to_${target}()
       RETURNS TRIGGER AS $$
@@ -512,17 +506,17 @@ export class ZeroDowntimeMigration {
 // scripts/deployment-monitor.ts
 export class DeploymentMonitor {
   private metrics: Map<string, number> = new Map()
-  
+
   async monitorDeployment(version: string) {
     console.log(`Monitoring deployment of version ${version}`)
-    
+
     // 基準値を取得
     const baseline = await this.getBaselineMetrics()
-    
+
     // デプロイ後の監視
     const interval = setInterval(async () => {
       const current = await this.getCurrentMetrics()
-      
+
       // エラー率チェック
       if (current.errorRate > baseline.errorRate * 1.5) {
         console.error('Error rate increased significantly')
@@ -530,7 +524,7 @@ export class DeploymentMonitor {
         clearInterval(interval)
         return
       }
-      
+
       // レスポンスタイムチェック
       if (current.p95ResponseTime > baseline.p95ResponseTime * 2) {
         console.error('Response time degraded')
@@ -538,40 +532,42 @@ export class DeploymentMonitor {
         clearInterval(interval)
         return
       }
-      
+
       // CPU/メモリチェック
       if (current.cpuUsage > 80 || current.memoryUsage > 85) {
         console.warn('Resource usage high')
         await this.scaleUp()
       }
-      
     }, 30000) // 30秒ごと
-    
+
     // 30分後に監視終了
-    setTimeout(() => {
-      clearInterval(interval)
-      console.log('Deployment monitoring completed successfully')
-    }, 30 * 60 * 1000)
+    setTimeout(
+      () => {
+        clearInterval(interval)
+        console.log('Deployment monitoring completed successfully')
+      },
+      30 * 60 * 1000
+    )
   }
-  
+
   private async getBaselineMetrics() {
     return {
       errorRate: await this.getErrorRate(),
       p95ResponseTime: await this.getResponseTime(95),
       cpuUsage: await this.getCPUUsage(),
-      memoryUsage: await this.getMemoryUsage()
+      memoryUsage: await this.getMemoryUsage(),
     }
   }
-  
+
   private async triggerRollback(version: string) {
     console.error(`Triggering rollback from version ${version}`)
-    
+
     // 通知
     await this.notifyTeam('Automatic rollback triggered', {
       version,
-      reason: 'Performance degradation detected'
+      reason: 'Performance degradation detected',
     })
-    
+
     // ロールバック実行
     await execAsync('./scripts/rollback.sh')
   }
@@ -612,13 +608,13 @@ spec:
         version: stable
     spec:
       containers:
-      - name: app
-        image: ghcr.io/org/food-management:stable
-        ports:
-        - containerPort: 3000
-        env:
-        - name: VERSION
-          value: "stable"
+        - name: app
+          image: ghcr.io/org/food-management:stable
+          ports:
+            - containerPort: 3000
+          env:
+            - name: VERSION
+              value: 'stable'
 
 ---
 # カナリア版
@@ -627,7 +623,7 @@ kind: Deployment
 metadata:
   name: food-management-canary
 spec:
-  replicas: 1  # 10%のトラフィック
+  replicas: 1 # 10%のトラフィック
   selector:
     matchLabels:
       app: food-management
@@ -639,13 +635,13 @@ spec:
         version: canary
     spec:
       containers:
-      - name: app
-        image: ghcr.io/org/food-management:canary
-        ports:
-        - containerPort: 3000
-        env:
-        - name: VERSION
-          value: "canary"
+        - name: app
+          image: ghcr.io/org/food-management:canary
+          ports:
+            - containerPort: 3000
+          env:
+            - name: VERSION
+              value: 'canary'
 
 ---
 # Ingress with traffic splitting
@@ -654,20 +650,20 @@ kind: Ingress
 metadata:
   name: food-management-ingress
   annotations:
-    nginx.ingress.kubernetes.io/canary: "true"
-    nginx.ingress.kubernetes.io/canary-weight: "10"
+    nginx.ingress.kubernetes.io/canary: 'true'
+    nginx.ingress.kubernetes.io/canary-weight: '10'
 spec:
   rules:
-  - host: food-management.app
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: food-management-app
-            port:
-              number: 80
+    - host: food-management.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: food-management-app
+                port:
+                  number: 80
 ```
 
 ## 災害復旧
@@ -725,53 +721,53 @@ echo "Backup completed successfully"
 export class DisasterRecovery {
   async restore(backupId: string) {
     console.log(`Starting disaster recovery from backup ${backupId}`)
-    
+
     try {
       // 1. サービスを停止
       await this.stopServices()
-      
+
       // 2. バックアップをダウンロード
       await this.downloadBackup(backupId)
-      
+
       // 3. データベースを復元
       await this.restoreDatabase(backupId)
-      
+
       // 4. アプリケーションファイルを復元
       await this.restoreApplication(backupId)
-      
+
       // 5. 設定を検証
       await this.validateConfiguration()
-      
+
       // 6. サービスを開始
       await this.startServices()
-      
+
       // 7. ヘルスチェック
       await this.performHealthCheck()
-      
+
       console.log('Disaster recovery completed successfully')
     } catch (error) {
       console.error('Disaster recovery failed:', error)
       throw error
     }
   }
-  
+
   private async downloadBackup(backupId: string) {
     await execAsync(`
       aws s3 cp s3://food-management-backups/database/db_${backupId}.sql.gz /tmp/
       aws s3 cp s3://food-management-backups/application/app_${backupId}.tar.gz /tmp/
     `)
   }
-  
+
   private async restoreDatabase(backupId: string) {
     await execAsync(`
       gunzip -c /tmp/db_${backupId}.sql.gz | psql $DATABASE_URL
     `)
   }
-  
+
   private async performHealthCheck() {
     const maxRetries = 30
     let retries = 0
-    
+
     while (retries < maxRetries) {
       try {
         const response = await fetch(`${APP_URL}/api/health`)
@@ -782,11 +778,11 @@ export class DisasterRecovery {
       } catch (error) {
         // 続行
       }
-      
+
       retries++
-      await new Promise(resolve => setTimeout(resolve, 10000))
+      await new Promise((resolve) => setTimeout(resolve, 10000))
     }
-    
+
     throw new Error('Health check failed after maximum retries')
   }
 }

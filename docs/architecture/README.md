@@ -21,34 +21,34 @@ flowchart TB
     subgraph "Client Layer"
         UI[React UI]
     end
-    
+
     subgraph "Server Layer"
         subgraph "Presentation"
             API[API Routes]
         end
-        
+
         subgraph "Application"
             CMD[Commands]
             QRY[Queries]
         end
-        
+
         subgraph "Domain"
             ENT[Entities]
             VO[Value Objects]
             EVT[Domain Events]
         end
-        
+
         subgraph "Infrastructure"
             REPO[Repositories]
             BUS[Event Bus]
         end
     end
-    
+
     subgraph "External"
         DB[(Database)]
         CACHE[(Cache)]
     end
-    
+
     UI --> API
     API --> CMD
     API --> QRY
@@ -65,17 +65,20 @@ flowchart TB
 本アーキテクチャの詳細は、以下の構造で整理されています：
 
 ### 📁 [core/](./core/) - コアコンセプト
+
 - [**アーキテクチャ概要**](./core/OVERVIEW.md) - 全体構造と設計原則
 - [**レイヤー責務定義**](./core/LAYERS.md) - 各レイヤーの詳細な責務
 - [**モジュール構成**](./core/MODULE_STRUCTURE.md) - ディレクトリ構造と命名規則
 
 ### 📁 [implementation/](./implementation/) - 実装パターン
+
 - [**CQRS パターン**](./implementation/CQRS_PATTERN.md) - Command/Query分離の実装
 - [**ドメインイベント**](./implementation/DOMAIN_EVENTS.md) - イベント駆動の実装
 - [**リポジトリパターン**](./implementation/REPOSITORY_PATTERN.md) - データアクセスの抽象化
 - [**値オブジェクト**](./implementation/VALUE_OBJECTS.md) - 不変性とビジネスルール
 
 ### 📁 [operations/](./operations/) - 運用ガイド
+
 - [**監視・ログ設計**](./operations/MONITORING_LOGGING.md) - 可観測性の実装
 - [**セキュリティ実装**](./operations/SECURITY.md) - セキュリティのベストプラクティス
 - [**パフォーマンス最適化**](./operations/PERFORMANCE_OPTIMIZATION.md) - 最適化手法
@@ -153,9 +156,11 @@ export class ConsumeIngredientHandler {
 ## 関連資料
 
 ### 参考アーキテクチャ
+
 - [アーキテクチャパターン比較](./ARCHITECTURE_PATTERNS_COMPARISON.md) - 他のパターンとの詳細比較
 
 ### プロジェクトドキュメント
+
 - [開発ガイド](../DEVELOPMENT_GUIDE.md) - 開発環境のセットアップ
 - [API仕様](../API_SPECIFICATION.md) - APIエンドポイント一覧
 - [データベース設計](../DATABASE_DESIGN.md) - スキーマ定義

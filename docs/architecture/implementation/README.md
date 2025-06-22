@@ -7,16 +7,19 @@
 ### コアパターン
 
 - [**CQRS パターン**](./CQRS_PATTERN.md)
+
   - Command/Query責務分離の実装方法
   - Read Model Projectionの構築
   - パフォーマンス最適化戦略
 
 - [**ドメインイベント**](./DOMAIN_EVENTS.md)
+
   - イベント駆動アーキテクチャの実装
   - イベントバスとハンドラー
   - モジュール間通信パターン
 
 - [**リポジトリパターン**](./REPOSITORY_PATTERN.md)
+
   - ドメイン層での抽象化
   - 永続化層の実装
   - Unit of Workパターン
@@ -29,16 +32,19 @@
 ### 追加パターン（今後作成予定）
 
 - **ドメインエンティティ** (`DOMAIN_ENTITIES.md`)
+
   - Aggregate Rootの実装
   - エンティティのライフサイクル管理
   - ビジネス不変条件の保護
 
 - **ドメインサービス** (`DOMAIN_SERVICES.md`)
+
   - 複数エンティティにまたがるロジック
   - ドメインサービスの設計指針
   - アプリケーションサービスとの違い
 
 - **仕様パターン** (`SPECIFICATION_PATTERN.md`)
+
   - ビジネスルールのカプセル化
   - 複合仕様の構築
   - リポジトリとの統合
@@ -66,16 +72,19 @@ flowchart LR
 ### 2. 実装チェックリスト
 
 - [ ] ドメインモデルの設計
+
   - [ ] エンティティの識別
   - [ ] 値オブジェクトの抽出
   - [ ] ドメインイベントの定義
 
 - [ ] インフラストラクチャ層
+
   - [ ] リポジトリ実装
   - [ ] 外部サービスアダプター
   - [ ] イベントハンドラー
 
 - [ ] アプリケーション層
+
   - [ ] コマンドハンドラー
   - [ ] クエリハンドラー
   - [ ] アプリケーションサービス
@@ -90,11 +99,13 @@ flowchart LR
 ### ドメイン中心の設計
 
 1. **ビジネスルールの配置**
+
    - エンティティ内: エンティティ固有のルール
    - 値オブジェクト内: 値に関するルール
    - ドメインサービス内: 複数エンティティにまたがるルール
 
 2. **不変性の活用**
+
    - 値オブジェクトは常に不変
    - エンティティの状態変更は明示的なメソッドで
 
@@ -111,7 +122,7 @@ export class ConsumeIngredientHandler {
     private readonly repo: IngredientRepository,
     private readonly eventBus: EventBus
   ) {}
-  
+
   // 依存性注入によりモック可能
 }
 
@@ -131,11 +142,13 @@ export class ConsumeIngredientHandler {
 ## 📖 参考資料
 
 ### 書籍
+
 - "Domain-Driven Design" - Eric Evans
 - "Implementing Domain-Driven Design" - Vaughn Vernon
 - "Patterns, Principles, and Practices of Domain-Driven Design" - Scott Millett
 
 ### オンラインリソース
+
 - [DDD Community](https://dddcommunity.org/)
 - [Martin Fowler's Blog](https://martinfowler.com/)
 - [Microsoft DDD Guide](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/)

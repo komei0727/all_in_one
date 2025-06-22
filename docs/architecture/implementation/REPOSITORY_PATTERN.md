@@ -32,17 +32,17 @@ export interface IngredientRepository {
   findById(id: IngredientId): Promise<Ingredient | null>
   findAll(filters?: IngredientFilters): Promise<Ingredient[]>
   delete(id: IngredientId): Promise<void>
-  
+
   // ビジネス指向のクエリメソッド
   findByCategory(categoryId: CategoryId): Promise<Ingredient[]>
   findExpiring(withinDays: number): Promise<Ingredient[]>
   findOutOfStock(): Promise<Ingredient[]>
   findByStorageLocation(location: StorageLocation): Promise<Ingredient[]>
-  
+
   // 集約のための特別なメソッド
   exists(id: IngredientId): Promise<boolean>
   countByCategory(categoryId: CategoryId): Promise<number>
-  
+
   // トランザクション管理
   transaction<T>(work: () => Promise<T>): Promise<T>
 }
@@ -100,9 +100,9 @@ export class PrismaIngredientRepository implements IngredientRepository {
         unit: true,
         stockHistory: {
           orderBy: { recordedAt: 'desc' },
-          take: 10
-        }
-      }
+          take: 10,
+        },
+      },
     })
 
     if (!model) {
@@ -121,37 +121,33 @@ export class PrismaIngredientRepository implements IngredientRepository {
       where: {
         expiryDate: {
           gte: new Date(), // 既に期限切れのものは除外
-          lte: targetDate
-        }
+          lte: targetDate,
+        },
       },
       include: {
         category: true,
-        unit: true
+        unit: true,
       },
-      orderBy: { expiryDate: 'asc' }
+      orderBy: { expiryDate: 'asc' },
     })
 
-    return Promise.all(
-      models.map(model => this.mapper.toDomain(model))
-    )
+    return Promise.all(models.map((model) => this.mapper.toDomain(model)))
   }
 
   async findOutOfStock(): Promise<Ingredient[]> {
     const models = await this.prisma.ingredient.findMany({
       where: {
         quantity: {
-          lte: 0
-        }
+          lte: 0,
+        },
       },
       include: {
         category: true,
-        unit: true
-      }
+        unit: true,
+      },
     })
 
-    return Promise.all(
-      models.map(model => this.mapper.toDomain(model))
-    )
+    return Promise.all(models.map((model) => this.mapper.toDomain(model)))
   }
 
   async transaction<T>(work: () => Promise<T>): Promise<T> {
@@ -167,15 +163,15 @@ export class PrismaIngredientRepository implements IngredientRepository {
     history: StockRecord[]
   ): Promise<void> {
     await tx.stockHistory.createMany({
-      data: history.map(record => ({
+      data: history.map((record) => ({
         id: record.id.value,
         ingredientId: ingredientId.value,
         type: record.type,
         amount: record.amount,
         reason: record.reason,
         recordedAt: record.recordedAt,
-        recordedBy: record.recordedBy
-      }))
+        recordedBy: record.recordedBy,
+      })),
     })
   }
 
@@ -184,14 +180,14 @@ export class PrismaIngredientRepository implements IngredientRepository {
     events: readonly DomainEvent[]
   ): Promise<void> {
     await tx.domainEvent.createMany({
-      data: events.map(event => ({
+      data: events.map((event) => ({
         id: event.id,
         aggregateId: event.aggregateId,
         eventName: event.eventName,
         eventData: JSON.stringify(event.toJSON()),
         occurredAt: event.occurredAt,
-        version: event.version
-      }))
+        version: event.version,
+      })),
     })
   }
 }
@@ -214,9 +210,9 @@ export class IngredientMapper {
     const quantity = new Quantity(model.quantity, this.unitMapper.toDomain(model.unit))
     const storageLocation = StorageLocation.fromPersistence({
       type: model.storageLocationType as StorageLocationType,
-      detail: model.storageLocationDetail
+      detail: model.storageLocationDetail,
     })
-    
+
     // エンティティの再構築
     const ingredient = Ingredient.reconstitute(
       id,
@@ -248,7 +244,7 @@ export class IngredientMapper {
       expiryDate: entity.expiryDate?.value,
       isMarkedAsExpired: entity.isMarkedAsExpired,
       createdAt: entity.createdAt,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
   }
 }
@@ -292,7 +288,7 @@ export class IsExpiringWithinDaysSpecification extends Specification<Ingredient>
 
   isSatisfiedBy(ingredient: Ingredient): boolean {
     if (!ingredient.expiryDate) return false
-    
+
     const daysUntilExpiry = ingredient.expiryDate.daysUntilExpiry()
     return daysUntilExpiry >= 0 && daysUntilExpiry <= this.days
   }
@@ -303,24 +299,22 @@ export class SpecificationIngredientRepository extends PrismaIngredientRepositor
   async findBySpecification(spec: Specification<Ingredient>): Promise<Ingredient[]> {
     // 全件取得してメモリ上でフィルタリング（小規模データの場合）
     const allIngredients = await this.findAll()
-    return allIngredients.filter(ingredient => spec.isSatisfiedBy(ingredient))
+    return allIngredients.filter((ingredient) => spec.isSatisfiedBy(ingredient))
   }
 
   // SQLへの変換（大規模データの場合）
   async findBySpecificationOptimized(spec: Specification<Ingredient>): Promise<Ingredient[]> {
     const whereClause = this.specificationToWhereClause(spec)
-    
+
     const models = await this.prisma.ingredient.findMany({
       where: whereClause,
       include: {
         category: true,
-        unit: true
-      }
+        unit: true,
+      },
     })
 
-    return Promise.all(
-      models.map(model => this.mapper.toDomain(model))
-    )
+    return Promise.all(models.map((model) => this.mapper.toDomain(model)))
   }
 }
 ```
@@ -333,14 +327,14 @@ export interface UnitOfWork {
   ingredientRepository: IngredientRepository
   categoryRepository: CategoryRepository
   unitRepository: UnitRepository
-  
+
   commit(): Promise<void>
   rollback(): Promise<void>
 }
 
 export class PrismaUnitOfWork implements UnitOfWork {
   private tx: Prisma.TransactionClient | null = null
-  
+
   constructor(private readonly prisma: PrismaClient) {}
 
   get ingredientRepository(): IngredientRepository {
@@ -409,7 +403,7 @@ export class CachedIngredientRepository implements IngredientRepository {
 
   async findById(id: IngredientId): Promise<Ingredient | null> {
     const cacheKey = `ingredient:${id.value}`
-    
+
     // キャッシュから取得
     const cached = await this.cache.get<Ingredient>(cacheKey)
     if (cached) {
@@ -418,7 +412,7 @@ export class CachedIngredientRepository implements IngredientRepository {
 
     // リポジトリから取得
     const ingredient = await this.repository.findById(id)
-    
+
     // キャッシュに保存（5分間）
     if (ingredient) {
       await this.cache.set(cacheKey, ingredient, 300)
@@ -430,17 +424,17 @@ export class CachedIngredientRepository implements IngredientRepository {
   async save(ingredient: Ingredient): Promise<void> {
     // データベースに保存
     await this.repository.save(ingredient)
-    
+
     // キャッシュを無効化
     await this.cache.delete(`ingredient:${ingredient.id.value}`)
-    
+
     // 関連するリストキャッシュも無効化
     await this.cache.deletePattern('ingredients:list:*')
   }
 
   async findExpiring(withinDays: number): Promise<Ingredient[]> {
     const cacheKey = `ingredients:expiring:${withinDays}`
-    
+
     // キャッシュから取得
     const cached = await this.cache.get<Ingredient[]>(cacheKey)
     if (cached) {
@@ -449,7 +443,7 @@ export class CachedIngredientRepository implements IngredientRepository {
 
     // リポジトリから取得
     const ingredients = await this.repository.findExpiring(withinDays)
-    
+
     // キャッシュに保存（1時間）
     await this.cache.set(cacheKey, ingredients, 3600)
 
@@ -470,7 +464,7 @@ export class InMemoryIngredientRepository implements IngredientRepository {
     // ディープコピーして保存
     const copy = this.deepCopy(ingredient)
     this.store.set(ingredient.id.value, copy)
-    
+
     // イベントを記録
     this.events.push(...ingredient.domainEvents)
     ingredient.clearEvents()
@@ -495,9 +489,7 @@ export class InMemoryIngredientRepository implements IngredientRepository {
       }
     }
 
-    return results.sort((a, b) => 
-      a.expiryDate!.value.getTime() - b.expiryDate!.value.getTime()
-    )
+    return results.sort((a, b) => a.expiryDate!.value.getTime() - b.expiryDate!.value.getTime())
   }
 
   // テスト用ヘルパーメソッド
@@ -557,10 +549,7 @@ export interface ProjectionRepository {
 
 // ページネーション
 export interface PageableRepository<T> {
-  findPage(
-    criteria: Criteria,
-    pageable: Pageable
-  ): Promise<Page<T>>
+  findPage(criteria: Criteria, pageable: Pageable): Promise<Page<T>>
 }
 ```
 

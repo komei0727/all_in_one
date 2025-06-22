@@ -63,10 +63,8 @@ export class ConsumeIngredientHandler {
     // トランザクション開始
     return await this.ingredientRepo.transaction(async () => {
       // 1. エンティティ取得
-      const ingredient = await this.ingredientRepo.findById(
-        new IngredientId(command.ingredientId)
-      )
-      
+      const ingredient = await this.ingredientRepo.findById(new IngredientId(command.ingredientId))
+
       if (!ingredient) {
         throw new IngredientNotFoundException(command.ingredientId)
       }
@@ -110,10 +108,10 @@ export class ConsumeIngredientResult {
       ingredientId: this.ingredientId,
       remainingQuantity: {
         amount: this.remainingQuantity.amount,
-        unit: this.remainingQuantity.unit.symbol
+        unit: this.remainingQuantity.unit.symbol,
       },
       isOutOfStock: this.isOutOfStock,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }
   }
 }
@@ -136,7 +134,7 @@ export class GetIngredientsQuery {
     return `ingredients:${JSON.stringify({
       filters: this.filters,
       sorting: this.sorting,
-      pagination: this.pagination
+      pagination: this.pagination,
     })}`
   }
 }
@@ -162,9 +160,7 @@ export class GetIngredientsHandler {
 
   async handle(query: GetIngredientsQuery): Promise<IngredientListDTO> {
     // キャッシュチェック
-    const cached = await this.cacheService.get<IngredientListDTO>(
-      query.getCacheKey()
-    )
+    const cached = await this.cacheService.get<IngredientListDTO>(query.getCacheKey())
     if (cached) {
       return cached
     }
@@ -178,17 +174,13 @@ export class GetIngredientsHandler {
 
     // DTO変換
     const dto = new IngredientListDTO(
-      ingredients.items.map(item => this.toListItem(item)),
+      ingredients.items.map((item) => this.toListItem(item)),
       ingredients.totalCount,
       ingredients.hasMore
     )
 
     // キャッシュ保存（5分間）
-    await this.cacheService.set(
-      query.getCacheKey(),
-      dto,
-      300
-    )
+    await this.cacheService.set(query.getCacheKey(), dto, 300)
 
     return dto
   }
@@ -201,19 +193,19 @@ export class GetIngredientsHandler {
       quantity: {
         amount: ingredient.quantityAmount,
         unit: ingredient.unitSymbol,
-        display: `${ingredient.quantityAmount}${ingredient.unitSymbol}`
+        display: `${ingredient.quantityAmount}${ingredient.unitSymbol}`,
       },
       storageLocation: {
         type: ingredient.storageLocationType,
         detail: ingredient.storageLocationDetail,
-        display: ingredient.storageLocationDisplay
+        display: ingredient.storageLocationDisplay,
       },
       expiryInfo: {
         date: ingredient.expiryDate,
         status: ingredient.expiryStatus,
-        daysUntilExpiry: ingredient.daysUntilExpiry
+        daysUntilExpiry: ingredient.daysUntilExpiry,
       },
-      lastUpdated: ingredient.lastUpdated
+      lastUpdated: ingredient.lastUpdated,
     })
   }
 }
@@ -233,7 +225,7 @@ export class IngredientQueryService {
   ): Promise<PaginatedResult<IngredientView>> {
     const where = this.buildWhereClause(filters)
     const orderBy = this.buildOrderBy(sorting)
-    
+
     // 非正規化されたビューから取得
     const [items, totalCount] = await Promise.all([
       this.prisma.ingredientView.findMany({
@@ -242,7 +234,7 @@ export class IngredientQueryService {
         skip: (pagination.page - 1) * pagination.limit,
         take: pagination.limit + 1, // +1 for hasMore check
       }),
-      this.prisma.ingredientView.count({ where })
+      this.prisma.ingredientView.count({ where }),
     ])
 
     const hasMore = items.length > pagination.limit
@@ -251,9 +243,9 @@ export class IngredientQueryService {
     }
 
     return {
-      items: items.map(item => this.mapToView(item)),
+      items: items.map((item) => this.mapToView(item)),
       totalCount,
-      hasMore
+      hasMore,
     }
   }
 
@@ -275,14 +267,14 @@ export class IngredientQueryService {
     if (filters.expiringWithinDays) {
       where.daysUntilExpiry = {
         lte: filters.expiringWithinDays,
-        gte: 0
+        gte: 0,
       }
     }
 
     if (filters.searchTerm) {
       where.OR = [
         { name: { contains: filters.searchTerm, mode: 'insensitive' } },
-        { categoryName: { contains: filters.searchTerm, mode: 'insensitive' } }
+        { categoryName: { contains: filters.searchTerm, mode: 'insensitive' } },
       ]
     }
 
@@ -318,8 +310,8 @@ export class IngredientProjectionHandler {
         expiryStatus: this.calculateExpiryStatus(event.expiryDate),
         daysUntilExpiry: this.calculateDaysUntilExpiry(event.expiryDate),
         isOutOfStock: false,
-        lastUpdated: event.occurredAt
-      }
+        lastUpdated: event.occurredAt,
+      },
     })
   }
 
@@ -333,8 +325,8 @@ export class IngredientProjectionHandler {
         lastConsumedAt: event.occurredAt,
         consumptionCount: { increment: 1 },
         totalConsumed: { increment: event.consumedAmount },
-        lastUpdated: event.occurredAt
-      }
+        lastUpdated: event.occurredAt,
+      },
     })
 
     // 消費統計の更新
@@ -349,19 +341,19 @@ export class IngredientProjectionHandler {
       where: {
         ingredientId_yearMonth: {
           ingredientId: event.ingredientId.value,
-          yearMonth
-        }
+          yearMonth,
+        },
       },
       create: {
         ingredientId: event.ingredientId.value,
         yearMonth,
         totalAmount: event.consumedAmount,
-        consumptionCount: 1
+        consumptionCount: 1,
       },
       update: {
         totalAmount: { increment: event.consumedAmount },
-        consumptionCount: { increment: 1 }
-      }
+        consumptionCount: { increment: 1 },
+      },
     })
   }
 }
@@ -373,10 +365,7 @@ export class IngredientProjectionHandler {
 
 ```typescript
 // src/app/api/v1/ingredients/[id]/consume/route.ts
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     // 認証チェック
     const user = await requireAuth(request)
@@ -402,9 +391,8 @@ export async function POST(
     // レスポンス生成
     return NextResponse.json({
       success: true,
-      data: result.toResponse()
+      data: result.toResponse(),
     })
-
   } catch (error) {
     return handleApiError(error)
   }
@@ -419,7 +407,7 @@ export async function GET(request: Request) {
   try {
     // クエリパラメータ取得
     const { searchParams } = new URL(request.url)
-    
+
     // クエリオブジェクト構築
     const query = new GetIngredientsQuery(
       parseFilters(searchParams),
@@ -439,10 +427,9 @@ export async function GET(request: Request) {
         totalCount: result.totalCount,
         hasMore: result.hasMore,
         page: query.pagination.page,
-        limit: query.pagination.limit
-      }
+        limit: query.pagination.limit,
+      },
     })
-
   } catch (error) {
     return handleApiError(error)
   }
@@ -470,16 +457,12 @@ export async function GET(request: Request) {
 ```typescript
 // イベントストアへの保存
 export class EventStore {
-  async append(
-    aggregateId: string,
-    events: DomainEvent[],
-    expectedVersion: number
-  ): Promise<void> {
+  async append(aggregateId: string, events: DomainEvent[], expectedVersion: number): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       // バージョンチェック
       const currentVersion = await tx.eventStream.findUnique({
         where: { aggregateId },
-        select: { version: true }
+        select: { version: true },
       })
 
       if (currentVersion?.version !== expectedVersion) {
@@ -493,8 +476,8 @@ export class EventStore {
           eventType: event.constructor.name,
           eventData: JSON.stringify(event),
           eventVersion: expectedVersion + index + 1,
-          occurredAt: event.occurredAt
-        }))
+          occurredAt: event.occurredAt,
+        })),
       })
 
       // バージョン更新
@@ -502,11 +485,11 @@ export class EventStore {
         where: { aggregateId },
         create: {
           aggregateId,
-          version: expectedVersion + events.length
+          version: expectedVersion + events.length,
         },
         update: {
-          version: expectedVersion + events.length
-        }
+          version: expectedVersion + events.length,
+        },
       })
     })
   }
@@ -527,22 +510,23 @@ export class EventStore {
 export class CacheStrategy {
   // キャッシュキー生成
   static generateKey(query: Query): string {
-    const hash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify(query))
-      .digest('hex')
+    const hash = crypto.createHash('sha256').update(JSON.stringify(query)).digest('hex')
     return `query:${query.constructor.name}:${hash}`
   }
 
   // キャッシュ無効化
   static invalidatePattern(pattern: string): void {
     // Redis の場合
-    await redis.eval(`
+    await redis.eval(
+      `
       local keys = redis.call('keys', ARGV[1])
       for i=1,#keys do
         redis.call('del', keys[i])
       end
-    `, 0, pattern)
+    `,
+      0,
+      pattern
+    )
   }
 }
 ```

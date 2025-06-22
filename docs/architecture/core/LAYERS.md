@@ -14,14 +14,14 @@ graph TD
     A[Application Layer]
     D[Domain Layer]
     I[Infrastructure Layer]
-    
+
     P --> A
     A --> D
     I --> D
     I --> A
-    
+
     style D fill:#f9f,stroke:#333,stroke-width:4px
-    
+
     P -.X.-> D
     P -.X.-> I
     A -.X.-> I
@@ -30,6 +30,7 @@ graph TD
 ```
 
 **重要な原則:**
+
 - **単方向依存**: 上位層は下位層に依存するが、逆は禁止
 - **Domain層の独立性**: Domain層は他のどの層にも依存しない
 - **Infrastructure層の柔軟性**: Infrastructure層はDomain層とApplication層の実装を提供
@@ -194,13 +195,13 @@ export class GetIngredientsHandler {
 
     // データ取得
     const ingredients = await this.ingredientRepo.findAll(query.filters)
-    
+
     // DTO変換
     const dto = IngredientsListDTO.fromDomain(ingredients)
-    
+
     // キャッシュ保存
     await this.cacheService.set(query.getCacheKey(), dto)
-    
+
     return dto
   }
 }
@@ -340,7 +341,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
   async findById(id: IngredientId): Promise<Ingredient | null> {
     const model = await this.prisma.ingredient.findUnique({
-      where: { id: id.value }
+      where: { id: id.value },
     })
 
     if (!model) return null
@@ -352,40 +353,40 @@ export class PrismaIngredientRepository implements IngredientRepository {
 // ✅ 良い例: Composition Rootは依存関係を管理
 export class IngredientsModuleContainer {
   private static instance: IngredientsModuleContainer
-  
+
   // Handlers
   readonly getIngredientsHandler: GetIngredientsHandler
   readonly createIngredientHandler: CreateIngredientHandler
   readonly consumeIngredientHandler: ConsumeIngredientHandler
-  
+
   private constructor() {
     // Infrastructure
     const prisma = new PrismaClient()
-    const ingredientRepository = new PrismaIngredientRepository(prisma, new IngredientEntityMapper())
+    const ingredientRepository = new PrismaIngredientRepository(
+      prisma,
+      new IngredientEntityMapper()
+    )
     const eventBus = EventBus.getInstance()
-    
+
     // Application Services
     const stockService = new StockManagementService(ingredientRepository)
     const eventPublisher = new DomainEventPublisher(eventBus)
-    
+
     // Handlers
     this.getIngredientsHandler = new GetIngredientsHandler(
       ingredientRepository,
       new RedisCacheService()
     )
-    
-    this.createIngredientHandler = new CreateIngredientHandler(
-      ingredientRepository,
-      eventPublisher
-    )
-    
+
+    this.createIngredientHandler = new CreateIngredientHandler(ingredientRepository, eventPublisher)
+
     this.consumeIngredientHandler = new ConsumeIngredientHandler(
       ingredientRepository,
       stockService,
       eventPublisher
     )
   }
-  
+
   static getInstance(): IngredientsModuleContainer {
     if (!this.instance) {
       this.instance = new IngredientsModuleContainer()
@@ -418,9 +419,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
 }
 
 // ✅ Composition Root: 依存関係注入
-const handler = new CreateIngredientHandler(
-  new PrismaIngredientRepository(prisma, mapper)
-)
+const handler = new CreateIngredientHandler(new PrismaIngredientRepository(prisma, mapper))
 ```
 
 ## 関連ドキュメント

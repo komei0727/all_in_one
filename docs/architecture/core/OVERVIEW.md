@@ -60,35 +60,35 @@ flowchart TB
     subgraph "Client (Browser)"
         UI[React UI]
     end
-    
+
     subgraph "Enhanced Modular Monolith"
         subgraph "Presentation"
             ACL[Anti-Corruption Layer]
         end
-        
+
         subgraph "Application"
             API[API Routes]
             CMD[Commands]
             QRY[Queries]
         end
-        
+
         subgraph "Domain"
             LOGIC[Business Logic]
             EVENTS[Domain Events]
         end
-        
+
         subgraph "Infrastructure"
             PERSIST[Persistence]
             EXTERNAL[External Services]
         end
     end
-    
+
     subgraph "External"
         DB[(Database)]
         CACHE[(Cache)]
         SERVICES[External APIs]
     end
-    
+
     UI --> ACL
     ACL --> API
     API --> CMD
@@ -100,7 +100,7 @@ flowchart TB
     PERSIST --> DB
     PERSIST --> CACHE
     EXTERNAL --> SERVICES
-    
+
     style UI fill:#bbdefb
     style ACL fill:#c5cae9
     style API fill:#d1c4e9
@@ -123,7 +123,7 @@ flowchart TB
     classDef domainClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef infrastructureClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     classDef externalClass fill:#f5f5f5,stroke:#424242,stroke-width:2px
-    
+
     %% Presentation Layer
     subgraph PL["🖥️ Presentation Layer (client/)"]
         direction LR
@@ -135,7 +135,7 @@ flowchart TB
         HOOKS --> STATE
         HOOKS --> ACL
     end
-    
+
     %% API Layer
     subgraph AL["🔌 API Layer (server/api/)"]
         direction LR
@@ -145,7 +145,7 @@ flowchart TB
         ROUTES --> VALID
         VALID --> SERIAL
     end
-    
+
     %% Application Layer
     subgraph APL["⚙️ Application Layer (server/application/)"]
         direction LR
@@ -157,7 +157,7 @@ flowchart TB
         QRY --> SVC
         SVC --> DTO
     end
-    
+
     %% Domain Layer
     subgraph DL["💎 Domain Layer (server/domain/)"]
         direction LR
@@ -172,7 +172,7 @@ flowchart TB
         DS --> ENT
         DS --> SPEC
     end
-    
+
     %% Infrastructure Layer
     subgraph IL["🔧 Infrastructure Layer (server/infrastructure/)"]
         direction LR
@@ -181,7 +181,7 @@ flowchart TB
         EBUS[Event Bus]
         CACHE[Cache]
     end
-    
+
     %% External Systems
     subgraph EXT["☁️ External Systems"]
         direction LR
@@ -189,7 +189,7 @@ flowchart TB
         REDIS[(Redis)]
         APIS[External<br/>APIs]
     end
-    
+
     %% Layer connections
     ACL --> ROUTES
     VALID --> CMD
@@ -202,7 +202,7 @@ flowchart TB
     REPOIMPL --> DB
     CACHE --> REDIS
     EXTADP --> APIS
-    
+
     %% Apply styles
     class PL presentationClass
     class AL apiClass
@@ -238,12 +238,12 @@ sequenceDiagram
     AS->>E: Execute Domain Logic
     E->>VO: Create/Update Value Object
     E->>E: Generate Domain Event
-    
+
     alt Complex Business Logic
         AS->>DS: Call Domain Service
         DS->>E: Update Entity
     end
-    
+
     AS->>R: Save Entity
     AS->>EB: Publish Domain Events
     AS->>CH: Return Result
@@ -268,7 +268,7 @@ sequenceDiagram
     API->>API: Validate Query Parameters
     API->>QH: Execute Query
     QH->>CACHE: Check Cache
-    
+
     alt Cache Hit
         CACHE->>QH: Return Cached Data
     else Cache Miss
@@ -277,7 +277,7 @@ sequenceDiagram
         QH->>QH: Build Read Model/DTO
         QH->>CACHE: Store in Cache
     end
-    
+
     QH->>API: Return DTO
     API->>ACL: HTTP Response
     ACL->>C: Update UI
@@ -297,7 +297,7 @@ sequenceDiagram
 
     E->>DE: Generate Domain Event
     E->>EB: Publish Event
-    
+
     par Async Processing
         EB->>EH1: Handle Event (Same Module)
         EH1->>PROJ: Update Read Model
@@ -305,7 +305,7 @@ sequenceDiagram
         EB->>EH2: Handle Event (Cross Module)
         EH2->>EXT: Trigger External Action
     end
-    
+
     Note over EB,EH2: Events enable loose coupling<br/>between modules
 ```
 

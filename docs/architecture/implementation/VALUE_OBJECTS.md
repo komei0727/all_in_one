@@ -15,12 +15,12 @@
 
 ### エンティティとの違い
 
-| 特徴 | 値オブジェクト | エンティティ |
-|------|----------------|--------------|
-| 同一性 | 属性値による | 識別子による |
-| 可変性 | 不変 | 可変 |
-| ライフサイクル | なし | あり |
-| 等価性 | 全属性の比較 | IDの比較 |
+| 特徴           | 値オブジェクト | エンティティ |
+| -------------- | -------------- | ------------ |
+| 同一性         | 属性値による   | 識別子による |
+| 可変性         | 不変           | 可変         |
+| ライフサイクル | なし           | あり         |
+| 等価性         | 全属性の比較   | IDの比較     |
 
 ## 実装例
 
@@ -45,20 +45,20 @@ export abstract class ValueObject<T> {
   equals(other: ValueObject<T>): boolean {
     if (!other) return false
     if (!(other instanceof this.constructor)) return false
-    
+
     return this.isEqual(this._value, other._value)
   }
 
   private isEqual(a: any, b: any): boolean {
     if (a === b) return true
     if (typeof a !== 'object' || typeof b !== 'object') return false
-    
+
     const keysA = Object.keys(a)
     const keysB = Object.keys(b)
-    
+
     if (keysA.length !== keysB.length) return false
-    
-    return keysA.every(key => this.isEqual(a[key], b[key]))
+
+    return keysA.every((key) => this.isEqual(a[key], b[key]))
   }
 }
 ```
@@ -82,15 +82,11 @@ export class IngredientName extends ValueObject<string> {
     }
 
     if (value.length < IngredientName.MIN_LENGTH) {
-      throw new DomainError(
-        `食材名は${IngredientName.MIN_LENGTH}文字以上である必要があります`
-      )
+      throw new DomainError(`食材名は${IngredientName.MIN_LENGTH}文字以上である必要があります`)
     }
 
     if (value.length > IngredientName.MAX_LENGTH) {
-      throw new DomainError(
-        `食材名は${IngredientName.MAX_LENGTH}文字以下である必要があります`
-      )
+      throw new DomainError(`食材名は${IngredientName.MAX_LENGTH}文字以下である必要があります`)
     }
 
     if (!IngredientName.VALID_PATTERN.test(value)) {
@@ -122,7 +118,7 @@ export class ExpiryDate extends ValueObject<Date> {
 
     const minDate = new Date()
     minDate.setFullYear(minDate.getFullYear() - 1)
-    
+
     if (value < minDate) {
       throw new DomainError('賞味期限は1年以上前の日付を設定できません')
     }
@@ -140,7 +136,7 @@ export class ExpiryDate extends ValueObject<Date> {
 
   getExpiryStatus(): ExpiryStatus {
     const days = this.daysUntilExpiry()
-    
+
     if (days < 0) return ExpiryStatus.EXPIRED
     if (days <= 3) return ExpiryStatus.EXPIRING_SOON
     if (days <= 7) return ExpiryStatus.EXPIRING
@@ -207,14 +203,12 @@ export class Quantity extends ValueObject<{ amount: number; unit: Unit }> {
   // 単位変換
   convertTo(targetUnit: Unit): Quantity {
     if (this._value.unit.type !== targetUnit.type) {
-      throw new DomainError(
-        `${this._value.unit.name}から${targetUnit.name}への変換はできません`
-      )
+      throw new DomainError(`${this._value.unit.name}から${targetUnit.name}への変換はできません`)
     }
 
-    const convertedAmount = this._value.amount * 
-      (this._value.unit.conversionFactor / targetUnit.conversionFactor)
-    
+    const convertedAmount =
+      this._value.amount * (this._value.unit.conversionFactor / targetUnit.conversionFactor)
+
     return new Quantity(convertedAmount, targetUnit)
   }
 
@@ -250,7 +244,7 @@ export enum StorageLocationType {
   REFRIGERATED = 'REFRIGERATED',
   FROZEN = 'FROZEN',
   ROOM_TEMPERATURE = 'ROOM_TEMPERATURE',
-  COOL_DARK_PLACE = 'COOL_DARK_PLACE'
+  COOL_DARK_PLACE = 'COOL_DARK_PLACE',
 }
 
 export class StorageLocation extends ValueObject<{
@@ -261,23 +255,23 @@ export class StorageLocation extends ValueObject<{
     [StorageLocationType.REFRIGERATED]: {
       name: '冷蔵',
       temperatureRange: { min: 0, max: 10 },
-      defaultShelfLife: 7
+      defaultShelfLife: 7,
     },
     [StorageLocationType.FROZEN]: {
       name: '冷凍',
       temperatureRange: { min: -20, max: -15 },
-      defaultShelfLife: 30
+      defaultShelfLife: 30,
     },
     [StorageLocationType.ROOM_TEMPERATURE]: {
       name: '常温',
       temperatureRange: { min: 15, max: 25 },
-      defaultShelfLife: 14
+      defaultShelfLife: 14,
     },
     [StorageLocationType.COOL_DARK_PLACE]: {
       name: '冷暗所',
       temperatureRange: { min: 10, max: 15 },
-      defaultShelfLife: 21
-    }
+      defaultShelfLife: 21,
+    },
   }
 
   constructor(type: StorageLocationType, detail?: string) {
@@ -308,9 +302,7 @@ export class StorageLocation extends ValueObject<{
 
   getDisplayName(): string {
     const config = this.getConfig()
-    return this._value.detail 
-      ? `${config.name}（${this._value.detail}）`
-      : config.name
+    return this._value.detail ? `${config.name}（${this._value.detail}）` : config.name
   }
 
   getDefaultShelfLife(): number {
@@ -318,10 +310,7 @@ export class StorageLocation extends ValueObject<{
   }
 
   isTemperatureControlled(): boolean {
-    return [
-      StorageLocationType.REFRIGERATED,
-      StorageLocationType.FROZEN
-    ].includes(this._value.type)
+    return [StorageLocationType.REFRIGERATED, StorageLocationType.FROZEN].includes(this._value.type)
   }
 
   // ファクトリーメソッド
@@ -339,10 +328,7 @@ export class StorageLocation extends ValueObject<{
 
   // 永続化用メソッド
   static fromPersistence(data: { type: string; detail?: string }): StorageLocation {
-    return new StorageLocation(
-      data.type as StorageLocationType,
-      data.detail
-    )
+    return new StorageLocation(data.type as StorageLocationType, data.detail)
   }
 }
 ```
@@ -372,7 +358,7 @@ export class NutritionFacts extends ValueObject<{
 
   protected validate(value: any): void {
     const required = ['calories', 'protein', 'carbohydrates', 'fat']
-    
+
     for (const field of required) {
       if (typeof value[field] !== 'number' || value[field] < 0) {
         throw new DomainError(`${field}は0以上の数値である必要があります`)
@@ -391,9 +377,7 @@ export class NutritionFacts extends ValueObject<{
 
   // 栄養素の計算
   getTotalCaloriesFromMacros(): number {
-    return (this._value.protein * 4) + 
-           (this._value.carbohydrates * 4) + 
-           (this._value.fat * 9)
+    return this._value.protein * 4 + this._value.carbohydrates * 4 + this._value.fat * 9
   }
 
   // 栄養バランスのチェック
@@ -405,9 +389,14 @@ export class NutritionFacts extends ValueObject<{
     const carbRatio = this._value.carbohydrates / total
     const fatRatio = this._value.fat / total
 
-    return proteinRatio >= 0.15 && proteinRatio <= 0.35 &&
-           carbRatio >= 0.45 && carbRatio <= 0.65 &&
-           fatRatio >= 0.20 && fatRatio <= 0.35
+    return (
+      proteinRatio >= 0.15 &&
+      proteinRatio <= 0.35 &&
+      carbRatio >= 0.45 &&
+      carbRatio <= 0.65 &&
+      fatRatio >= 0.2 &&
+      fatRatio <= 0.35
+    )
   }
 
   // 新しいインスタンスを返す操作
@@ -418,7 +407,7 @@ export class NutritionFacts extends ValueObject<{
       carbohydrates: this._value.carbohydrates * factor,
       fat: this._value.fat * factor,
       fiber: this._value.fiber ? this._value.fiber * factor : undefined,
-      sodium: this._value.sodium ? this._value.sodium * factor : undefined
+      sodium: this._value.sodium ? this._value.sodium * factor : undefined,
     })
   }
 
@@ -431,7 +420,7 @@ export class NutritionFacts extends ValueObject<{
         carbohydrates: acc.carbohydrates + facts._value.carbohydrates,
         fat: acc.fat + facts._value.fat,
         fiber: (acc.fiber ?? 0) + (facts._value.fiber ?? 0),
-        sodium: (acc.sodium ?? 0) + (facts._value.sodium ?? 0)
+        sodium: (acc.sodium ?? 0) + (facts._value.sodium ?? 0),
       }),
       { calories: 0, protein: 0, carbohydrates: 0, fat: 0, fiber: 0, sodium: 0 }
     )
@@ -501,24 +490,18 @@ export class Money extends ValueObject<{ amount: number; currency: Currency }> {
     if (this._value.currency.code !== other._value.currency.code) {
       throw new DomainError('異なる通貨の加算はできません')
     }
-    return new Money(
-      this._value.amount + other._value.amount,
-      this._value.currency
-    )
+    return new Money(this._value.amount + other._value.amount, this._value.currency)
   }
 
   multiply(factor: number): Money {
-    return new Money(
-      this._value.amount * factor,
-      this._value.currency
-    )
+    return new Money(this._value.amount * factor, this._value.currency)
   }
 
   // フォーマット
   format(): string {
     return new Intl.NumberFormat('ja-JP', {
       style: 'currency',
-      currency: this._value.currency.code
+      currency: this._value.currency.code,
     }).format(this._value.amount)
   }
 }
@@ -575,7 +558,7 @@ export abstract class MemoizedValueObject<T> extends ValueObject<T> {
     if (this.memoCache.has(key)) {
       return this.memoCache.get(key)
     }
-    
+
     const result = fn()
     this.memoCache.set(key, result)
     return result

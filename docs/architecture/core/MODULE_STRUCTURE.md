@@ -14,25 +14,25 @@ graph LR
         ID[Ingredients Domain]
         II[Ingredients Infrastructure]
     end
-    
+
     subgraph "Recipes Module"
         RC[Recipes Components]
         RA[Recipes API]
         RD[Recipes Domain]
         RI[Recipes Infrastructure]
     end
-    
+
     subgraph "Shared Module"
         ST[Shared Types]
         SE[Shared Events]
         SU[Shared Utils]
     end
-    
+
     IC --> SE
     RC --> SE
     ID --> ST
     RD --> ST
-    
+
     style IC fill:#e1f5fe
     style RC fill:#e1f5fe
     style IA fill:#f3e5f5
@@ -44,6 +44,7 @@ graph LR
 ```
 
 **原則:**
+
 - 各モジュールは独立して開発・テスト・デプロイ可能
 - モジュール間の直接的な依存は禁止
 - 共有モジュールを通じた連携のみ許可
@@ -200,30 +201,30 @@ entities/Ingredient.entity.ts
 
 ### サフィックス規則
 
-| 種類 | サフィックス | 例 |
-|------|-------------|-----|
-| Entity | `.entity.ts` | `ingredient.entity.ts` |
-| Value Object | `.vo.ts` | `quantity.vo.ts` |
-| Service | `.service.ts` | `stock-calculation.service.ts` |
-| Repository | `.repository.ts` | `ingredient.repository.ts` |
-| Handler | `.handler.ts` | `create-ingredient.handler.ts` |
-| Command | `.command.ts` | `create-ingredient.command.ts` |
-| Query | `.query.ts` | `get-ingredients.query.ts` |
-| Event | `.event.ts` | `ingredient-created.event.ts` |
-| Exception | `.exception.ts` | `insufficient-stock.exception.ts` |
+| 種類          | サフィックス        | 例                                      |
+| ------------- | ------------------- | --------------------------------------- |
+| Entity        | `.entity.ts`        | `ingredient.entity.ts`                  |
+| Value Object  | `.vo.ts`            | `quantity.vo.ts`                        |
+| Service       | `.service.ts`       | `stock-calculation.service.ts`          |
+| Repository    | `.repository.ts`    | `ingredient.repository.ts`              |
+| Handler       | `.handler.ts`       | `create-ingredient.handler.ts`          |
+| Command       | `.command.ts`       | `create-ingredient.command.ts`          |
+| Query         | `.query.ts`         | `get-ingredients.query.ts`              |
+| Event         | `.event.ts`         | `ingredient-created.event.ts`           |
+| Exception     | `.exception.ts`     | `insufficient-stock.exception.ts`       |
 | Specification | `.specification.ts` | `has-sufficient-stock.specification.ts` |
-| Validator | `.validator.ts` | `create-ingredient.validator.ts` |
-| Serializer | `.serializer.ts` | `ingredient.serializer.ts` |
-| Mapper | `.mapper.ts` | `ingredient.mapper.ts` |
-| DTO | `.dto.ts` | `create-ingredient.dto.ts` |
-| Type | `.types.ts` | `common.types.ts` |
-| Interface | `.interface.ts` | `repository.interface.ts` |
-| Constant | `.constants.ts` | `ingredient.constants.ts` |
-| Utility | `.utils.ts` | `date.utils.ts` |
-| Decorator | `.decorator.ts` | `cache.decorator.ts` |
-| Config | `.config.ts` | `database.config.ts` |
-| Store | `.store.ts` | `ingredient.store.ts` |
-| Hook | `use-*.ts` | `use-ingredient.ts` |
+| Validator     | `.validator.ts`     | `create-ingredient.validator.ts`        |
+| Serializer    | `.serializer.ts`    | `ingredient.serializer.ts`              |
+| Mapper        | `.mapper.ts`        | `ingredient.mapper.ts`                  |
+| DTO           | `.dto.ts`           | `create-ingredient.dto.ts`              |
+| Type          | `.types.ts`         | `common.types.ts`                       |
+| Interface     | `.interface.ts`     | `repository.interface.ts`               |
+| Constant      | `.constants.ts`     | `ingredient.constants.ts`               |
+| Utility       | `.utils.ts`         | `date.utils.ts`                         |
+| Decorator     | `.decorator.ts`     | `cache.decorator.ts`                    |
+| Config        | `.config.ts`        | `database.config.ts`                    |
+| Store         | `.store.ts`         | `ingredient.store.ts`                   |
+| Hook          | `use-*.ts`          | `use-ingredient.ts`                     |
 
 ## インポート順序
 
@@ -255,16 +256,16 @@ import { validateIngredient } from './validation'
 // src/modules/ingredients/server/infrastructure/composition-root.ts
 export class IngredientsModuleContainer {
   private static instance: IngredientsModuleContainer
-  
+
   // すべてのハンドラーとサービスをここで構築
   readonly getIngredientsHandler: GetIngredientsHandler
   readonly createIngredientHandler: CreateIngredientHandler
   // ... 他のハンドラー
-  
+
   private constructor() {
     // 依存関係の構築
   }
-  
+
   static getInstance(): IngredientsModuleContainer {
     if (!this.instance) {
       this.instance = new IngredientsModuleContainer()
@@ -324,7 +325,7 @@ graph LR
     B --> C[Separate Database]
     C --> D[Independent Service]
     D --> E[API Gateway]
-    
+
     style A fill:#e1f5fe
     style E fill:#c8e6c9
 ```
