@@ -64,11 +64,13 @@ pnpm start        # プロダクションサーバー起動
 ```bash
 pnpm db:up        # Docker PostgreSQL起動
 pnpm db:down      # Docker PostgreSQL停止
-pnpm db:migrate   # マイグレーション実行
-pnpm db:push      # スキーマ同期（開発用）
-pnpm db:studio    # Prisma Studio起動
-pnpm db:seed      # シードデータ投入
+pnpm db:migrate   # マイグレーション実行（.env.local自動読み込み）
+pnpm db:push      # スキーマ同期（開発用、.env.local自動読み込み）
+pnpm db:studio    # Prisma Studio起動（.env.local自動読み込み）
+pnpm db:seed      # シードデータ投入（.env.local自動読み込み）
 ```
+
+**注意**: dotenv-cliにより`.env.local`の環境変数が自動的に読み込まれます。
 
 ### コード品質
 
@@ -155,6 +157,12 @@ Conventional Commitsに従う：
 - サーバーログ: ターミナルの出力確認
 - クライアント: ブラウザ開発者ツール
 - DB: `pnpm db:studio`でデータ確認
+
+## 6. 開発ガイドライン
+
+### テスト
+
+- テストにはあとから人が見て何をテストしているかわかるよう、コメントを必ず付ける
 
 ## 関連ドキュメント
 
