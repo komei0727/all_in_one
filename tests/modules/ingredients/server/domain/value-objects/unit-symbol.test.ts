@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { UnitSymbol } from '@/modules/ingredients/server/domain/value-objects/unit-symbol'
+import { UnitSymbol } from '@/modules/ingredients/server/domain/value-objects/unit-symbol.vo'
 
 /**
  * UnitSymbol値オブジェクトのテスト

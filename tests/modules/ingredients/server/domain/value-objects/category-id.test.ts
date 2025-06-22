@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { CategoryId } from '@/modules/ingredients/server/domain/value-objects/category-id'
+import { CategoryId } from '@/modules/ingredients/server/domain/value-objects/category-id.vo'
 
 /**
  * CategoryId値オブジェクトのテスト

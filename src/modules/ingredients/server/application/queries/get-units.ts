@@ -1,16 +1,12 @@
 import { UnitRepository } from '../../domain/repositories/unit-repository.interface'
+import { UnitListDTO } from '../dtos/unit/unit-list.dto'
+import { UnitMapper } from '../mappers/unit.mapper'
 
 /**
- * 単位一覧取得クエリの結果DTO
+ * 単位一覧取得クエリの結果
+ * @deprecated Use UnitListDTO instead
  */
-export interface GetUnitsResult {
-  units: Array<{
-    id: string
-    name: string
-    symbol: string
-    displayOrder: number
-  }>
-}
+export type GetUnitsResult = UnitListDTO
 
 /**
  * GetUnitsQueryHandler
@@ -25,13 +21,11 @@ export class GetUnitsQueryHandler {
    * クエリを実行して単位一覧を取得
    * @returns 単位一覧のDTO
    */
-  async execute(): Promise<GetUnitsResult> {
+  async execute(): Promise<UnitListDTO> {
     // リポジトリからアクティブな単位を取得
     const units = await this.unitRepository.findAllActive()
 
     // エンティティをDTOに変換
-    return {
-      units: units.map((unit) => unit.toJSON()),
-    }
+    return UnitMapper.toListDTO(units)
   }
 }

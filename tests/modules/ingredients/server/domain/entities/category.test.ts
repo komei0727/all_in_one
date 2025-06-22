@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { Category } from '@/modules/ingredients/server/domain/entities/category'
+import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 
 /**
  * Category Entity のテスト

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/units/get-units.handler'
+import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
+import { UnitListDTO } from '@/modules/ingredients/server/application/dtos/unit/unit-list.dto'
+import { UnitDTO } from '@/modules/ingredients/server/application/dtos/unit/unit.dto'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units'
 
 // モジュールのモック
@@ -36,19 +38,18 @@ describe('GetUnitsHandler', () => {
   it('should return units from query handler', async () => {
     // クエリハンドラーの結果を返すことを確認
     // Arrange
-    const mockResult = {
-      units: [
-        { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-        { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
-      ],
-    }
-    mockQueryHandler.execute.mockResolvedValue(mockResult)
+    const unitDTOs = [
+      new UnitDTO('unit1', 'グラム', 'g', 1),
+      new UnitDTO('unit2', 'キログラム', 'kg', 2),
+    ]
+    const mockDTO = new UnitListDTO(unitDTOs)
+    mockQueryHandler.execute.mockResolvedValue(mockDTO)
 
     // Act
     const result = await handler.handle()
 
     // Assert
-    expect(result).toEqual(mockResult)
+    expect(result).toEqual(mockDTO.toJSON())
     expect(mockQueryHandler.execute).toHaveBeenCalledOnce()
   })
 

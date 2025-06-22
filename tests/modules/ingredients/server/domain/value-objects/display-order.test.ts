@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { DisplayOrder } from '@/modules/ingredients/server/domain/value-objects/display-order'
+import { DisplayOrder } from '@/modules/ingredients/server/domain/value-objects/display-order.vo'
 
 /**
  * DisplayOrder値オブジェクトのテスト

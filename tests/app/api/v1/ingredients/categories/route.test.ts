@@ -2,10 +2,10 @@ import { NextRequest } from 'next/server'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GET } from '@/app/api/v1/ingredients/categories/route'
-import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/categories/get-categories.handler'
+import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
 
 // モジュールのモック
-vi.mock('@/modules/ingredients/server/api/handlers/categories/get-categories.handler', () => ({
+vi.mock('@/modules/ingredients/server/api/handlers/queries/get-categories.handler', () => ({
   GetCategoriesHandler: vi.fn().mockImplementation(() => ({
     handle: vi.fn(),
   })),

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { ValueObject } from '@/modules/ingredients/server/domain/value-objects/value-object'
+import { ValueObject } from '@/modules/ingredients/server/domain/value-objects/value-object.base'
 
 /**
  * テスト用の具体的な値オブジェクト実装

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units'
-import { Unit } from '@/modules/ingredients/server/domain/entities/unit'
+import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
 /**

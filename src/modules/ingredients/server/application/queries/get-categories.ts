@@ -1,15 +1,12 @@
 import { CategoryRepository } from '../../domain/repositories/category-repository.interface'
+import { CategoryListDTO } from '../dtos/category/category-list.dto'
+import { CategoryMapper } from '../mappers/category.mapper'
 
 /**
- * カテゴリー一覧取得クエリの結果DTO
+ * カテゴリー一覧取得クエリの結果
+ * @deprecated Use CategoryListDTO instead
  */
-export interface GetCategoriesResult {
-  categories: Array<{
-    id: string
-    name: string
-    displayOrder: number
-  }>
-}
+export type GetCategoriesResult = CategoryListDTO
 
 /**
  * GetCategoriesQueryHandler
@@ -24,13 +21,11 @@ export class GetCategoriesQueryHandler {
    * クエリを実行してカテゴリー一覧を取得
    * @returns カテゴリー一覧のDTO
    */
-  async execute(): Promise<GetCategoriesResult> {
+  async execute(): Promise<CategoryListDTO> {
     // リポジトリからアクティブなカテゴリーを取得
     const categories = await this.categoryRepository.findAllActive()
 
     // エンティティをDTOに変換
-    return {
-      categories: categories.map((category) => category.toJSON()),
-    }
+    return CategoryMapper.toListDTO(categories)
   }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { UnitName } from '@/modules/ingredients/server/domain/value-objects/unit-name'
+import { UnitName } from '@/modules/ingredients/server/domain/value-objects/unit-name.vo'
 
 /**
  * UnitName値オブジェクトのテスト

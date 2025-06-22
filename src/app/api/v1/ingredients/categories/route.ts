@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/categories/get-categories.handler'
+import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
 
 /**
  * GET /api/v1/ingredients/categories

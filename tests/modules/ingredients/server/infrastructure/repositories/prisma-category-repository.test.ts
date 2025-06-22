@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { PrismaClient } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
-import { Category } from '@/modules/ingredients/server/domain/entities/category'
+import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 
 // Prismaクライアントのモック

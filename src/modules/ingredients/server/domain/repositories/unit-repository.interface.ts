@@ -1,4 +1,4 @@
-import { Unit } from '../entities/unit'
+import { Unit } from '../entities/unit.entity'
 
 /**
  * UnitRepository Interface

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/categories/get-categories.handler'
+import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
+import { CategoryListDTO } from '@/modules/ingredients/server/application/dtos/category/category-list.dto'
+import { CategoryDTO } from '@/modules/ingredients/server/application/dtos/category/category.dto'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories'
 
 // モジュールのモック
@@ -36,19 +38,15 @@ describe('GetCategoriesHandler', () => {
   it('should return categories from query handler', async () => {
     // クエリハンドラーの結果を返すことを確認
     // Arrange
-    const mockResult = {
-      categories: [
-        { id: 'cat1', name: '野菜', displayOrder: 1 },
-        { id: 'cat2', name: '肉類', displayOrder: 2 },
-      ],
-    }
-    mockQueryHandler.execute.mockResolvedValue(mockResult)
+    const categoryDTOs = [new CategoryDTO('cat1', '野菜', 1), new CategoryDTO('cat2', '肉類', 2)]
+    const mockDTO = new CategoryListDTO(categoryDTOs)
+    mockQueryHandler.execute.mockResolvedValue(mockDTO)
 
     // Act
     const result = await handler.handle()
 
     // Assert
-    expect(result).toEqual(mockResult)
+    expect(result).toEqual(mockDTO.toJSON())
     expect(mockQueryHandler.execute).toHaveBeenCalledOnce()
   })
 

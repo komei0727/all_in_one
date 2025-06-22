@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/units/get-units.handler'
+import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
 
 /**
  * GET /api/v1/ingredients/units

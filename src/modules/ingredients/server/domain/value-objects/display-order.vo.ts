@@ -1,4 +1,4 @@
-import { ValueObject } from './value-object'
+import { ValueObject } from './value-object.base'
 
 /**
  * 表示順序値オブジェクト

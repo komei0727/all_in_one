@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { Unit } from '@/modules/ingredients/server/domain/entities/unit'
+import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 
 /**
  * Unit Entity のテスト
