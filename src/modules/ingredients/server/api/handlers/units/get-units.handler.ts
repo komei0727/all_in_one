@@ -1,7 +1,4 @@
-import { prisma } from '@/lib/prisma/client'
-
-import { GetUnitsQueryHandler } from '../../../application/queries/get-units'
-import { PrismaUnitRepository } from '../../../infrastructure/repositories/prisma-unit-repository'
+import { CompositionRoot } from '../../../../infrastructure/composition-root'
 
 /**
  * 単位一覧取得ハンドラー
@@ -15,11 +12,9 @@ export class GetUnitsHandler {
    * @returns 単位一覧のレスポンス
    */
   async handle() {
-    // Infrastructure層のリポジトリを生成
-    const unitRepository = new PrismaUnitRepository(prisma)
-
-    // Application層のクエリハンドラーを生成
-    const queryHandler = new GetUnitsQueryHandler(unitRepository)
+    // DIコンテナからクエリハンドラーを取得
+    const compositionRoot = CompositionRoot.getInstance()
+    const queryHandler = compositionRoot.getGetUnitsQueryHandler()
 
     // クエリを実行
     const result = await queryHandler.execute()

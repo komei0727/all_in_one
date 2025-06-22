@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { PrismaClient } from '@/generated/prisma'
+import { PrismaClient, UnitType } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
@@ -40,7 +40,7 @@ describe('PrismaUnitRepository', () => {
           id: 'unit1',
           name: 'グラム',
           symbol: 'g',
-          type: 'WEIGHT',
+          type: 'WEIGHT' as UnitType,
           displayOrder: 1,
           isActive: true,
           description: null,
@@ -51,7 +51,7 @@ describe('PrismaUnitRepository', () => {
           id: 'unit2',
           name: 'キログラム',
           symbol: 'kg',
-          type: 'WEIGHT',
+          type: 'WEIGHT' as UnitType,
           displayOrder: 2,
           isActive: true,
           description: null,
@@ -106,7 +106,7 @@ describe('PrismaUnitRepository', () => {
         id: 'unit1',
         name: 'グラム',
         symbol: 'g',
-        type: 'WEIGHT',
+        type: 'WEIGHT' as UnitType,
         displayOrder: 1,
         isActive: true,
         description: null,
