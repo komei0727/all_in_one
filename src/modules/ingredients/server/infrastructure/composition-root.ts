@@ -3,10 +3,14 @@ import type { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma/client'
 
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
+import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
+import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
+import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories'
 import { GetUnitsQueryHandler } from '../application/queries/get-units'
 import { CategoryRepository } from '../domain/repositories/category-repository.interface'
+import { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
 import { UnitRepository } from '../domain/repositories/unit-repository.interface'
 
 /**
@@ -21,6 +25,7 @@ export class CompositionRoot {
   // Singleton instances for repositories
   private categoryRepository: CategoryRepository | null = null
   private unitRepository: UnitRepository | null = null
+  private ingredientRepository: IngredientRepository | null = null
 
   constructor(private readonly prismaClient: PrismaClient) {}
 
@@ -75,5 +80,37 @@ export class CompositionRoot {
    */
   public getGetUnitsQueryHandler(): GetUnitsQueryHandler {
     return new GetUnitsQueryHandler(this.getUnitRepository())
+  }
+
+  /**
+   * Get IngredientRepository instance (singleton)
+   */
+  public getIngredientRepository(): IngredientRepository {
+    if (!this.ingredientRepository) {
+      this.ingredientRepository = new PrismaIngredientRepository(this.prismaClient)
+    }
+    return this.ingredientRepository
+  }
+
+  /**
+   * Get CreateIngredientHandler instance (new instance each time)
+   */
+  public getCreateIngredientHandler(): CreateIngredientHandler {
+    return new CreateIngredientHandler(
+      this.getIngredientRepository(),
+      this.getCategoryRepository(),
+      this.getUnitRepository()
+    )
+  }
+
+  /**
+   * Get CreateIngredientApiHandler instance (new instance each time)
+   */
+  public getCreateIngredientApiHandler(): CreateIngredientApiHandler {
+    return new CreateIngredientApiHandler(
+      this.getCreateIngredientHandler(),
+      this.getCategoryRepository(),
+      this.getUnitRepository()
+    )
   }
 }
