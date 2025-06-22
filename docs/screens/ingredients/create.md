@@ -133,7 +133,7 @@
 
 #### 1. カテゴリー一覧取得
 
-- **エンドポイント**: `GET /api/ingredients/categories`
+- **エンドポイント**: `GET /api/v1/ingredients/categories`
 - **目的**: カテゴリー選択肢の取得
 - **呼び出しタイミング**: 画面初期表示時
 
@@ -147,17 +147,24 @@
 
 ```typescript
 interface CategoriesResponse {
-  categories: Array<{
+  data: Array<{
     id: string
     name: string
     description: string | null
+    displayOrder: number
+    createdAt: string
+    updatedAt: string
   }>
+  meta: {
+    timestamp: string
+    version: string
+  }
 }
 ```
 
 #### 2. 単位一覧取得
 
-- **エンドポイント**: `GET /api/ingredients/units`
+- **エンドポイント**: `GET /api/v1/ingredients/units`
 - **目的**: 単位選択肢の取得
 - **呼び出しタイミング**: 画面初期表示時
 
@@ -171,17 +178,26 @@ interface CategoriesResponse {
 
 ```typescript
 interface UnitsResponse {
-  units: Array<{
+  data: Array<{
     id: string
     name: string
+    symbol: string
+    type: 'COUNT' | 'WEIGHT' | 'VOLUME'
     description: string | null
+    displayOrder: number
+    createdAt: string
+    updatedAt: string
   }>
+  meta: {
+    timestamp: string
+    version: string
+  }
 }
 ```
 
 #### 3. 食材登録
 
-- **エンドポイント**: `POST /api/ingredients`
+- **エンドポイント**: `POST /api/v1/ingredients`
 - **目的**: 新規食材の登録
 - **呼び出しタイミング**: 保存ボタンクリック時
 
@@ -191,9 +207,14 @@ interface UnitsResponse {
 interface CreateIngredientRequest {
   name: string
   categoryId: string
-  quantity: number
-  unitId: string
-  storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+  quantity: {
+    amount: number
+    unitId: string
+  }
+  storageLocation: {
+    type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    detail?: string
+  }
   expiryDate?: string | null // ISO 8601形式
   bestBeforeDate?: string | null // ISO 8601形式
   purchaseDate: string // ISO 8601形式
@@ -206,7 +227,7 @@ interface CreateIngredientRequest {
 
 ```typescript
 interface CreateIngredientResponse {
-  ingredient: {
+  data: {
     id: string
     name: string
     categoryId: string
@@ -220,6 +241,10 @@ interface CreateIngredientResponse {
     memo: string | null
     createdAt: string
     updatedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
   }
 }
 ```

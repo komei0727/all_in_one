@@ -18,11 +18,18 @@
 
 - `POST /api/v1/ingredients/{id}/consume` - 食材を消費
 - `POST /api/v1/ingredients/{id}/replenish` - 食材を補充
+- `POST /api/v1/ingredients/{id}/discard` - 食材を廃棄
+- `POST /api/v1/ingredients/{id}/adjust` - 在庫を調整（棚卸し）
 - `POST /api/v1/ingredients/batch-consume` - 複数食材を一括消費
 
 ### 集計・サマリー
 
 - `GET /api/v1/ingredients/summary/by-category` - カテゴリー別在庫サマリー
+
+### 履歴・監査
+
+- `GET /api/v1/ingredients/{id}/events` - 食材のイベント履歴取得
+- `GET /api/v1/events` - 全体のイベント履歴検索
 
 ### マスタデータ
 
@@ -232,17 +239,33 @@ interface IngredientDetailResponse {
   data: {
     id: string
     name: string
-    categoryId: string
-    categoryName: string
-    quantity: number
-    unitId: string
-    unitName: string
-    expiryDate: string | null
+    category: {
+      id: string
+      name: string
+    }
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+        type: 'COUNT' | 'WEIGHT' | 'VOLUME'
+      }
+    }
+    storageLocation: {
+      type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+      detail?: string
+    }
     bestBeforeDate: string | null
+    expiryDate: string | null
     purchaseDate: string
     price: number | null
-    storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
     memo: string | null
+    daysUntilExpiry: number | null
+    expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED'
+    isExpired: boolean
+    isExpiringSoon: boolean
+    hasStock: boolean
     createdAt: string
     updatedAt: string
   }
@@ -299,9 +322,14 @@ async function fetchIngredientById(id: string) {
 interface CreateIngredientRequest {
   name: string // 1-50文字
   categoryId: string // CUID形式
-  quantity: number // 0より大きい数値、小数点以下2桁まで
-  unitId: string // CUID形式
-  storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+  quantity: {
+    amount: number // 0より大きい数値、小数点以下2桁まで
+    unitId: string // CUID形式
+  }
+  storageLocation: {
+    type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    detail?: string // 保存場所の詳細（例：「ドアポケット」）最大50文字
+  }
   expiryDate?: string | null // ISO 8601形式
   bestBeforeDate?: string | null // ISO 8601形式
   purchaseDate: string // ISO 8601形式
@@ -313,7 +341,10 @@ interface CreateIngredientRequest {
 #### バリデーションルール
 
 - `name`: 必須、1-50文字、前後の空白は自動トリミング
-- `quantity`: 必須、0より大きい数値、小数点以下2桁まで
+- `quantity.amount`: 必須、0より大きい数値、小数点以下2桁まで
+- `quantity.unitId`: 必須、存在する単位ID
+- `storageLocation.type`: 必須、定義された値のみ
+- `storageLocation.detail`: 任意、最大50文字
 - `price`: 0以上の整数
 - `expiryDate/bestBeforeDate`: 未来の日付のみ許可
 - `memo`: 最大200文字
@@ -406,9 +437,14 @@ async function createIngredient(data: CreateIngredientRequest) {
 interface UpdateIngredientRequest {
   name: string
   categoryId: string
-  quantity: number
-  unitId: string
-  storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+  quantity: {
+    amount: number
+    unitId: string
+  }
+  storageLocation: {
+    type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    detail?: string
+  }
   expiryDate?: string | null
   bestBeforeDate?: string | null
   purchaseDate: string
@@ -632,7 +668,98 @@ interface UnitsResponse {
 }
 ```
 
-## 共通の注意事項
+## 共通仕様
+
+### エラーレスポンス形式
+
+すべてのAPIで共通のエラーレスポンス形式を使用します。
+
+```typescript
+interface ErrorResponse {
+  error: {
+    code: string // エラーコード（例：INSUFFICIENT_STOCK）
+    message: string // ユーザー向けメッセージ
+    type: 'BUSINESS_RULE_VIOLATION' | 'VALIDATION_ERROR' | 'NOT_FOUND' | 'SYSTEM_ERROR'
+    details?: {
+      // ビジネスルール違反の詳細
+      rule?: string // 違反したルール名
+      constraints?: Record<string, any> // 制約の詳細
+      suggestions?: string[] // ユーザーへの提案
+      fields?: Array<{
+        // フィールドごとのエラー（バリデーションエラー時）
+        field: string
+        message: string
+        code: string
+      }>
+    }
+  }
+  meta: {
+    timestamp: string
+    correlationId: string // エラー追跡用ID
+  }
+}
+```
+
+#### エラーレスポンス例
+
+**在庫不足エラー**
+
+```json
+{
+  "error": {
+    "code": "INSUFFICIENT_STOCK",
+    "message": "在庫が不足しています",
+    "type": "BUSINESS_RULE_VIOLATION",
+    "details": {
+      "rule": "StockCannotBeNegative",
+      "constraints": {
+        "requested": 5,
+        "available": 3,
+        "shortage": 2,
+        "unit": "パック"
+      },
+      "suggestions": [
+        "在庫を補充してから再度お試しください",
+        "消費量を3パック以下に減らしてください"
+      ]
+    }
+  },
+  "meta": {
+    "timestamp": "2025-01-21T12:00:00Z",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+**バリデーションエラー**
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "入力値が不正です",
+    "type": "VALIDATION_ERROR",
+    "details": {
+      "fields": [
+        {
+          "field": "name",
+          "message": "食材名は必須です",
+          "code": "REQUIRED"
+        },
+        {
+          "field": "quantity.amount",
+          "message": "数量は0より大きい値を入力してください",
+          "code": "MIN_VALUE"
+        }
+      ]
+    }
+  },
+  "meta": {
+    "timestamp": "2025-01-21T12:00:00Z",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440001"
+  }
+}
+```
 
 ### パフォーマンス
 
@@ -720,6 +847,25 @@ interface ConsumeIngredientResponse {
     isOutOfStock: boolean
     consumedAt: string
   }
+  events: Array<{
+    id: string
+    type: 'IngredientConsumed'
+    occurredAt: string
+    aggregateId: string
+    userId: string
+    data: {
+      ingredientName: string
+      consumedQuantity: {
+        amount: number
+        unit: string
+      }
+      remainingQuantity: {
+        amount: number
+        unit: string
+      }
+      consumedFor?: string
+    }
+  }>
   meta: {
     timestamp: string
     version: string
@@ -810,6 +956,167 @@ interface ReplenishIngredientResponse {
   }
 }
 ```
+
+---
+
+## 食材を廃棄する
+
+### 概要
+
+期限切れや損傷などにより食材を廃棄します。在庫を0にし、廃棄理由を記録します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/{id}/discard`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明               |
+| ---------- | ------ | ---- | ------------------ |
+| id         | string | Yes  | 食材ID（CUID形式） |
+
+#### リクエストボディ
+
+```typescript
+interface DiscardIngredientRequest {
+  reason: 'EXPIRED' | 'DAMAGED' | 'LOST' | 'OTHER' // 廃棄理由
+  quantity?: number // 廃棄数量（省略時は全量廃棄）
+  notes?: string // 詳細理由（最大200文字）
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface DiscardIngredientResponse {
+  data: {
+    ingredientId: string
+    ingredientName: string
+    discardedQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    remainingQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    reason: string
+    discardedAt: string
+    isCompletelyDiscarded: boolean // 完全に廃棄されたかどうか
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード       | 説明                       |
+| ---------------- | ------------------ | -------------------------- |
+| 400              | INSUFFICIENT_STOCK | 廃棄数量が在庫を超えている |
+| 404              | NOT_FOUND          | 食材が見つからない         |
+| 400              | ALREADY_DISCARDED  | 既に完全に廃棄済みの食材   |
+
+---
+
+## 在庫を調整する
+
+### 概要
+
+棚卸しや実地調査により実際の在庫と記録が異なる場合に、在庫数を調整します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/{id}/adjust`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明               |
+| ---------- | ------ | ---- | ------------------ |
+| id         | string | Yes  | 食材ID（CUID形式） |
+
+#### リクエストボディ
+
+```typescript
+interface AdjustIngredientRequest {
+  actualQuantity: number // 実際の在庫数量
+  reason: string // 調整理由（例：「棚卸し」「紛失発見」）
+  notes?: string // 詳細メモ（最大200文字）
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface AdjustIngredientResponse {
+  data: {
+    ingredientId: string
+    ingredientName: string
+    previousQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    actualQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    difference: {
+      amount: number // 差分（正=増加、負=減少）
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    adjustmentType: 'INCREASE' | 'DECREASE' | 'NO_CHANGE'
+    reason: string
+    adjustedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード  | 説明                   |
+| ---------------- | ------------- | ---------------------- |
+| 400              | INVALID_VALUE | 実際の在庫数量が負の値 |
+| 404              | NOT_FOUND     | 食材が見つからない     |
 
 ---
 
@@ -910,6 +1217,147 @@ interface CategorySummaryResponse {
       totalItemsExpiringSoon: number
       totalItemsExpired: number
     }
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 食材のイベント履歴取得
+
+### 概要
+
+指定した食材に対するすべての操作履歴（作成、消費、補充、廃棄、調整など）を時系列で取得します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/{id}/events`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明               |
+| ---------- | ------ | ---- | ------------------ |
+| id         | string | Yes  | 食材ID（CUID形式） |
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明                           |
+| ---------- | ------ | ---- | ---------- | ------------------------------ |
+| from       | string | No   | -          | 開始日時（ISO 8601形式）       |
+| to         | string | No   | -          | 終了日時（ISO 8601形式）       |
+| eventType  | string | No   | -          | イベントタイプフィルタ         |
+| page       | number | No   | 1          | ページ番号                     |
+| limit      | number | No   | 50         | 1ページあたりの件数（最大100） |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface IngredientEventsResponse {
+  data: Array<{
+    id: string
+    type:
+      | 'IngredientCreated'
+      | 'IngredientConsumed'
+      | 'IngredientReplenished'
+      | 'IngredientDiscarded'
+      | 'IngredientAdjusted'
+      | 'IngredientUpdated'
+    occurredAt: string
+    userId: string
+    data: {
+      // イベントタイプごとに異なるペイロード
+      ingredientName: string
+      previousQuantity?: {
+        amount: number
+        unit: string
+      }
+      newQuantity?: {
+        amount: number
+        unit: string
+      }
+      reason?: string
+      notes?: string
+    }
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 全体イベント履歴検索
+
+### 概要
+
+システム全体のイベント履歴を検索します。管理者用途や統計分析に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/events`
+- **認証**: 必要
+- **権限**: 管理者または自分の食材のみ
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ    | 型     | 必須 | デフォルト | 説明                     |
+| ------------- | ------ | ---- | ---------- | ------------------------ |
+| aggregateId   | string | No   | -          | 特定の食材IDでフィルタ   |
+| aggregateType | string | No   | -          | 集約タイプ（Ingredient） |
+| eventType     | string | No   | -          | イベントタイプでフィルタ |
+| userId        | string | No   | -          | ユーザーIDでフィルタ     |
+| from          | string | No   | -          | 開始日時                 |
+| to            | string | No   | -          | 終了日時                 |
+| page          | number | No   | 1          | ページ番号               |
+| limit         | number | No   | 50         | 1ページあたりの件数      |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface EventsResponse {
+  data: Array<{
+    id: string
+    aggregateId: string
+    aggregateType: string
+    eventType: string
+    eventData: Record<string, any>
+    occurredAt: string
+    userId: string
+    correlationId?: string
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
   }
   meta: {
     timestamp: string

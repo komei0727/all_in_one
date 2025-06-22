@@ -106,7 +106,7 @@
 
 #### 1. 食材一覧取得
 
-- **エンドポイント**: `GET /api/ingredients`
+- **エンドポイント**: `GET /api/v1/ingredients`
 - **目的**: 食材の一覧を取得
 - **呼び出しタイミング**:
   - 画面初期表示時
@@ -119,7 +119,11 @@
 interface GetIngredientsParams {
   search?: string // 検索キーワード
   categoryId?: string // カテゴリーID（"all"の場合は全件）
-  sortBy?: 'name' | 'updatedAt' | 'expiryDate' // ソート項目
+  storageLocation?: string // 保存場所フィルタ
+  hasStock?: boolean // 在庫有無フィルタ
+  expiringWithinDays?: number // 期限切れ日数フィルタ
+  includeExpired?: boolean // 期限切れ食材を含むか
+  sortBy?: 'name' | 'updatedAt' | 'expiryDate' | 'quantity' // ソート項目
   sortOrder?: 'asc' | 'desc' // ソート順
   page?: number // ページ番号（1から開始）
   limit?: number // 1ページあたりの件数（デフォルト: 20）
@@ -130,17 +134,33 @@ interface GetIngredientsParams {
 
 ```typescript
 interface IngredientsListResponse {
-  ingredients: Array<{
+  data: Array<{
     id: string
     name: string
-    categoryId: string
-    categoryName: string
-    quantity: number
-    unitId: string
-    unitName: string
-    expiryDate: string | null // ISO 8601形式
+    category: {
+      id: string
+      name: string
+    }
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+        type: 'COUNT' | 'WEIGHT' | 'VOLUME'
+      }
+    }
+    storageLocation: {
+      type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+      detail?: string
+    }
     bestBeforeDate: string | null // ISO 8601形式
-    storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    expiryDate: string | null // ISO 8601形式
+    daysUntilExpiry: number | null
+    expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED'
+    isExpired: boolean
+    isExpiringSoon: boolean
+    hasStock: boolean
     updatedAt: string // ISO 8601形式
   }>
   pagination: {
@@ -148,14 +168,21 @@ interface IngredientsListResponse {
     limit: number
     total: number
     totalPages: number
-    hasMore: boolean
+    hasNext: boolean
+    hasPrev: boolean
+    nextPage: number | null
+    prevPage: number | null
+  }
+  meta: {
+    timestamp: string
+    version: string
   }
 }
 ```
 
 #### 2. カテゴリー一覧取得
 
-- **エンドポイント**: `GET /api/ingredients/categories`
+- **エンドポイント**: `GET /api/v1/ingredients/categories`
 - **目的**: フィルター用のカテゴリー一覧を取得
 - **呼び出しタイミング**: 画面初期表示時
 
@@ -169,10 +196,18 @@ interface IngredientsListResponse {
 
 ```typescript
 interface CategoriesResponse {
-  categories: Array<{
+  data: Array<{
     id: string
     name: string
+    description: string | null
+    displayOrder: number
+    createdAt: string
+    updatedAt: string
   }>
+  meta: {
+    timestamp: string
+    version: string
+  }
 }
 ```
 

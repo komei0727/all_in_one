@@ -141,7 +141,7 @@
 
 #### 1. 食材詳細取得
 
-- **エンドポイント**: `GET /api/ingredients/[id]`
+- **エンドポイント**: `GET /api/v1/ingredients/[id]`
 - **目的**: 編集対象の食材情報を取得
 - **呼び出しタイミング**: 画面初期表示時
 
@@ -155,29 +155,49 @@
 
 ```typescript
 interface IngredientDetailResponse {
-  ingredient: {
+  data: {
     id: string
     name: string
-    categoryId: string
-    categoryName: string
-    quantity: number
-    unitId: string
-    unitName: string
-    storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
-    expiryDate: string | null
+    category: {
+      id: string
+      name: string
+    }
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+        type: 'COUNT' | 'WEIGHT' | 'VOLUME'
+      }
+    }
+    storageLocation: {
+      type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+      detail?: string
+    }
     bestBeforeDate: string | null
+    expiryDate: string | null
     purchaseDate: string
     price: number | null
     memo: string | null
+    daysUntilExpiry: number | null
+    expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED'
+    isExpired: boolean
+    isExpiringSoon: boolean
+    hasStock: boolean
     createdAt: string
     updatedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
   }
 }
 ```
 
 #### 2. カテゴリー一覧取得
 
-- **エンドポイント**: `GET /api/ingredients/categories`
+- **エンドポイント**: `GET /api/v1/ingredients/categories`
 - **目的**: カテゴリー選択肢の取得
 - **呼び出しタイミング**: 画面初期表示時
 
@@ -185,7 +205,7 @@ interface IngredientDetailResponse {
 
 #### 3. 単位一覧取得
 
-- **エンドポイント**: `GET /api/ingredients/units`
+- **エンドポイント**: `GET /api/v1/ingredients/units`
 - **目的**: 単位選択肢の取得
 - **呼び出しタイミング**: 画面初期表示時
 
@@ -193,7 +213,7 @@ interface IngredientDetailResponse {
 
 #### 4. 食材更新
 
-- **エンドポイント**: `PUT /api/ingredients/[id]`
+- **エンドポイント**: `PUT /api/v1/ingredients/[id]`
 - **目的**: 食材情報の更新
 - **呼び出しタイミング**: 保存ボタンクリック時
 
@@ -203,9 +223,14 @@ interface IngredientDetailResponse {
 interface UpdateIngredientRequest {
   name: string
   categoryId: string
-  quantity: number
-  unitId: string
-  storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+  quantity: {
+    amount: number
+    unitId: string
+  }
+  storageLocation: {
+    type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    detail?: string
+  }
   expiryDate?: string | null
   bestBeforeDate?: string | null
   purchaseDate: string
@@ -218,7 +243,7 @@ interface UpdateIngredientRequest {
 
 ```typescript
 interface UpdateIngredientResponse {
-  ingredient: {
+  data: {
     id: string
     name: string
     categoryId: string
@@ -233,12 +258,16 @@ interface UpdateIngredientResponse {
     createdAt: string
     updatedAt: string
   }
+  meta: {
+    timestamp: string
+    version: string
+  }
 }
 ```
 
 #### 5. 食材削除
 
-- **エンドポイント**: `DELETE /api/ingredients/[id]`
+- **エンドポイント**: `DELETE /api/v1/ingredients/[id]`
 - **目的**: 食材の削除
 - **呼び出しタイミング**: 削除確認後
 
@@ -251,10 +280,8 @@ interface UpdateIngredientResponse {
 **レスポンス**
 
 ```typescript
-interface DeleteIngredientResponse {
-  success: boolean
-  message: string
-}
+// 204 No Content
+// レスポンスボディなし
 ```
 
 **エラーハンドリング**
