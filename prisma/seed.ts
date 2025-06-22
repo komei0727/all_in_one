@@ -1,4 +1,4 @@
-import { PrismaClient, StorageLocation } from '../src/generated/prisma'
+import { PrismaClient, StorageLocation, UnitType } from '../src/generated/prisma'
 
 const prisma = new PrismaClient()
 
@@ -6,6 +6,7 @@ async function main() {
   console.log('Starting seed...')
 
   // Delete existing data
+  await prisma.ingredientStock.deleteMany()
   await prisma.ingredient.deleteMany()
   await prisma.unit.deleteMany()
   await prisma.category.deleteMany()
@@ -37,28 +38,33 @@ async function main() {
   // Create units
   const units = await Promise.all([
     prisma.unit.create({
-      data: { name: '個', description: '個数' },
+      data: { name: '個', symbol: '個', type: UnitType.COUNT, description: '個数' },
     }),
     prisma.unit.create({
-      data: { name: 'g', description: 'グラム' },
+      data: { name: 'グラム', symbol: 'g', type: UnitType.WEIGHT, description: 'グラム' },
     }),
     prisma.unit.create({
-      data: { name: 'kg', description: 'キログラム' },
+      data: { name: 'キログラム', symbol: 'kg', type: UnitType.WEIGHT, description: 'キログラム' },
     }),
     prisma.unit.create({
-      data: { name: 'ml', description: 'ミリリットル' },
+      data: {
+        name: 'ミリリットル',
+        symbol: 'ml',
+        type: UnitType.VOLUME,
+        description: 'ミリリットル',
+      },
     }),
     prisma.unit.create({
-      data: { name: 'L', description: 'リットル' },
+      data: { name: 'リットル', symbol: 'L', type: UnitType.VOLUME, description: 'リットル' },
     }),
     prisma.unit.create({
-      data: { name: '本', description: '本数' },
+      data: { name: '本', symbol: '本', type: UnitType.COUNT, description: '本数' },
     }),
     prisma.unit.create({
-      data: { name: 'パック', description: 'パック' },
+      data: { name: 'パック', symbol: 'パック', type: UnitType.COUNT, description: 'パック' },
     }),
     prisma.unit.create({
-      data: { name: '袋', description: '袋' },
+      data: { name: '袋', symbol: '袋', type: UnitType.COUNT, description: '袋' },
     }),
   ])
 
@@ -70,11 +76,11 @@ async function main() {
   const dairyCategory = categories.find((c) => c.name === '乳製品')!
   const seasoningCategory = categories.find((c) => c.name === '調味料')!
 
-  const pieceUnit = units.find((u) => u.name === '個')!
-  const gramUnit = units.find((u) => u.name === 'g')!
-  const packUnit = units.find((u) => u.name === 'パック')!
-  const bottleUnit = units.find((u) => u.name === '本')!
-  const literUnit = units.find((u) => u.name === 'L')!
+  const pieceUnit = units.find((u) => u.symbol === '個')!
+  const gramUnit = units.find((u) => u.symbol === 'g')!
+  const packUnit = units.find((u) => u.symbol === 'パック')!
+  const bottleUnit = units.find((u) => u.symbol === '本')!
+  const literUnit = units.find((u) => u.symbol === 'L')!
 
   const now = new Date()
   const tomorrow = new Date(now)
@@ -89,63 +95,88 @@ async function main() {
       data: {
         name: 'トマト',
         categoryId: vegetableCategory.id,
-        quantity: 3,
         unitId: pieceUnit.id,
         expiryDate: nextWeek,
-        purchaseDate: now,
-        price: 300,
         storageLocation: StorageLocation.REFRIGERATED,
-        memo: '有機栽培',
+        notes: '有機栽培',
+        stocks: {
+          create: {
+            quantity: 3,
+            purchaseDate: now,
+            purchasePrice: 300,
+            unitId: pieceUnit.id,
+          },
+        },
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '鶏もも肉',
         categoryId: meatFishCategory.id,
-        quantity: 500,
         unitId: gramUnit.id,
         expiryDate: tomorrow,
         bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        purchaseDate: now,
-        price: 450,
         storageLocation: StorageLocation.REFRIGERATED,
+        stocks: {
+          create: {
+            quantity: 500,
+            purchaseDate: now,
+            purchasePrice: 450,
+            unitId: gramUnit.id,
+          },
+        },
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '牛乳',
         categoryId: dairyCategory.id,
-        quantity: 1,
         unitId: literUnit.id,
         expiryDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-        purchaseDate: now,
-        price: 250,
         storageLocation: StorageLocation.REFRIGERATED,
+        stocks: {
+          create: {
+            quantity: 1,
+            purchaseDate: now,
+            purchasePrice: 250,
+            unitId: literUnit.id,
+          },
+        },
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '卵',
         categoryId: dairyCategory.id,
-        quantity: 10,
         unitId: packUnit.id,
         expiryDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-        purchaseDate: now,
-        price: 280,
         storageLocation: StorageLocation.REFRIGERATED,
-        memo: 'Lサイズ',
+        notes: 'Lサイズ',
+        stocks: {
+          create: {
+            quantity: 10,
+            purchaseDate: now,
+            purchasePrice: 280,
+            unitId: packUnit.id,
+          },
+        },
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '醤油',
         categoryId: seasoningCategory.id,
-        quantity: 1,
         unitId: bottleUnit.id,
         expiryDate: nextMonth,
-        purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        price: 350,
         storageLocation: StorageLocation.ROOM_TEMPERATURE,
+        stocks: {
+          create: {
+            quantity: 1,
+            purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+            purchasePrice: 350,
+            unitId: bottleUnit.id,
+          },
+        },
       },
     }),
   ])
