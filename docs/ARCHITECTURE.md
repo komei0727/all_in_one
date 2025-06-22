@@ -10,7 +10,6 @@
 > - 📁 **アーキテクチャ設計資料**: [architecture/](./architecture/) - 包括的な設計資料集
 > - 🏗️ **完全な設計仕様**: [architecture/ARCHITECTURE_ENHANCED.md](./architecture/ARCHITECTURE_ENHANCED.md)
 > - 📊 **アーキテクチャパターン比較**: [architecture/ARCHITECTURE_PATTERNS_COMPARISON.md](./architecture/ARCHITECTURE_PATTERNS_COMPARISON.md)
-> - 📋 **移行提案書**: [architecture/ARCHITECTURE_ENHANCEMENT_PROPOSAL.md](./architecture/ARCHITECTURE_ENHANCEMENT_PROPOSAL.md)
 
 ## アーキテクチャの特徴
 
@@ -45,7 +44,51 @@ DDD原則の完全適用：
 - **Domain Events**: ビジネス上重要な出来事の記録
 - **Specifications**: ビジネスルールの明示的表現
 
-## モジュール構成
+## ディレクトリ構造
+
+### 基本構造（モジュラーモノリス - 垂直スライス型）
+
+```
+/
+├── src/
+│   ├── app/                           # Next.js App Router（ルーティング層）
+│   │   ├── (dashboard)/               # ダッシュボード関連ページグループ
+│   │   │   ├── ingredients/           # 食材管理ページ
+│   │   │   ├── layout.tsx             # ダッシュボードレイアウト
+│   │   │   └── page.tsx               # ダッシュボードトップ
+│   │   ├── api/                       # API Routes
+│   │   │   └── v1/                    # APIバージョニング
+│   │   │       └── ingredients/       # 食材管理API
+│   │   ├── layout.tsx                 # ルートレイアウト
+│   │   └── page.tsx                   # ランディングページ
+│   │
+│   ├── modules/                       # ビジネスモジュール（垂直スライス）
+│   │   ├── ingredients/               # 食材管理モジュール
+│   │   │   ├── client/                # クライアントサイド
+│   │   │   ├── server/                # サーバーサイド
+│   │   │   ├── shared/                # モジュール内共有
+│   │   │   └── index.ts               # モジュールエクスポート
+│   │   │
+│   │   └── shared/                    # モジュール間共有
+│   │       ├── client/                # 共有クライアント
+│   │       ├── server/                # 共有サーバー
+│   │       └── types/                 # 共通型定義
+│   │
+│   ├── lib/                           # アプリケーション基盤
+│   │   ├── api/                       # API基盤
+│   │   ├── auth/                      # 認証基盤
+│   │   ├── config/                    # 設定
+│   │   └── prisma/                    # Prismaクライアント
+│   │
+│   └── styles/                        # グローバルスタイル
+│
+├── prisma/                            # Prismaスキーマとマイグレーション
+├── public/                            # 静的ファイル
+├── tests/                             # テスト
+└── docs/                              # ドキュメント
+```
+
+### モジュール詳細構造
 
 ```
 src/modules/
@@ -99,6 +142,24 @@ src/modules/
     ├── types/           # グローバル型定義
     ├── utils/           # 共通ユーティリティ
     └── constants/       # グローバル定数
+```
+
+### インポートパスエイリアス
+
+```typescript
+// tsconfig.json のパスマッピング
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/app/*": ["./src/app/*"],
+      "@/modules/*": ["./src/modules/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@ingredients/*": ["./src/modules/ingredients/*"],
+      "@shared/*": ["./src/modules/shared/*"]
+    }
+  }
+}
 ```
 
 > **📚 詳細なディレクトリ構造**

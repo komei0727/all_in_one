@@ -27,27 +27,49 @@ src/
 
 ### フロントエンド
 
-- Next.js 14.2.x (App Router)
-- React 18.3.x
-- TypeScript 5.4.x
-- Tailwind CSS 3.4.x
-- shadcn/ui
-- React Hook Form 7.51.x + Zod 3.23.x
-- TanStack Query 5.64.x
+- **Next.js 14.2.x (App Router)** - フルスタックフレームワーク
+- **React 18.3.x** - UIライブラリ
+- **TypeScript 5.4.x** - 型安全性の確保
+- **Tailwind CSS 3.4.x** - ユーティリティファーストCSS
+- **shadcn/ui** - 再利用可能なUIコンポーネントライブラリ
+- **React Hook Form 7.51.x** - フォーム状態管理
+- **Zod 3.23.x** - スキーマバリデーション
+- **TanStack Query 5.64.x** - サーバー状態管理
 
-### バックエンド
+### バックエンド・インフラ
 
-- Next.js API Routes
-- Prisma 6.x (ORM)
-- PostgreSQL 15 (開発: Docker, 本番: Supabase)
+- **Next.js API Routes** - APIエンドポイント
+- **Prisma 6.x** - 型安全なORM
+  - マイグレーション管理
+  - データベーススキーマからの型自動生成
+- **PostgreSQL 15** - メインデータベース
+  - 開発環境: Docker
+  - 本番環境: Supabase
+- **Supabase** (本番環境)
+  - Authentication - ユーザー認証（将来拡張用）
+  - Row Level Security - データアクセス制御
+  - Realtime - リアルタイム同期（将来拡張用）
 
 ### 開発環境
 
-- Node.js 20.19.2 (mise管理)
-- pnpm 9.15.2
-- ESLint + Prettier
-- Vitest
-- Husky + lint-staged
+- **Node.js 20.19.2** - JavaScript実行環境（mise管理）
+- **pnpm 9.15.2** - 高速で効率的なパッケージマネージャー
+- **ESLint 8.57.x** - JavaScript/TypeScriptリンター
+- **Prettier 3.2.x** - コードフォーマッター
+- **Husky 9.1.x** - Gitフック管理
+- **lint-staged 15.3.x** - ステージされたファイルへのリンター実行
+
+### テスト
+
+- **Vitest 1.6.x** - 高速な単体テストフレームワーク
+- **Testing Library**
+  - @testing-library/react 16.1.x
+  - @testing-library/user-event 14.5.x
+
+### CI/CD・ホスティング
+
+- **GitHub Actions** - CI/CDパイプライン
+- **Vercel** - ホスティング・自動デプロイ
 
 ## 3. 共通コマンド
 
@@ -160,7 +182,8 @@ Conventional Commitsに従う：
 
 詳細は`docs/`ディレクトリを参照：
 
-- [アーキテクチャ設計](./docs/ARCHITECTURE.md)
-- [データベース設計](./docs/DATABASE_DESIGN.md)
-- [API仕様](./docs/API_SPECIFICATION.md)
-- [開発ガイド](./docs/DEVELOPMENT_GUIDE.md)
+- [ドメイン駆動設計（DDD）](./docs/domain/README.md)
+- [アーキテクチャ設計](./docs/architecture/README.md)
+- [データベース設計](./docs/database/README.md)
+- [API仕様](./docs/api/README.md)
+- [開発ガイド](./docs/DEVELOPER_GUIDE.md)
