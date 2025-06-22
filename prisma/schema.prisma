@@ -14,6 +14,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== ENUMS ====================
+
 // Storage location enum for ingredients
 enum StorageLocation {
   REFRIGERATED     // 冷蔵
@@ -21,53 +23,155 @@ enum StorageLocation {
   ROOM_TEMPERATURE // 常温
 }
 
+// Unit type enum
+enum UnitType {
+  COUNT   // 個数
+  WEIGHT  // 重量
+  VOLUME  // 容量
+}
+
+// Stock operation type enum
+enum OperationType {
+  CONSUME   // 消費
+  REPLENISH // 補充
+  ADJUST    // 調整
+}
+
+// ==================== MASTER TABLES ====================
+
 // Category model - represents ingredient categories
 model Category {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  description String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  ingredients Ingredient[]
+  id           String       @id @default(cuid())
+  name         String       @unique
+  description  String?
+  displayOrder Int          @default(0)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  
+  // Relations
+  ingredients  Ingredient[]
 
+  @@index([displayOrder])
+  @@index([isActive])
   @@map("categories")
 }
 
 // Unit model - represents measurement units
 model Unit {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  description String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  ingredients Ingredient[]
+  id           String       @id @default(cuid())
+  name         String
+  symbol       String       @unique
+  type         UnitType
+  description  String?
+  displayOrder Int          @default(0)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  
+  // Relations
+  ingredients  Ingredient[]
+  stocks       IngredientStock[]
 
+  @@index([type])
+  @@index([displayOrder])
+  @@index([isActive])
   @@map("units")
 }
+
+// ==================== TRANSACTION TABLES ====================
 
 // Ingredient model - main model for food ingredients
 model Ingredient {
   id               String           @id @default(cuid())
   name             String
   categoryId       String
-  quantity         Float
   unitId           String
-  expiryDate       DateTime?        // 賞味期限
-  bestBeforeDate   DateTime?        // 消費期限
-  purchaseDate     DateTime
-  price            Int?             // 価格（円単位）
   storageLocation  StorageLocation
-  memo             String?
+  storageDetail    String?          // 保存場所の詳細
+  bestBeforeDate   DateTime?        // 賞味期限
+  expiryDate       DateTime?        // 消費期限
+  notes            String?          // メモ
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?        // 論理削除
+  createdBy        String           @default("system")
+  updatedBy        String           @default("system")
 
   // Relations
   category         Category         @relation(fields: [categoryId], references: [id])
   unit             Unit            @relation(fields: [unitId], references: [id])
+  stocks           IngredientStock[]
+  stockHistories   IngredientStockHistory[]
 
   @@index([categoryId])
-  @@index([unitId])
-  @@index([expiryDate])
+  @@index([storageLocation])
   @@index([bestBeforeDate])
+  @@index([expiryDate])
+  @@index([deletedAt])
+  @@index([name, deletedAt])
   @@map("ingredients")
+}
+
+// Ingredient stock model - tracks current stock levels
+model IngredientStock {
+  id               String           @id @default(cuid())
+  ingredientId     String
+  quantity         Float            // 現在の在庫数量
+  purchaseDate     DateTime         // 購入日
+  purchasePrice    Int?             // 購入価格（円単位）
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  ingredient       Ingredient       @relation(fields: [ingredientId], references: [id])
+  unit             Unit             @relation(fields: [unitId], references: [id])
+  unitId           String
+
+  @@index([ingredientId])
+  @@index([purchaseDate])
+  @@map("ingredient_stocks")
+}
+
+// ==================== HISTORY TABLES ====================
+
+// Stock history model - tracks all stock changes
+model IngredientStockHistory {
+  id               String           @id @default(cuid())
+  ingredientId     String
+  operationType    OperationType    // 操作種別
+  quantityChange   Float            // 数量変更（消費時は負数）
+  quantityBefore   Float            // 変更前の数量
+  quantityAfter    Float            // 変更後の数量
+  reason           String?          // 変更理由
+  operatedAt       DateTime         @default(now())
+  operatedBy       String           // 操作ユーザーID
+
+  // Relations
+  ingredient       Ingredient       @relation(fields: [ingredientId], references: [id])
+
+  @@index([ingredientId, operatedAt])
+  @@index([operationType, operatedAt])
+  @@map("ingredient_stock_histories")
+}
+
+// ==================== EVENT STORE ====================
+
+// Domain events model - event sourcing
+model DomainEvent {
+  id               String           @id @default(cuid())
+  aggregateId      String           // 集約ID
+  aggregateType    String           // 集約タイプ
+  eventType        String           // イベントタイプ
+  eventData        Json             // イベントデータ（JSONB）
+  eventVersion     Int              // イベントバージョン
+  occurredAt       DateTime         // イベント発生日時
+  userId           String           // ユーザーID
+  correlationId    String?          // 相関ID
+  createdAt        DateTime         @default(now())
+
+  @@index([aggregateId, aggregateType, occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([correlationId])
+  @@map("domain_events")
 }

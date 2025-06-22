@@ -36,3 +36,6 @@ yarn.lock
 
 # Generated files
 src/generated/**/*
+
+# Claude configuration files
+.claude/

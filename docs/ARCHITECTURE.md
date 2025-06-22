@@ -2,65 +2,107 @@
 
 ## 概要
 
-本プロジェクトは**モジュラーモノリス（垂直スライス型）**アーキテクチャを採用しています。
-これにより、初期開発の速度を保ちながら、将来的なマイクロサービス化への移行パスを確保しています。
+本プロジェクトは**Enhanced Modular Monolith**アーキテクチャを採用しています。
+これは従来のモジュラーモノリスにドメイン駆動設計（DDD）、Hexagonal Architecture、CQRSパターンを完全に統合した先進的なアーキテクチャです。
+
+> **📋 詳細情報**
+>
+> - 📁 **アーキテクチャ設計資料**: [architecture/](./architecture/) - 包括的な設計資料集
+> - 🏗️ **完全な設計仕様**: [architecture/ARCHITECTURE_ENHANCED.md](./architecture/ARCHITECTURE_ENHANCED.md)
+> - 📊 **アーキテクチャパターン比較**: [architecture/ARCHITECTURE_PATTERNS_COMPARISON.md](./architecture/ARCHITECTURE_PATTERNS_COMPARISON.md)
+> - 📋 **移行提案書**: [architecture/ARCHITECTURE_ENHANCEMENT_PROPOSAL.md](./architecture/ARCHITECTURE_ENHANCEMENT_PROPOSAL.md)
 
 ## アーキテクチャの特徴
 
-### 1. モジュラーモノリス
+### 1. Enhanced Modular Monolith
 
-単一のコードベースでありながら、ビジネス機能ごとに独立したモジュールとして分離。
+従来のモジュラーモノリスを進化させた先進的なアーキテクチャ：
 
-**メリット**:
+**主要要素**:
 
-- 開発初期のオーバーヘッドを削減
-- モジュール間の依存関係が明確
-- 将来的な分離が容易
+- 🏗️ **モジュール独立性**: 各ビジネス機能が完全に独立
+- 🎯 **ドメイン中心設計**: ビジネスロジックがアーキテクチャの中核
+- 🔄 **CQRS パターン**: 読み書き責務の最適分離
+- 🔌 **Hexagonal 境界**: 外部システムとの疎結合
+- 📡 **Event-Driven**: ドメインイベントによる非同期処理
 
-### 2. 垂直スライス型
+### 2. 4層アーキテクチャ
 
-各モジュールが以下の層を持つ完結した構造：
+各モジュールは以下の4層で構成：
 
-- **Client層**: UI、状態管理、APIクライアント
-- **Server層**: ビジネスロジック、データアクセス
-- **Shared層**: モジュール内共有リソース
+- **Presentation Layer (client/)**: UI、状態管理、Anti-Corruption Layer
+- **Application Layer (server/application/)**: Command/Query Handlers、Application Services
+- **Domain Layer (server/domain/)**: Entities、Value Objects、Domain Services、Events
+- **Infrastructure Layer (server/infrastructure/)**: Repository実装、外部システム連携
 
-### 3. ドメイン駆動設計（DDD）の採用
+### 3. ドメイン駆動設計（DDD）の完全実装
 
-Server層においてDDDの原則を適用：
+DDD原則の完全適用：
 
-- **Domain層**: ビジネスルールとエンティティ
-- **Application層**: ユースケースとDTO
-- **Infrastructure層**: 外部システムとの連携
+- **Entities**: ビジネスアイデンティティを持つオブジェクト
+- **Value Objects**: 不変性を保証する値オブジェクト
+- **Aggregates**: データ整合性の境界
+- **Domain Events**: ビジネス上重要な出来事の記録
+- **Specifications**: ビジネスルールの明示的表現
 
 ## モジュール構成
 
 ```
 src/modules/
 ├── ingredients/          # 食材管理モジュール
-│   ├── client/          # クライアントサイド
+│   ├── client/          # Presentation Layer
 │   │   ├── components/  # UIコンポーネント
-│   │   ├── hooks/       # カスタムフック
-│   │   ├── stores/      # 状態管理
-│   │   ├── services/    # APIクライアント
-│   │   └── pages/       # ページコンポーネント
+│   │   ├── hooks/       # カスタムフック (queries/commands/state)
+│   │   ├── stores/      # クライアント状態管理 (Zustand)
+│   │   ├── adapters/    # Anti-Corruption Layer
+│   │   └── types/       # フロントエンド型定義
 │   │
 │   ├── server/          # サーバーサイド
-│   │   ├── api/         # APIエンドポイント
-│   │   ├── application/ # アプリケーション層
-│   │   ├── domain/      # ドメイン層
-│   │   └── infrastructure/ # インフラ層
+│   │   ├── api/         # Web Adapters (Controllers)
+│   │   │   ├── handlers/     # Request Handlers
+│   │   │   ├── validators/   # Input Validation (Zod)
+│   │   │   ├── serializers/ # Response Serialization
+│   │   │   └── middleware/   # Custom Middleware
+│   │   │
+│   │   ├── application/ # Application Layer
+│   │   │   ├── commands/     # Command Handlers (CQRS)
+│   │   │   ├── queries/      # Query Handlers (CQRS)
+│   │   │   ├── services/     # Application Services
+│   │   │   ├── ports/        # Interfaces
+│   │   │   └── dtos/         # Data Transfer Objects
+│   │   │
+│   │   ├── domain/      # Domain Layer
+│   │   │   ├── entities/     # Domain Entities
+│   │   │   ├── value-objects/# Value Objects
+│   │   │   ├── services/     # Domain Services
+│   │   │   ├── events/       # Domain Events
+│   │   │   ├── repositories/ # Repository Interfaces
+│   │   │   ├── specifications/# Business Rules
+│   │   │   └── exceptions/   # Domain Exceptions
+│   │   │
+│   │   └── infrastructure/ # Infrastructure Layer
+│   │       ├── persistence/  # Database Adapters
+│   │       ├── events/       # Event Handlers
+│   │       ├── external/     # External Service Adapters
+│   │       ├── messaging/    # Event Bus Implementation
+│   │       └── caching/      # Caching Layer
 │   │
-│   └── shared/          # モジュール内共有
-│       ├── types/       # 型定義
-│       ├── constants/   # 定数
+│   └── shared/          # Shared Kernel
+│       ├── types/       # 共通型定義
+│       ├── events/      # 共有イベント
+│       ├── exceptions/  # 共通例外
 │       └── utils/       # ユーティリティ
 │
-└── shared/              # モジュール間共有
+└── shared/              # Global Shared Kernel
     ├── client/          # 共通UIコンポーネント
     ├── server/          # 共通サーバー機能
-    └── types/           # 共通型定義
+    ├── types/           # グローバル型定義
+    ├── utils/           # 共通ユーティリティ
+    └── constants/       # グローバル定数
 ```
+
+> **📚 詳細なディレクトリ構造**
+> 完全なディレクトリ構造と各ファイルの責務については [architecture/ARCHITECTURE_ENHANCED.md](./architecture/ARCHITECTURE_ENHANCED.md#モジュール構成) を参照してください。
 
 ## 依存関係ルール
 
@@ -78,61 +120,133 @@ graph TD
 - モジュール間の直接的な依存は禁止
 - 循環依存は厳禁
 
-### 2. レイヤー間の依存（Server層）
+### 2. レイヤー間の依存（Enhanced構成）
 
 ```mermaid
-graph LR
-    A[API] --> B[Application]
-    B --> C[Domain]
-    D[Infrastructure] --> C
+graph TB
+    subgraph "依存関係ルール"
+        CLIENT[Presentation Layer]
+        API[API Gateway]
+        APP[Application Layer]
+        DOMAIN[Domain Layer]
+        INFRA[Infrastructure Layer]
+
+        CLIENT --> API
+        API --> APP
+        APP --> DOMAIN
+        INFRA --> DOMAIN
+        INFRA --> APP
+    end
+
+    subgraph "禁止された依存"
+        DOMAIN_BAD[Domain Layer]
+        APP_BAD[Application Layer]
+        INFRA_BAD[Infrastructure Layer]
+
+        DOMAIN_BAD -.->|❌| APP_BAD
+        DOMAIN_BAD -.->|❌| INFRA_BAD
+        APP_BAD -.->|❌| INFRA_BAD
+    end
 ```
 
-- API → Application → Domain ← Infrastructure
-- Domainは他層に依存しない（依存性逆転の原則）
+- **依存性逆転の原則**: Domainが外部に依存しない
+- **Hexagonal境界**: ポート&アダプターによる分離
+- **CQRS分離**: Command/Queryの明確な責務分離
 
 ## データフロー
 
-### 1. 読み取り操作
+### 1. Command Flow (書き込み処理)
 
-```
-Client → API Route → Use Case → Repository → Database
-                                      ↓
-Client ← API Route ← Use Case ← Domain Entity
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API Handler
+    participant CH as Command Handler
+    participant E as Entity
+    participant R as Repository
+    participant EB as Event Bus
+
+    C->>A: Command Request
+    A->>CH: Execute Command
+    CH->>E: Domain Operation
+    E->>E: Generate Domain Event
+    CH->>R: Persist Entity
+    CH->>EB: Publish Events
+    EB-->>C: Async Notifications
+    CH->>A: Command Result
+    A->>C: Response
 ```
 
-### 2. 書き込み操作
+### 2. Query Flow (読み取り処理)
 
-```
-Client → API Route → Use Case → Domain Logic → Repository → Database
-                          ↓
-                    Validation
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API Handler
+    participant QH as Query Handler
+    participant R as Repository
+    participant CACHE as Cache
+
+    C->>A: Query Request
+    A->>QH: Execute Query
+    QH->>CACHE: Check Cache
+    alt Cache Hit
+        CACHE->>QH: Cached Data
+    else Cache Miss
+        QH->>R: Fetch Data
+        R->>QH: Raw Data
+        QH->>CACHE: Store Cache
+    end
+    QH->>A: Query Result (ViewModel)
+    A->>C: Response
 ```
 
 ## 拡張性の考慮
 
 ### 1. 新規モジュールの追加
 
-1. `/src/modules/[module-name]/`に配置
-2. client/server/sharedの3層構造を維持
-3. 既存モジュールからコピーして修正
+1. `/src/modules/[module-name]/`に4層構造で配置
+2. DDD原則に従ったDomain層の設計
+3. CQRS対応のApplication層実装
+4. Event-Driven連携の実装
 
 ### 2. マイクロサービス化への移行
 
-各モジュールが独立しているため：
+Enhanced Modular Monolith設計により：
 
-1. モジュールをそのまま別サービスとして切り出し可能
-2. APIインターフェースを維持したまま移行
-3. 段階的な移行が可能
+```mermaid
+graph LR
+    A[Enhanced Modular Monolith] --> B[Microservices]
+    A --> C[Event-Driven + CQRS]
+    A --> D[Hexagonal Architecture]
+
+    subgraph "移行パス"
+        E[1. モジュール境界の明確化]
+        F[2. Event Bus の分散化]
+        G[3. Database の分離]
+        H[4. 独立デプロイ化]
+    end
+```
+
+1. **モジュール独立性**: 既に分離されたモジュールを独立サービス化
+2. **Event-Driven基盤**: ドメインイベントをマイクロサービス間通信に活用
+3. **CQRS活用**: 読み書き分離によりサービス間結合度を最小化
+4. **段階的移行**: リスクを最小化した段階的なサービス分離
 
 ### 3. 将来の拡張例
 
 ```
 modules/
+├── ingredients/      # 食材管理 (既存)
 ├── recipes/          # レシピ管理
 ├── meal-planning/    # 献立計画
 ├── shopping-list/    # 買い物リスト
-└── nutrition/        # 栄養管理
+├── nutrition/        # 栄養管理
+├── inventory/        # 在庫統計
+└── recommendations/  # レコメンド
 ```
+
+各モジュールはDomain Eventsを通じて疎結合で連携
 
 ## セキュリティ考慮事項
 
@@ -156,18 +270,53 @@ modules/
 
 ## パフォーマンス最適化
 
-### 1. コード分割
+### 1. CQRS による読み書き分離
 
-- Next.jsの動的インポート
-- モジュール単位での遅延読み込み
+- **Write Model**: ビジネスロジック重視の正規化モデル
+- **Read Model**: パフォーマンス重視の非正規化ビュー
+- **プロジェクション**: イベント駆動による読み取りモデル更新
 
-### 2. キャッシング
+### 2. 多層キャッシング戦略
 
-- TanStack Queryによるクライアントサイドキャッシュ
-- Next.jsのサーバーコンポーネントキャッシュ
+- **クライアント**: TanStack Query による状態管理
+- **CDN**: Next.js静的ファイルキャッシュ
+- **アプリケーション**: Redis による API レスポンスキャッシュ
+- **データベース**: Prisma クエリキャッシュ
 
-### 3. データベース最適化
+### 3. イベント駆動による非同期処理
 
-- Prismaのクエリ最適化
-- インデックスの適切な設定
-- N+1問題の回避
+- **Domain Events**: 重い処理の非同期実行
+- **Event Bus**: プロジェクション更新の並列処理
+- **Background Jobs**: 通知、分析処理の分離
+
+### 4. データベース最適化
+
+- **読み取り専用ビュー**: 複雑な集計クエリの事前計算
+- **インデックス戦略**: クエリパターンに応じた最適化
+- **Connection Pooling**: 効率的なデータベース接続管理
+
+> **🔍 詳細なパフォーマンス戦略**
+> 具体的な実装方法については [architecture/ARCHITECTURE_ENHANCED.md](./architecture/ARCHITECTURE_ENHANCED.md#パフォーマンス最適化) を参照してください。
+
+## 実装ロードマップ
+
+### Phase 1: 基盤強化（4-6週間）
+
+- Domain Layer構築（Entities, Value Objects, Domain Services）
+- Application Layer構築（Command/Query Handlers）
+- Infrastructure Layer構築（Repository実装、Event Bus）
+
+### Phase 2: API & Client層改善（3-4週間）
+
+- CQRS対応API層の実装
+- Anti-Corruption Layer実装
+- Client層の最適化
+
+### Phase 3: 高度機能（2-3週間）
+
+- Event-Driven機能の拡充
+- パフォーマンス最適化
+- 監視・ログ機能の追加
+
+> **📋 詳細な実装計画**
+> 段階的な移行戦略については [architecture/ARCHITECTURE_ENHANCEMENT_PROPOSAL.md](./architecture/ARCHITECTURE_ENHANCEMENT_PROPOSAL.md#実装フェーズと優先度) を参照してください。
