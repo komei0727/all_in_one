@@ -69,7 +69,6 @@ model Unit {
   updatedAt    DateTime     @updatedAt
   
   // Relations
-  ingredients  Ingredient[]
   stocks       IngredientStock[]
 
   @@index([type])
@@ -85,28 +84,20 @@ model Ingredient {
   id               String           @id @default(cuid())
   name             String
   categoryId       String
-  unitId           String
-  storageLocation  StorageLocation
-  storageDetail    String?          // 保存場所の詳細
-  bestBeforeDate   DateTime?        // 賞味期限
-  expiryDate       DateTime?        // 消費期限
-  notes            String?          // メモ
+  memo             String?          // メモ
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   deletedAt        DateTime?        // 論理削除
-  createdBy        String           @default("system")
-  updatedBy        String           @default("system")
+  createdBy        String?          // 作成者
+  updatedBy        String?          // 更新者
 
   // Relations
-  category         Category         @relation(fields: [categoryId], references: [id])
-  unit             Unit            @relation(fields: [unitId], references: [id])
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   stocks           IngredientStock[]
   stockHistories   IngredientStockHistory[]
 
+  @@unique([name, categoryId, deletedAt])
   @@index([categoryId])
-  @@index([storageLocation])
-  @@index([bestBeforeDate])
-  @@index([expiryDate])
   @@index([deletedAt])
   @@index([name, deletedAt])
   @@map("ingredients")
@@ -114,21 +105,32 @@ model Ingredient {
 
 // Ingredient stock model - tracks current stock levels
 model IngredientStock {
-  id               String           @id @default(cuid())
-  ingredientId     String
-  quantity         Float            // 現在の在庫数量
-  purchaseDate     DateTime         // 購入日
-  purchasePrice    Int?             // 購入価格（円単位）
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id                    String           @id @default(cuid())
+  ingredientId          String
+  quantity              Float            // 現在の在庫数量
+  unitId                String
+  storageLocationType   StorageLocation  // 保管場所タイプ
+  storageLocationDetail String?          // 保管場所の詳細
+  bestBeforeDate        DateTime?        // 賞味期限
+  expiryDate            DateTime?        // 消費期限
+  purchaseDate          DateTime         // 購入日
+  price                 Decimal?         @db.Decimal(10, 2)  // 価格（小数点対応）
+  isActive              Boolean          @default(true)  // アクティブな在庫かどうか
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  deletedAt             DateTime?        // 論理削除
+  createdBy             String?          // 作成者
+  updatedBy             String?          // 更新者
 
   // Relations
-  ingredient       Ingredient       @relation(fields: [ingredientId], references: [id])
-  unit             Unit             @relation(fields: [unitId], references: [id])
-  unitId           String
+  ingredient            Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit                  Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([ingredientId])
+  @@index([ingredientId, isActive])
   @@index([purchaseDate])
+  @@index([bestBeforeDate])
+  @@index([expiryDate])
+  @@index([deletedAt])
   @@map("ingredient_stocks")
 }
 
@@ -147,7 +149,7 @@ model IngredientStockHistory {
   operatedBy       String           // 操作ユーザーID
 
   // Relations
-  ingredient       Ingredient       @relation(fields: [ingredientId], references: [id])
+  ingredient       Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([ingredientId, operatedAt])
   @@index([operationType, operatedAt])
