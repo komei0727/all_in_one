@@ -14,6 +14,16 @@
 - `PUT /api/v1/ingredients/{id}` - 食材更新
 - `DELETE /api/v1/ingredients/{id}` - 食材削除
 
+### 在庫操作
+
+- `POST /api/v1/ingredients/{id}/consume` - 食材を消費
+- `POST /api/v1/ingredients/{id}/replenish` - 食材を補充
+- `POST /api/v1/ingredients/batch-consume` - 複数食材を一括消費
+
+### 集計・サマリー
+
+- `GET /api/v1/ingredients/summary/by-category` - カテゴリー別在庫サマリー
+
 ### マスタデータ
 
 - `GET /api/v1/ingredients/categories` - カテゴリー一覧取得
@@ -38,15 +48,18 @@
 
 #### クエリパラメータ
 
-| パラメータ      | 型     | 必須 | デフォルト | 説明                                      |
-| --------------- | ------ | ---- | ---------- | ----------------------------------------- |
-| page            | number | No   | 1          | ページ番号（1から開始）                   |
-| limit           | number | No   | 20         | 1ページあたりの件数（最大100）            |
-| search          | string | No   | -          | 食材名での部分一致検索                    |
-| categoryId      | string | No   | -          | カテゴリーIDでフィルタ                    |
-| storageLocation | string | No   | -          | 保存場所でフィルタ                        |
-| sortBy          | string | No   | updatedAt  | ソート項目（name, updatedAt, expiryDate） |
-| sortOrder       | string | No   | desc       | ソート順（asc, desc）                     |
+| パラメータ         | 型      | 必須 | デフォルト | 説明                                                |
+| ------------------ | ------- | ---- | ---------- | --------------------------------------------------- |
+| page               | number  | No   | 1          | ページ番号（1から開始）                             |
+| limit              | number  | No   | 20         | 1ページあたりの件数（最大100）                      |
+| search             | string  | No   | -          | 食材名での部分一致検索                              |
+| categoryId         | string  | No   | -          | カテゴリーIDでフィルタ                              |
+| storageLocation    | string  | No   | -          | 保存場所でフィルタ                                  |
+| hasStock           | boolean | No   | -          | 在庫有無でフィルタ（true:在庫あり、false:在庫切れ） |
+| expiringWithinDays | number  | No   | -          | 指定日数以内に期限切れになる食材を抽出              |
+| includeExpired     | boolean | No   | false      | 期限切れの食材を含むか                              |
+| sortBy             | string  | No   | updatedAt  | ソート項目（name, updatedAt, expiryDate, quantity） |
+| sortOrder          | string  | No   | desc       | ソート順（asc, desc）                               |
 
 ### レスポンス
 
@@ -57,14 +70,30 @@ interface IngredientsListResponse {
   data: Array<{
     id: string
     name: string
-    categoryId: string
-    categoryName: string
-    quantity: number
-    unitId: string
-    unitName: string
+    category: {
+      id: string
+      name: string
+    }
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+        type: 'COUNT' | 'WEIGHT' | 'VOLUME'
+      }
+    }
     expiryDate: string | null
     bestBeforeDate: string | null
-    storageLocation: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    storageLocation: {
+      type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+      detail?: string
+    }
+    daysUntilExpiry: number | null
+    expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED'
+    isExpired: boolean
+    isExpiringSoon: boolean
+    hasStock: boolean
     updatedAt: string
   }>
   pagination: {
@@ -92,14 +121,30 @@ interface IngredientsListResponse {
     {
       "id": "clm1234567890",
       "name": "牛乳",
-      "categoryId": "clm0987654321",
-      "categoryName": "乳製品",
-      "quantity": 2,
-      "unitId": "clm1111111111",
-      "unitName": "本",
-      "expiryDate": "2025-01-25T00:00:00Z",
+      "category": {
+        "id": "clm0987654321",
+        "name": "乳製品"
+      },
+      "quantity": {
+        "amount": 1000,
+        "unit": {
+          "id": "clm1111111111",
+          "name": "ml",
+          "symbol": "ml",
+          "type": "VOLUME"
+        }
+      },
+      "expiryDate": "2025-01-25",
       "bestBeforeDate": null,
-      "storageLocation": "REFRIGERATED",
+      "storageLocation": {
+        "type": "REFRIGERATED",
+        "detail": "ドアポケット"
+      },
+      "daysUntilExpiry": 4,
+      "expiryStatus": "NEAR_EXPIRY",
+      "isExpired": false,
+      "isExpiringSoon": true,
+      "hasStock": true,
       "updatedAt": "2025-01-21T10:30:00Z"
     }
   ],
@@ -446,6 +491,7 @@ interface CategoriesResponse {
     id: string
     name: string
     description: string | null
+    displayOrder: number
     createdAt: string
     updatedAt: string
   }>
@@ -529,7 +575,10 @@ interface UnitsResponse {
   data: Array<{
     id: string
     name: string
+    symbol: string
+    type: 'COUNT' | 'WEIGHT' | 'VOLUME'
     description: string | null
+    displayOrder: number
     createdAt: string
     updatedAt: string
   }>
@@ -548,14 +597,30 @@ interface UnitsResponse {
     {
       "id": "clm1111111111",
       "name": "個",
+      "symbol": "個",
+      "type": "COUNT",
       "description": "個数",
+      "displayOrder": 1,
       "createdAt": "2025-01-01T00:00:00Z",
       "updatedAt": "2025-01-01T00:00:00Z"
     },
     {
       "id": "clm1111111112",
-      "name": "g",
-      "description": "グラム",
+      "name": "グラム",
+      "symbol": "g",
+      "type": "WEIGHT",
+      "description": "重量（グラム）",
+      "displayOrder": 10,
+      "createdAt": "2025-01-01T00:00:00Z",
+      "updatedAt": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "clm1111111113",
+      "name": "ミリリットル",
+      "symbol": "ml",
+      "type": "VOLUME",
+      "description": "容量（ミリリットル）",
+      "displayOrder": 20,
       "createdAt": "2025-01-01T00:00:00Z",
       "updatedAt": "2025-01-01T00:00:00Z"
     }
@@ -585,6 +650,283 @@ interface UnitsResponse {
 - マスタデータ（カテゴリー、単位）: 10分
 - 一覧データ: 1分
 - 詳細データ: キャッシュなし（常に最新）
+
+---
+
+## 食材を消費する
+
+### 概要
+
+食材の在庫を消費（減少）します。料理や使用により在庫が減った場合に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/{id}/consume`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明               |
+| ---------- | ------ | ---- | ------------------ |
+| id         | string | Yes  | 食材ID（CUID形式） |
+
+#### リクエストボディ
+
+```typescript
+interface ConsumeIngredientRequest {
+  quantity: number // 消費する数量（0より大きい値）
+  consumedFor?: string // 何に使用したか（例：「カレー」「朝食」）
+  notes?: string // メモ（最大200文字）
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ConsumeIngredientResponse {
+  data: {
+    ingredientId: string
+    name: string
+    previousQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    consumedQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    remainingQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    isOutOfStock: boolean
+    consumedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード       | 説明               |
+| ---------------- | ------------------ | ------------------ |
+| 400              | INSUFFICIENT_STOCK | 在庫が不足している |
+| 404              | NOT_FOUND          | 食材が見つからない |
+
+---
+
+## 食材を補充する
+
+### 概要
+
+食材の在庫を補充（増加）します。買い物により在庫が増えた場合に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/{id}/replenish`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### リクエスト
+
+#### リクエストボディ
+
+```typescript
+interface ReplenishIngredientRequest {
+  quantity: number // 補充する数量（0より大きい値）
+  purchasePrice?: number // 購入価格（円）
+  purchaseDate?: string // 購入日（ISO 8601形式）
+  bestBeforeDate?: string // 新しい賞味期限
+  expiryDate?: string // 新しい消費期限
+  storageLocation?: {
+    // 保存場所の変更
+    type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+    detail?: string
+  }
+  notes?: string // メモ
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ReplenishIngredientResponse {
+  data: {
+    ingredientId: string
+    name: string
+    previousQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    addedQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    currentQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    replenishedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 複数食材を一括消費する
+
+### 概要
+
+レシピなどで複数の食材を同時に消費する場合に使用します。トランザクション処理により、すべて成功するか、すべて失敗するかのいずれかになります。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/batch-consume`
+- **認証**: 必要
+- **権限**: 各食材の所有者
+
+### リクエスト
+
+```typescript
+interface BatchConsumeRequest {
+  consumptions: Array<{
+    ingredientId: string
+    quantity: number
+  }>
+  consumedFor?: string // 例：「チキンカレー」
+  notes?: string // 例：「4人分」
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface BatchConsumeResponse {
+  data: {
+    results: Array<{
+      ingredientId: string
+      ingredientName: string
+      success: boolean
+      remainingQuantity?: number
+      error?: string
+    }>
+    allSuccessful: boolean
+    consumedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード           | 説明                         |
+| ---------------- | ---------------------- | ---------------------------- |
+| 400              | BATCH_OPERATION_FAILED | 一部またはすべての操作が失敗 |
+| 400              | INSUFFICIENT_STOCK     | 1つ以上の食材で在庫不足      |
+
+---
+
+## カテゴリー別在庫サマリー
+
+### 概要
+
+カテゴリーごとの在庫状況のサマリーを取得します。ダッシュボードや統計表示に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/summary/by-category`
+- **認証**: 必要
+- **権限**: なし
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface CategorySummaryResponse {
+  data: {
+    categories: Array<{
+      category: {
+        id: string
+        name: string
+      }
+      totalItems: number // 総アイテム数
+      itemsWithStock: number // 在庫ありアイテム数
+      itemsOutOfStock: number // 在庫切れアイテム数
+      itemsExpiringSoon: number // 期限切れ間近アイテム数
+      itemsExpired: number // 期限切れアイテム数
+    }>
+    summary: {
+      totalCategories: number
+      totalItems: number
+      totalItemsWithStock: number
+      totalItemsExpiringSoon: number
+      totalItemsExpired: number
+    }
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+## 削除ポリシー
+
+### 論理削除
+
+DDD設計に基づき、食材の削除は論理削除として実装されます：
+
+- `DELETE /api/v1/ingredients/{id}` は `deletedAt` フィールドを設定
+- 削除された食材は通常の一覧取得では表示されない
+- 履歴や統計のために削除済みデータも保持される
 
 ## 関連ドキュメント
 
