@@ -1,11 +1,11 @@
 import { PrismaClient } from '@prisma/client'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { GetCategoriesQueryHandler } from '../../server/application/queries/get-categories'
-import { GetUnitsQueryHandler } from '../../server/application/queries/get-units'
-import { PrismaCategoryRepository } from '../../server/infrastructure/repositories/prisma-category-repository'
-import { PrismaUnitRepository } from '../../server/infrastructure/repositories/prisma-unit-repository'
-import { CompositionRoot } from '../composition-root'
+import { CompositionRoot } from '@/modules/ingredients/infrastructure/composition-root'
+import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories'
+import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units'
+import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
+import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
 // Mock Prisma Client
 vi.mock('@prisma/client', () => ({
