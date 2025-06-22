@@ -1,4 +1,4 @@
-import { CompositionRoot } from '../../../../infrastructure/composition-root'
+import { CompositionRoot } from '../../../infrastructure/composition-root'
 
 /**
  * カテゴリー一覧取得ハンドラー

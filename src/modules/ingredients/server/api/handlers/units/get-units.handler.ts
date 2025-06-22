@@ -1,4 +1,4 @@
-import { CompositionRoot } from '../../../../infrastructure/composition-root'
+import { CompositionRoot } from '../../../infrastructure/composition-root'
 
 /**
  * 単位一覧取得ハンドラー

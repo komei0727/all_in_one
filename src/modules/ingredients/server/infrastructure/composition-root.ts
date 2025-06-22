@@ -2,12 +2,12 @@ import { PrismaClient } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma/client'
 
-import { GetCategoriesQueryHandler } from '../server/application/queries/get-categories'
-import { GetUnitsQueryHandler } from '../server/application/queries/get-units'
-import { CategoryRepository } from '../server/domain/repositories/category-repository.interface'
-import { UnitRepository } from '../server/domain/repositories/unit-repository.interface'
-import { PrismaCategoryRepository } from '../server/infrastructure/repositories/prisma-category-repository'
-import { PrismaUnitRepository } from '../server/infrastructure/repositories/prisma-unit-repository'
+import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
+import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
+import { GetCategoriesQueryHandler } from '../application/queries/get-categories'
+import { GetUnitsQueryHandler } from '../application/queries/get-units'
+import { CategoryRepository } from '../domain/repositories/category-repository.interface'
+import { UnitRepository } from '../domain/repositories/unit-repository.interface'
 
 /**
  * Composition Root - Dependency Injection Container

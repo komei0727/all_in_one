@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { CompositionRoot } from '@/modules/ingredients/infrastructure/composition-root'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units'
+import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
