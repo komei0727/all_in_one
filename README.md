@@ -146,23 +146,25 @@ Conventional Commits に従う：
 
 ## 📚 開発者向けリソース
 
-### 🆕 新規参加者
+### 🆕 開発者ガイド
 
-1. [セットアップガイド](./docs/SETUP_GUIDE.md)
-2. [アーキテクチャ概要](./docs/ARCHITECTURE.md)
-3. [開発ガイド](./docs/DEVELOPMENT_GUIDE.md)
+- **[開発ガイド](./docs/DEVELOPER_GUIDE.md)** - セットアップから日常開発まで包括的なガイド
+- **[プロジェクト概要（CLAUDE.md）](./CLAUDE.md)** - プロジェクトの中心的な情報源
 
 ### 🏗️ アーキテクチャ理解
 
-1. [Enhanced Modular Monolith 設計書](./docs/architecture/ARCHITECTURE_ENHANCED.md)
-2. [アーキテクチャパターン比較](./docs/architecture/ARCHITECTURE_PATTERNS_COMPARISON.md)
-3. [DDD設計資料](./docs/domain/)
+1. **[アーキテクチャ概要](./docs/ARCHITECTURE.md)** - Enhanced Modular Monolithの概要
+2. **[包括的設計資料](./docs/architecture/README.md)** - 詳細な設計ドキュメント集
+   - [Enhanced Modular Monolith 設計書](./docs/architecture/ARCHITECTURE_ENHANCED.md)
+   - [アーキテクチャパターン比較](./docs/architecture/ARCHITECTURE_PATTERNS_COMPARISON.md)
+3. **[DDD設計資料](./docs/domain/README.md)** - ドメイン駆動設計の詳細
 
-### 🔧 実装者向け
+### 🔧 実装リファレンス
 
-1. [実装計画](./docs/IMPLEMENTATION_PLAN.md)
-2. [API仕様書](./docs/api/)
-3. [データベース設計](./docs/database/)
+1. **[API仕様書](./docs/api/README.md)** - RESTful API設計と仕様
+2. **[データベース設計](./docs/database/README.md)** - スキーマとマイグレーション
+3. **[画面設計](./docs/screens/README.md)** - UI/UX設計資料
+4. **[ユーザーストーリー](./docs/USER_STORY.md)** - ビジネス要求定義
 
 ## 🤝 貢献
 
@@ -187,4 +189,4 @@ Conventional Commits に従う：
 
 ---
 
-> 💡 **ヒント**: アーキテクチャの詳細を理解するため、まず [docs/architecture/](./docs/architecture/) の資料をご確認ください。
+> 💡 **ヒント**: アーキテクチャの詳細を理解するため、まず [docs/architecture/](./docs/ARCHITECTURE.md) の資料をご確認ください。
