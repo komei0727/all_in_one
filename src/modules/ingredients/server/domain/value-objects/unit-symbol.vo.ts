@@ -1,4 +1,5 @@
 import { ValueObject } from './value-object.base'
+import { RequiredFieldException, InvalidFieldException } from '../exceptions'
 
 /**
  * 単位記号値オブジェクト
@@ -19,10 +20,14 @@ export class UnitSymbol extends ValueObject<string> {
 
   protected validate(value: string): void {
     if (value.length === 0) {
-      throw new Error('単位記号は必須です')
+      throw new RequiredFieldException('単位記号')
     }
     if (value.length > UnitSymbol.MAX_LENGTH) {
-      throw new Error(`単位記号は${UnitSymbol.MAX_LENGTH}文字以内で入力してください`)
+      throw new InvalidFieldException(
+        '単位記号',
+        value,
+        `${UnitSymbol.MAX_LENGTH}文字以内で入力してください`
+      )
     }
   }
 

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
+import {
+  RequiredFieldException,
+  InvalidFieldException,
+} from '@/modules/ingredients/server/domain/exceptions/validation.exception'
 import { UnitSymbol } from '@/modules/ingredients/server/domain/value-objects/unit-symbol.vo'
 
 /**
@@ -32,12 +36,12 @@ describe('UnitSymbol', () => {
 
     it('should throw error for empty string', () => {
       // Arrange & Act & Assert
-      expect(() => new UnitSymbol('')).toThrow('単位記号は必須です')
+      expect(() => new UnitSymbol('')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for whitespace only string', () => {
       // Arrange & Act & Assert
-      expect(() => new UnitSymbol('   ')).toThrow('単位記号は必須です')
+      expect(() => new UnitSymbol('   ')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for symbol exceeding 10 characters', () => {
@@ -45,7 +49,7 @@ describe('UnitSymbol', () => {
       const longSymbol = 'a'.repeat(11)
 
       // Act & Assert
-      expect(() => new UnitSymbol(longSymbol)).toThrow('単位記号は10文字以内で入力してください')
+      expect(() => new UnitSymbol(longSymbol)).toThrow(InvalidFieldException)
     })
 
     it('should accept symbol with exactly 10 characters', () => {

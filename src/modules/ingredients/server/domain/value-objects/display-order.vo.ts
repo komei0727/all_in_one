@@ -1,4 +1,5 @@
 import { ValueObject } from './value-object.base'
+import { InvalidFieldException } from '../exceptions'
 
 /**
  * 表示順序値オブジェクト
@@ -11,10 +12,10 @@ import { ValueObject } from './value-object.base'
 export class DisplayOrder extends ValueObject<number> {
   protected validate(value: number): void {
     if (value < 0) {
-      throw new Error('表示順序は0以上の整数である必要があります')
+      throw new InvalidFieldException('表示順序', value, '0以上の整数である必要があります')
     }
     if (!Number.isInteger(value)) {
-      throw new Error('表示順序は整数である必要があります')
+      throw new InvalidFieldException('表示順序', value, '整数である必要があります')
     }
   }
 

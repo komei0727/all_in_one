@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import { InvalidFieldException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
 import { DisplayOrder } from '@/modules/ingredients/server/domain/value-objects/display-order.vo'
 
 /**
@@ -32,12 +33,12 @@ describe('DisplayOrder', () => {
 
     it('should throw error for negative number', () => {
       // Arrange & Act & Assert
-      expect(() => new DisplayOrder(-1)).toThrow('表示順序は0以上の整数である必要があります')
+      expect(() => new DisplayOrder(-1)).toThrow(InvalidFieldException)
     })
 
     it('should throw error for decimal number', () => {
       // Arrange & Act & Assert
-      expect(() => new DisplayOrder(1.5)).toThrow('表示順序は整数である必要があります')
+      expect(() => new DisplayOrder(1.5)).toThrow(InvalidFieldException)
     })
   })
 

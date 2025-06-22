@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
+import {
+  RequiredFieldException,
+  InvalidFieldException,
+} from '@/modules/ingredients/server/domain/exceptions/validation.exception'
 import { CategoryName } from '@/modules/ingredients/server/domain/value-objects/category-name.vo'
 
 /**
@@ -32,12 +36,12 @@ describe('CategoryName', () => {
 
     it('should throw error for empty string', () => {
       // Arrange & Act & Assert
-      expect(() => new CategoryName('')).toThrow('カテゴリー名は必須です')
+      expect(() => new CategoryName('')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for whitespace only string', () => {
       // Arrange & Act & Assert
-      expect(() => new CategoryName('   ')).toThrow('カテゴリー名は必須です')
+      expect(() => new CategoryName('   ')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for name exceeding 20 characters', () => {
@@ -45,7 +49,7 @@ describe('CategoryName', () => {
       const longName = 'あ'.repeat(21)
 
       // Act & Assert
-      expect(() => new CategoryName(longName)).toThrow('カテゴリー名は20文字以内で入力してください')
+      expect(() => new CategoryName(longName)).toThrow(InvalidFieldException)
     })
 
     it('should accept name with exactly 20 characters', () => {

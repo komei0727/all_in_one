@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
+import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
 
 /**
  * Category Entity のテスト
@@ -40,7 +41,7 @@ describe('Category Entity', () => {
       }
 
       // Act & Assert
-      expect(() => new Category(categoryData)).toThrow('カテゴリー名は必須です')
+      expect(() => new Category(categoryData)).toThrow(RequiredFieldException)
     })
 
     it('should use default display order if not provided', () => {

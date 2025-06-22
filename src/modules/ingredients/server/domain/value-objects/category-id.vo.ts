@@ -1,4 +1,5 @@
 import { ValueObject } from './value-object.base'
+import { RequiredFieldException } from '../exceptions'
 
 /**
  * カテゴリーID値オブジェクト
@@ -11,7 +12,7 @@ import { ValueObject } from './value-object.base'
 export class CategoryId extends ValueObject<string> {
   protected validate(value: string): void {
     if (!value || value.trim().length === 0) {
-      throw new Error('カテゴリーIDは必須です')
+      throw new RequiredFieldException('カテゴリーID')
     }
   }
 

@@ -1,4 +1,5 @@
 import { ValueObject } from './value-object.base'
+import { RequiredFieldException, InvalidFieldException } from '../exceptions'
 
 /**
  * カテゴリー名値オブジェクト
@@ -19,10 +20,14 @@ export class CategoryName extends ValueObject<string> {
 
   protected validate(value: string): void {
     if (value.length === 0) {
-      throw new Error('カテゴリー名は必須です')
+      throw new RequiredFieldException('カテゴリー名')
     }
     if (value.length > CategoryName.MAX_LENGTH) {
-      throw new Error(`カテゴリー名は${CategoryName.MAX_LENGTH}文字以内で入力してください`)
+      throw new InvalidFieldException(
+        'カテゴリー名',
+        value,
+        `${CategoryName.MAX_LENGTH}文字以内で入力してください`
+      )
     }
   }
 

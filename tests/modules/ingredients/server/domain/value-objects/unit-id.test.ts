@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
 import { UnitId } from '@/modules/ingredients/server/domain/value-objects/unit-id.vo'
 
 /**
@@ -22,12 +23,12 @@ describe('UnitId', () => {
 
     it('should throw error for empty string', () => {
       // Arrange & Act & Assert
-      expect(() => new UnitId('')).toThrow('単位IDは必須です')
+      expect(() => new UnitId('')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for whitespace only string', () => {
       // Arrange & Act & Assert
-      expect(() => new UnitId('   ')).toThrow('単位IDは必須です')
+      expect(() => new UnitId('   ')).toThrow(RequiredFieldException)
     })
 
     it('should accept UUID format', () => {

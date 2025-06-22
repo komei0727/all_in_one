@@ -1,4 +1,5 @@
 import { ValueObject } from './value-object.base'
+import { RequiredFieldException } from '../exceptions'
 
 /**
  * 単位ID値オブジェクト
@@ -11,7 +12,7 @@ import { ValueObject } from './value-object.base'
 export class UnitId extends ValueObject<string> {
   protected validate(value: string): void {
     if (!value || value.trim().length === 0) {
-      throw new Error('単位IDは必須です')
+      throw new RequiredFieldException('単位ID')
     }
   }
 

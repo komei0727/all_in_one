@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
+import {
+  RequiredFieldException,
+  InvalidFieldException,
+} from '@/modules/ingredients/server/domain/exceptions/validation.exception'
 import { UnitName } from '@/modules/ingredients/server/domain/value-objects/unit-name.vo'
 
 /**
@@ -32,12 +36,12 @@ describe('UnitName', () => {
 
     it('should throw error for empty string', () => {
       // Arrange & Act & Assert
-      expect(() => new UnitName('')).toThrow('単位名は必須です')
+      expect(() => new UnitName('')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for whitespace only string', () => {
       // Arrange & Act & Assert
-      expect(() => new UnitName('   ')).toThrow('単位名は必須です')
+      expect(() => new UnitName('   ')).toThrow(RequiredFieldException)
     })
 
     it('should throw error for name exceeding 30 characters', () => {
@@ -45,7 +49,7 @@ describe('UnitName', () => {
       const longName = 'あ'.repeat(31)
 
       // Act & Assert
-      expect(() => new UnitName(longName)).toThrow('単位名は30文字以内で入力してください')
+      expect(() => new UnitName(longName)).toThrow(InvalidFieldException)
     })
 
     it('should accept name with exactly 30 characters', () => {

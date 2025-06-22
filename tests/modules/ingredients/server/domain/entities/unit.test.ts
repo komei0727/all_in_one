@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
+import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
 
 /**
  * Unit Entity のテスト
@@ -43,7 +44,7 @@ describe('Unit Entity', () => {
       }
 
       // Act & Assert
-      expect(() => new Unit(unitData)).toThrow('単位名は必須です')
+      expect(() => new Unit(unitData)).toThrow(RequiredFieldException)
     })
 
     it('should throw error if symbol is empty', () => {
@@ -57,7 +58,7 @@ describe('Unit Entity', () => {
       }
 
       // Act & Assert
-      expect(() => new Unit(unitData)).toThrow('単位記号は必須です')
+      expect(() => new Unit(unitData)).toThrow(RequiredFieldException)
     })
 
     it('should use default display order if not provided', () => {
