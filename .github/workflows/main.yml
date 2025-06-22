@@ -8,6 +8,12 @@ on:
 env:
   NODE_VERSION: '20.19.2'
 
+# GitHub Pagesにデプロイするための権限設定
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   ci:
     name: CI Pipeline
@@ -81,3 +87,34 @@ jobs:
           name: build-output
           path: .next/
           retention-days: 7
+
+  # カバレッジレポートをGitHub Pagesにデプロイ
+  deploy-coverage:
+    name: Deploy Coverage to GitHub Pages
+    needs: ci
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: ./coverage
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

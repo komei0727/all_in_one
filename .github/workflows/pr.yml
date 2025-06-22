@@ -57,10 +57,17 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
-      - name: Run tests
-        run: pnpm test
+      - name: Run tests with coverage
+        run: pnpm test:coverage
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/all_in_one_test
+
+      # カバレッジレポートをPRにコメント
+      - name: Coverage Report
+        uses: davelosert/vitest-coverage-report-action@v2
+        if: always()
+        with:
+          vite-config-path: ./vitest.config.ts
 
       - name: Build check
         run: pnpm build
