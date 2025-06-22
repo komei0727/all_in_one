@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './tests/setup.ts',
+    exclude: ['node_modules/**', '.worktree/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -19,6 +20,7 @@ export default defineConfig({
         '**/mockData/**',
         '.next/',
         'coverage/',
+        '.worktree/',
       ],
     },
   },

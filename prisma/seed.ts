@@ -1,4 +1,5 @@
-import { PrismaClient, StorageLocation, UnitType } from '../src/generated/prisma'
+/* eslint-disable no-console */
+import { PrismaClient, StorageLocation, UnitType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -14,22 +15,22 @@ async function main() {
   // Create categories
   const categories = await Promise.all([
     prisma.category.create({
-      data: { name: '野菜', description: '野菜類' },
+      data: { name: '野菜', description: '野菜類', displayOrder: 1 },
     }),
     prisma.category.create({
-      data: { name: '肉・魚', description: '肉類・魚介類' },
+      data: { name: '肉・魚', description: '肉類・魚介類', displayOrder: 2 },
     }),
     prisma.category.create({
-      data: { name: '乳製品', description: '牛乳・チーズ・ヨーグルトなど' },
+      data: { name: '乳製品', description: '牛乳・チーズ・ヨーグルトなど', displayOrder: 3 },
     }),
     prisma.category.create({
-      data: { name: '調味料', description: '醤油・味噌・スパイスなど' },
+      data: { name: '調味料', description: '醤油・味噌・スパイスなど', displayOrder: 4 },
     }),
     prisma.category.create({
-      data: { name: '飲料', description: '水・ジュース・お茶など' },
+      data: { name: '飲料', description: '水・ジュース・お茶など', displayOrder: 5 },
     }),
     prisma.category.create({
-      data: { name: 'その他', description: 'その他の食材' },
+      data: { name: 'その他', description: 'その他の食材', displayOrder: 6 },
     }),
   ])
 
@@ -38,13 +39,31 @@ async function main() {
   // Create units
   const units = await Promise.all([
     prisma.unit.create({
-      data: { name: '個', symbol: '個', type: UnitType.COUNT, description: '個数' },
+      data: {
+        name: '個',
+        symbol: '個',
+        type: UnitType.COUNT,
+        description: '個数',
+        displayOrder: 1,
+      },
     }),
     prisma.unit.create({
-      data: { name: 'グラム', symbol: 'g', type: UnitType.WEIGHT, description: 'グラム' },
+      data: {
+        name: 'グラム',
+        symbol: 'g',
+        type: UnitType.WEIGHT,
+        description: 'グラム',
+        displayOrder: 2,
+      },
     }),
     prisma.unit.create({
-      data: { name: 'キログラム', symbol: 'kg', type: UnitType.WEIGHT, description: 'キログラム' },
+      data: {
+        name: 'キログラム',
+        symbol: 'kg',
+        type: UnitType.WEIGHT,
+        description: 'キログラム',
+        displayOrder: 3,
+      },
     }),
     prisma.unit.create({
       data: {
@@ -52,19 +71,38 @@ async function main() {
         symbol: 'ml',
         type: UnitType.VOLUME,
         description: 'ミリリットル',
+        displayOrder: 4,
       },
     }),
     prisma.unit.create({
-      data: { name: 'リットル', symbol: 'L', type: UnitType.VOLUME, description: 'リットル' },
+      data: {
+        name: 'リットル',
+        symbol: 'L',
+        type: UnitType.VOLUME,
+        description: 'リットル',
+        displayOrder: 5,
+      },
     }),
     prisma.unit.create({
-      data: { name: '本', symbol: '本', type: UnitType.COUNT, description: '本数' },
+      data: {
+        name: '本',
+        symbol: '本',
+        type: UnitType.COUNT,
+        description: '本数',
+        displayOrder: 6,
+      },
     }),
     prisma.unit.create({
-      data: { name: 'パック', symbol: 'パック', type: UnitType.COUNT, description: 'パック' },
+      data: {
+        name: 'パック',
+        symbol: 'パック',
+        type: UnitType.COUNT,
+        description: 'パック',
+        displayOrder: 7,
+      },
     }),
     prisma.unit.create({
-      data: { name: '袋', symbol: '袋', type: UnitType.COUNT, description: '袋' },
+      data: { name: '袋', symbol: '袋', type: UnitType.COUNT, description: '袋', displayOrder: 8 },
     }),
   ])
 
