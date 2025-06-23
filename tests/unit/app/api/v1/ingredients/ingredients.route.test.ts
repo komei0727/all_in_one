@@ -1,8 +1,8 @@
-import { StorageLocation, UnitType } from '@prisma/client'
 import { NextRequest } from 'next/server'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { POST } from '@/app/api/v1/ingredients/route'
+import { StorageLocation, UnitType } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
 
 // Prismaクライアントのモック

@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { PrismaClient } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
