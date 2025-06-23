@@ -67,7 +67,7 @@ export async function setup(): Promise<void> {
   console.log('🚀 Setting up test environment...')
 
   // 環境変数の設定
-  process.env.NODE_ENV = 'test'
+  // NODE_ENVは既にvitestで設定されているため、DATABASE_URLのみ設定
   process.env.DATABASE_URL = 'file:./test.db'
 
   // 初回のデータベースセットアップ
