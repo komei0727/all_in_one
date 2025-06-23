@@ -3,24 +3,29 @@ import { describe, it, expect } from 'vitest'
 import { ValidationException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
 import { IngredientStockId } from '@/modules/ingredients/server/domain/value-objects/ingredient-stock-id.vo'
 
+import { testDataHelpers, faker } from '../../../../../../__fixtures__/builders/faker.config'
+
 describe('IngredientStockId', () => {
   describe('constructor', () => {
     it('有効なCUID形式のIDで作成できる', () => {
       // 最小8文字の英数字
-      const id = new IngredientStockId('clh1234567890abcdefghij')
-      expect(id.getValue()).toBe('clh1234567890abcdefghij')
+      const cuid = testDataHelpers.cuid()
+      const id = new IngredientStockId(cuid)
+      expect(id.getValue()).toBe(cuid)
     })
 
     it('8文字の英数字で作成できる', () => {
       // 最小文字数のテスト
-      const id = new IngredientStockId('abc12345')
-      expect(id.getValue()).toBe('abc12345')
+      const validId = faker.string.alphanumeric(8)
+      const id = new IngredientStockId(validId)
+      expect(id.getValue()).toBe(validId)
     })
 
     it('大文字を含むIDで作成できる', () => {
       // 大文字小文字混在のテスト
-      const id = new IngredientStockId('ABC123xyz')
-      expect(id.getValue()).toBe('ABC123xyz')
+      const validId = faker.string.alphanumeric({ length: 9, casing: 'mixed' })
+      const id = new IngredientStockId(validId)
+      expect(id.getValue()).toBe(validId)
     })
   })
 
@@ -39,20 +44,24 @@ describe('IngredientStockId', () => {
 
     it('7文字以下の場合はエラーを投げる', () => {
       // 最小文字数未満のバリデーション
-      expect(() => new IngredientStockId('abc123')).toThrow(ValidationException)
-      expect(() => new IngredientStockId('abc123')).toThrow('食材在庫IDの形式が正しくありません')
+      const shortId = faker.string.alphanumeric(6)
+      expect(() => new IngredientStockId(shortId)).toThrow(ValidationException)
+      expect(() => new IngredientStockId(shortId)).toThrow('食材在庫IDの形式が正しくありません')
     })
 
     it('英数字以外を含む場合はエラーを投げる', () => {
       // 特殊文字を含む場合のバリデーション
-      expect(() => new IngredientStockId('abc-123-xyz')).toThrow(ValidationException)
-      expect(() => new IngredientStockId('abc-123-xyz')).toThrow(
-        '食材在庫IDの形式が正しくありません'
-      )
+      const invalidIds = [
+        faker.string.alphanumeric(5) + '-' + faker.string.alphanumeric(3),
+        faker.string.alphanumeric(5) + '_' + faker.string.alphanumeric(3),
+        faker.string.alphanumeric(5) + '@' + faker.string.alphanumeric(3),
+        faker.string.alphanumeric(5) + '/' + faker.string.alphanumeric(3),
+      ]
 
-      expect(() => new IngredientStockId('abc_123_xyz')).toThrow(ValidationException)
-      expect(() => new IngredientStockId('abc@123')).toThrow(ValidationException)
-      expect(() => new IngredientStockId('abc/123')).toThrow(ValidationException)
+      invalidIds.forEach((invalidId) => {
+        expect(() => new IngredientStockId(invalidId)).toThrow(ValidationException)
+        expect(() => new IngredientStockId(invalidId)).toThrow('食材在庫IDの形式が正しくありません')
+      })
     })
   })
 
@@ -87,15 +96,16 @@ describe('IngredientStockId', () => {
   describe('equals', () => {
     it('同じ値のIDは等しいと判定される', () => {
       // 等価性のテスト
-      const id1 = new IngredientStockId('clh1234567890')
-      const id2 = new IngredientStockId('clh1234567890')
+      const cuid = testDataHelpers.cuid()
+      const id1 = new IngredientStockId(cuid)
+      const id2 = new IngredientStockId(cuid)
       expect(id1.equals(id2)).toBe(true)
     })
 
     it('異なる値のIDは等しくないと判定される', () => {
       // 非等価性のテスト
-      const id1 = new IngredientStockId('clh1234567890')
-      const id2 = new IngredientStockId('clh0987654321')
+      const id1 = new IngredientStockId(testDataHelpers.cuid())
+      const id2 = new IngredientStockId(testDataHelpers.cuid())
       expect(id1.equals(id2)).toBe(false)
     })
   })

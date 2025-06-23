@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest'
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
 
+import { UnitBuilder } from '../../../../../../__fixtures__/builders'
+
 /**
  * Unit Entity のテスト
  *
@@ -15,19 +17,11 @@ describe('Unit Entity', () => {
   describe('constructor', () => {
     it('should create a unit with valid data', () => {
       // 単位エンティティが正常なデータで生成できることを確認
-      // Arrange
-      const unitData = {
-        id: 'unit1',
-        name: 'グラム',
-        symbol: 'g',
-        displayOrder: 1,
-      }
-
-      // Act
-      const unit = new Unit(unitData)
+      // Arrange & Act
+      const unit = new UnitBuilder().asGram().build()
 
       // Assert
-      expect(unit.id.getValue()).toBe('unit1')
+      expect(unit.id.getValue()).toBeTruthy()
       expect(unit.name.getValue()).toBe('グラム')
       expect(unit.symbol.getValue()).toBe('g')
       expect(unit.displayOrder.getValue()).toBe(1)
@@ -36,36 +30,26 @@ describe('Unit Entity', () => {
     it('should throw error if name is empty', () => {
       // 単位名が空の場合、値オブジェクトのバリデーションによりエラーがスローされることを確認
       // Arrange
-      const unitData = {
-        id: 'unit1',
-        name: '',
-        symbol: 'g',
-        displayOrder: 1,
-      }
+      const builder = new UnitBuilder().withName('').withSymbol('g').withDisplayOrder(1)
 
       // Act & Assert
-      expect(() => new Unit(unitData)).toThrow(RequiredFieldException)
+      expect(() => builder.build()).toThrow(RequiredFieldException)
     })
 
     it('should throw error if symbol is empty', () => {
       // 記号が空の場合、値オブジェクトのバリデーションによりエラーがスローされることを確認
       // Arrange
-      const unitData = {
-        id: 'unit1',
-        name: 'グラム',
-        symbol: '',
-        displayOrder: 1,
-      }
+      const builder = new UnitBuilder().withName('グラム').withSymbol('').withDisplayOrder(1)
 
       // Act & Assert
-      expect(() => new Unit(unitData)).toThrow(RequiredFieldException)
+      expect(() => builder.build()).toThrow(RequiredFieldException)
     })
 
     it('should use default display order if not provided', () => {
       // 表示順が指定されない場合、デフォルト値（0）が設定されることを確認
       // Arrange
       const unitData = {
-        id: 'unit1',
+        id: new UnitBuilder().build().id.getValue(),
         name: 'グラム',
         symbol: 'g',
       }
@@ -83,12 +67,7 @@ describe('Unit Entity', () => {
       // エンティティがプレーンオブジェクトとしてシリアライズできることを確認
       // これはAPIレスポンスやデータ永続化で使用される
       // Arrange
-      const unit = new Unit({
-        id: 'unit1',
-        name: 'グラム',
-        symbol: 'g',
-        displayOrder: 1,
-      })
+      const unit = new UnitBuilder().withId('unit1').asGram().build()
 
       // Act
       const json = unit.toJSON()

@@ -1,0 +1,189 @@
+import { CreateIngredientCommand } from '@/modules/ingredients/server/application/commands/create-ingredient.command'
+import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
+
+import { BaseBuilder } from '../base.builder'
+import { testDataHelpers, faker } from '../faker.config'
+
+interface CreateIngredientCommandProps {
+  name: string
+  categoryId: string
+  quantity: {
+    amount: number
+    unitId: string
+  }
+  storageLocation: {
+    type: StorageType
+    detail?: string
+  }
+  bestBeforeDate?: string
+  expiryDate?: string
+  purchaseDate: string
+  price?: number
+  memo?: string
+}
+
+/**
+ * CreateIngredientCommand のテストデータビルダー
+ */
+export class CreateIngredientCommandBuilder extends BaseBuilder<
+  CreateIngredientCommandProps,
+  CreateIngredientCommand
+> {
+  constructor() {
+    super()
+    // デフォルト値を設定
+    this.props = {
+      name: testDataHelpers.ingredientName(),
+      categoryId: testDataHelpers.cuid(),
+      quantity: {
+        amount: testDataHelpers.quantity(),
+        unitId: testDataHelpers.cuid(),
+      },
+      storageLocation: {
+        type: StorageType.REFRIGERATED,
+        detail: undefined,
+      },
+      purchaseDate: testDataHelpers.todayString(),
+      price: undefined,
+      memo: undefined,
+    }
+  }
+
+  /**
+   * 食材名を設定
+   */
+  withName(name: string): this {
+    return this.with('name', name)
+  }
+
+  /**
+   * ランダムな食材名を設定
+   */
+  withRandomName(): this {
+    return this.with('name', testDataHelpers.ingredientName())
+  }
+
+  /**
+   * カテゴリーIDを設定
+   */
+  withCategoryId(categoryId: string): this {
+    return this.with('categoryId', categoryId)
+  }
+
+  /**
+   * メモを設定
+   */
+  withMemo(memo?: string): this {
+    return this.with('memo', memo)
+  }
+
+  /**
+   * ランダムなメモを設定
+   */
+  withRandomMemo(): this {
+    return this.with('memo', faker.lorem.sentence())
+  }
+
+  /**
+   * 数量を設定
+   */
+  withQuantity(amount: number, unitId: string): this {
+    return this.with('quantity', { amount, unitId })
+  }
+
+  /**
+   * 保存場所を設定
+   */
+  withStorageLocation(storageLocation: { type: StorageType | string; detail?: string }): this {
+    return this.with('storageLocation', storageLocation as { type: StorageType; detail?: string })
+  }
+
+  /**
+   * 賞味期限を設定
+   */
+  withBestBeforeDate(date: string): this {
+    return this.with('bestBeforeDate', date)
+  }
+
+  /**
+   * 消費期限を設定
+   */
+  withExpiryDate(date: string): this {
+    return this.with('expiryDate', date)
+  }
+
+  /**
+   * 購入日を設定
+   */
+  withPurchaseDate(date: string): this {
+    return this.with('purchaseDate', date)
+  }
+
+  /**
+   * 価格を設定
+   */
+  withPrice(price?: number): this {
+    return this.with('price', price)
+  }
+
+  /**
+   * デフォルトの在庫情報を設定
+   */
+  withDefaultStock(): this {
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+      .withStorageLocation({ type: StorageType.REFRIGERATED })
+      .withPurchaseDate(testDataHelpers.todayString())
+      .withPrice(testDataHelpers.price())
+      .withBestBeforeDate(testDataHelpers.dateStringFromNow(7))
+  }
+
+  /**
+   * 冷蔵庫保存の在庫を設定
+   */
+  withRefrigeratedStock(): this {
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+      .withStorageLocation({ type: StorageType.REFRIGERATED, detail: '野菜室' })
+      .withPurchaseDate(testDataHelpers.todayString())
+      .withPrice(testDataHelpers.price())
+      .withBestBeforeDate(testDataHelpers.dateStringFromNow(7))
+  }
+
+  /**
+   * 冷凍庫保存の在庫を設定
+   */
+  withFrozenStock(): this {
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+      .withStorageLocation({ type: StorageType.FROZEN })
+      .withPurchaseDate(testDataHelpers.todayString())
+      .withPrice(testDataHelpers.price())
+      .withExpiryDate(testDataHelpers.dateStringFromNow(30))
+  }
+
+  /**
+   * 常温保存の在庫を設定
+   */
+  withRoomTemperatureStock(): this {
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+      .withStorageLocation({ type: StorageType.ROOM_TEMPERATURE, detail: 'パントリー' })
+      .withPurchaseDate(testDataHelpers.todayString())
+      .withPrice(testDataHelpers.price())
+      .withBestBeforeDate(testDataHelpers.dateStringFromNow(90))
+  }
+
+  /**
+   * 全ての項目を含むデータを設定
+   */
+  withFullData(): this {
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+      .withStorageLocation({ type: StorageType.REFRIGERATED, detail: '野菜室' })
+      .withPurchaseDate(testDataHelpers.todayString())
+      .withPrice(testDataHelpers.price())
+      .withBestBeforeDate(testDataHelpers.dateStringFromNow(7))
+      .withExpiryDate(testDataHelpers.dateStringFromNow(10))
+      .withRandomMemo()
+  }
+
+  build(): CreateIngredientCommand {
+    return new CreateIngredientCommand(this.props as CreateIngredientCommandProps)
+  }
+}

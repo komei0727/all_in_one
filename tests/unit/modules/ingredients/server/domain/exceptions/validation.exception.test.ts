@@ -68,7 +68,7 @@ describe('RequiredFieldException', () => {
     expect(exception).toBeInstanceOf(ValidationException)
     expect(exception.httpStatusCode).toBe(400)
     expect(exception.errorCode).toBe('VALIDATION_ERROR')
-    expect(exception.message).toBe('username is required')
+    expect(exception.message).toBe('usernameは必須です')
     expect(exception.details).toEqual({ field: 'username' })
   })
 
@@ -80,7 +80,7 @@ describe('RequiredFieldException', () => {
     expect(response).toEqual({
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'email is required',
+        message: 'emailは必須です',
         details: {
           field: 'email',
         },
@@ -98,7 +98,7 @@ describe('InvalidFieldException', () => {
     expect(exception).toBeInstanceOf(ValidationException)
     expect(exception.httpStatusCode).toBe(400)
     expect(exception.errorCode).toBe('VALIDATION_ERROR')
-    expect(exception.message).toBe('Invalid age: must be positive')
+    expect(exception.message).toBe('ageはmust be positive')
     expect(exception.details).toEqual({
       field: 'age',
       value: -10,
@@ -110,7 +110,7 @@ describe('InvalidFieldException', () => {
     const complexValue = { nested: { value: 123 } }
     const exception = new InvalidFieldException('config', complexValue, 'invalid structure')
 
-    expect(exception.message).toBe('Invalid config: invalid structure')
+    expect(exception.message).toBe('configはinvalid structure')
     expect(exception.details).toEqual({
       field: 'config',
       value: complexValue,
@@ -125,7 +125,7 @@ describe('InvalidFieldException', () => {
     expect(response).toEqual({
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Invalid email: must be a valid email',
+        message: 'emailはmust be a valid email',
         details: {
           field: 'email',
           value: 'not-an-email',

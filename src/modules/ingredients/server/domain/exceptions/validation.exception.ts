@@ -20,7 +20,7 @@ export class ValidationException extends DomainException {
  */
 export class RequiredFieldException extends ValidationException {
   constructor(fieldName: string) {
-    super(`${fieldName} is required`, fieldName)
+    super(`${fieldName}は必須です`, fieldName)
   }
 }
 
@@ -29,6 +29,6 @@ export class RequiredFieldException extends ValidationException {
  */
 export class InvalidFieldException extends ValidationException {
   constructor(fieldName: string, value: unknown, reason: string) {
-    super(`Invalid ${fieldName}: ${reason}`, fieldName, value)
+    super(`${fieldName}は${reason}`, fieldName, value)
   }
 }

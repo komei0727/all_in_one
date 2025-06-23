@@ -14,6 +14,10 @@ export class CategoryName extends ValueObject<string> {
   private static readonly MAX_LENGTH = 20
 
   constructor(value: string) {
+    // null/undefinedチェックを先に行う
+    if (value === null || value === undefined) {
+      throw new RequiredFieldException('カテゴリー名')
+    }
     const trimmedValue = value.trim()
     super(trimmedValue)
   }
@@ -23,11 +27,7 @@ export class CategoryName extends ValueObject<string> {
       throw new RequiredFieldException('カテゴリー名')
     }
     if (value.length > CategoryName.MAX_LENGTH) {
-      throw new InvalidFieldException(
-        'カテゴリー名',
-        value,
-        `${CategoryName.MAX_LENGTH}文字以内で入力してください`
-      )
+      throw new InvalidFieldException('カテゴリー名', value, '20文字以内で入力してください')
     }
   }
 

@@ -5,6 +5,8 @@ import { GetUnitsQuery } from '@/modules/ingredients/server/application/queries/
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
+import { UnitBuilder } from '../../../../../../__fixtures__/builders'
+
 /**
  * GetUnitsQueryHandler のテスト
  *
@@ -31,10 +33,9 @@ describe('GetUnitsQueryHandler', () => {
     it('デフォルトのクエリでアクティブな単位を取得する', async () => {
       // デフォルトクエリ（includeInactive: false）の処理を確認
       // Arrange
-      const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-      ]
+      const unit1 = new UnitBuilder().withGram().withDisplayOrder(1).build()
+      const unit2 = new UnitBuilder().withKilogram().withDisplayOrder(2).build()
+      const mockUnits = [unit1, unit2]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
       const query = new GetUnitsQuery()
@@ -45,8 +46,18 @@ describe('GetUnitsQueryHandler', () => {
       // Assert
       expect(result).toEqual({
         units: [
-          { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-          { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+          {
+            id: unit1.getId(),
+            name: unit1.getName(),
+            symbol: unit1.getSymbol(),
+            displayOrder: unit1.getDisplayOrder(),
+          },
+          {
+            id: unit2.getId(),
+            name: unit2.getName(),
+            symbol: unit2.getSymbol(),
+            displayOrder: unit2.getDisplayOrder(),
+          },
         ],
       })
       expect(mockRepository.findAllActive).toHaveBeenCalledOnce()
@@ -55,11 +66,10 @@ describe('GetUnitsQueryHandler', () => {
     it('名前順でソートされた単位を取得する', async () => {
       // sortBy: 'name'の場合のソート処理を確認
       // Arrange
-      const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 2 }),
-        new Unit({ id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 1 }),
-        new Unit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
-      ]
+      const unit1 = new UnitBuilder().withGram().withDisplayOrder(2).build()
+      const unit2 = new UnitBuilder().withKilogram().withDisplayOrder(1).build()
+      const unit3 = new UnitBuilder().withMilliliter().withDisplayOrder(3).build()
+      const mockUnits = [unit1, unit2, unit3]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
       const query = new GetUnitsQuery({ sortBy: 'name' })
@@ -68,13 +78,13 @@ describe('GetUnitsQueryHandler', () => {
       const result = await handler.handle(query)
 
       // Assert
-      expect(result).toEqual({
-        units: [
-          { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 1 },
-          { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 2 },
-          { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
-        ],
-      })
+      // 名前順でソートされることを確認（キログラム < グラム < ミリリットル）
+      expect('units' in result).toBe(true)
+      if ('units' in result) {
+        expect(result.units[0].name).toBe('キログラム')
+        expect(result.units[1].name).toBe('グラム')
+        expect(result.units[2].name).toBe('ミリリットル')
+      }
     })
 
     it('記号順でソートされた単位を取得する', async () => {

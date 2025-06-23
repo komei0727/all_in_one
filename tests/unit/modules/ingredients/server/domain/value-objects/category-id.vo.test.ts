@@ -3,25 +3,39 @@ import { describe, it, expect } from 'vitest'
 import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
 import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+
 describe('CategoryId', () => {
   describe('create', () => {
     // 正常系のテスト
     it('有効なIDでインスタンスを生成できる', () => {
-      const id = 'cat_123'
+      // Arrange
+      const id = testDataHelpers.cuid()
+
+      // Act
       const categoryId = CategoryId.create(id)
+
+      // Assert
       expect(categoryId.getValue()).toBe(id)
     })
 
-    it('UUID形式のIDを許可する', () => {
-      const id = '550e8400-e29b-41d4-a716-446655440000'
+    it('CUID形式のIDを許可する', () => {
+      // Arrange
+      const id = testDataHelpers.cuid()
+
+      // Act
       const categoryId = CategoryId.create(id)
+
+      // Assert
       expect(categoryId.getValue()).toBe(id)
+      // CUIDは英数字で構成される
+      expect(categoryId.getValue()).toMatch(/^[a-zA-Z0-9]+$/)
     })
 
     // 異常系のテスト
     it('空文字の場合はRequiredFieldExceptionをスローする', () => {
       expect(() => CategoryId.create('')).toThrow(RequiredFieldException)
-      expect(() => CategoryId.create('')).toThrow('カテゴリーID is required')
+      expect(() => CategoryId.create('')).toThrow('カテゴリーIDは必須です')
     })
 
     it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
@@ -41,14 +55,21 @@ describe('CategoryId', () => {
 
   describe('equals', () => {
     it('同じ値の場合はtrueを返す', () => {
-      const id1 = CategoryId.create('cat_123')
-      const id2 = CategoryId.create('cat_123')
+      // Arrange
+      const id = testDataHelpers.cuid()
+      const id1 = CategoryId.create(id)
+      const id2 = CategoryId.create(id)
+
+      // Act & Assert
       expect(id1.equals(id2)).toBe(true)
     })
 
     it('異なる値の場合はfalseを返す', () => {
-      const id1 = CategoryId.create('cat_123')
-      const id2 = CategoryId.create('cat_456')
+      // Arrange
+      const id1 = CategoryId.create(testDataHelpers.cuid())
+      const id2 = CategoryId.create(testDataHelpers.cuid())
+
+      // Act & Assert
       expect(id1.equals(id2)).toBe(false)
     })
   })
