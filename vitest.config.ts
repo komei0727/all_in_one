@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: './tests/setup.ts',
+    setupFiles: ['./tests/setup/vitest.setup.ts', './tests/setup/global-mocks.ts'],
     exclude: ['node_modules/**', '.worktree/**'],
     coverage: {
       provider: 'v8',

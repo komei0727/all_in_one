@@ -24,6 +24,34 @@ export class Unit {
   }
 
   /**
+   * ID取得
+   */
+  getId(): string {
+    return this.id.getValue()
+  }
+
+  /**
+   * 名前取得
+   */
+  getName(): string {
+    return this.name.getValue()
+  }
+
+  /**
+   * 記号取得
+   */
+  getSymbol(): string {
+    return this.symbol.getValue()
+  }
+
+  /**
+   * 表示順取得
+   */
+  getDisplayOrder(): number {
+    return this.displayOrder.getValue()
+  }
+
+  /**
    * エンティティをプレーンオブジェクトに変換
    * APIレスポンスやデータ永続化で使用
    */
