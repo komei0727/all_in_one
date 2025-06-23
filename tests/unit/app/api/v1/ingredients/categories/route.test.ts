@@ -16,8 +16,9 @@ vi.mock('@/modules/ingredients/server/api/handlers/queries/get-categories.handle
  *
  * テスト対象:
  * - Next.js App RouterのRoute Handler実装
- * - 4層アーキテクチャの統合（API層がApplication層を呼び出す）
+ * - ハンドラーへの処理委譲
  * - HTTPレスポンスの形式
+ * - エラーハンドリング
  */
 describe('GET /api/v1/ingredients/categories', () => {
   let mockHandler: { handle: ReturnType<typeof vi.fn> }
@@ -32,7 +33,7 @@ describe('GET /api/v1/ingredients/categories', () => {
     )
   })
 
-  it('should return categories from handler', async () => {
+  it('ハンドラーからカテゴリー一覧を取得して返す', async () => {
     // ハンドラーの結果をHTTPレスポンスとして返すことを確認
     // Arrange
     const mockResult = {
@@ -59,10 +60,26 @@ describe('GET /api/v1/ingredients/categories', () => {
     expect(mockHandler.handle).toHaveBeenCalledOnce()
   })
 
-  it('should handle errors gracefully', async () => {
+  it('空のカテゴリー配列を正常に返す', async () => {
+    // 空の配列でも正常なレスポンスとして扱うことを確認
+    // Arrange
+    const mockResult = { categories: [] }
+    mockHandler.handle.mockResolvedValue(mockResult)
+
+    // Act
+    const request = new NextRequest('http://localhost:3000/api/v1/ingredients/categories')
+    const response = await GET(request)
+    const data = await response.json()
+
+    // Assert
+    expect(response.status).toBe(200)
+    expect(data).toEqual({ categories: [] })
+  })
+
+  it('ハンドラーがエラーをスローした場合、500エラーを返す', async () => {
     // エラーが発生した場合、適切なHTTPエラーレスポンスを返すことを確認
     // Arrange
-    mockHandler.handle.mockRejectedValue(new Error('Database error'))
+    mockHandler.handle.mockRejectedValue(new Error('Database connection failed'))
 
     // Act
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients/categories')
