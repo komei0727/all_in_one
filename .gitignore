@@ -27,6 +27,11 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.test
+
+# test database
+*.db
+*.db-journal
 
 # vercel
 .vercel
@@ -35,6 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /src/generated/prisma
+/src/generated/prisma-test
 
 # Claude configuration
 CLAUDE.md

@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup/vitest.setup.ts', './tests/setup/global-mocks.ts'],
-    exclude: ['node_modules/**', '.worktree/**'],
+    exclude: ['node_modules/**', '.worktree/**', 'tests/integration/**', 'tests/e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
@@ -25,6 +25,7 @@ export default defineConfig({
         'src/lib/prisma/**',
         'src/modules/shared/client/utils/**',
         'src/modules/shared/server/database/**',
+        'src/generated/**',
       ],
     },
   },
