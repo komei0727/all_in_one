@@ -62,4 +62,26 @@ describe('GetUnitsHandler', () => {
     // Act & Assert
     await expect(handler.handle()).rejects.toThrow('Database error')
   })
+
+  it('should return unitsByType directly when groupByType is true', async () => {
+    // groupByTypeがtrueの場合、unitsByTypeを直接返すことを確認
+    // Arrange
+    const mockResult = {
+      unitsByType: {
+        weight: [
+          { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
+          { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+        ],
+        volume: [{ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }],
+      },
+    }
+    mockQueryHandler.handle.mockResolvedValue(mockResult)
+
+    // Act
+    const result = await handler.handle({ groupByType: true })
+
+    // Assert
+    expect(result).toEqual(mockResult)
+    expect(mockQueryHandler.handle).toHaveBeenCalledOnce()
+  })
 })

@@ -4,6 +4,7 @@ import {
   RequiredFieldException,
   InvalidFieldException,
 } from '@/modules/ingredients/server/domain/exceptions'
+import { UnitSymbol } from '@/modules/ingredients/server/domain/value-objects'
 
 import { UnitSymbolBuilder } from '../../../../../../__fixtures__/builders'
 
@@ -73,6 +74,23 @@ describe('UnitSymbol', () => {
       // Act & Assert
       expect(() => builder.build()).toThrow(InvalidFieldException)
       expect(() => builder.build()).toThrow('10文字以内で入力してください')
+    })
+  })
+
+  describe('create', () => {
+    it('静的ファクトリーメソッドでインスタンスを生成できる', () => {
+      // Arrange & Act
+      const unitSymbol = UnitSymbol.create('g')
+
+      // Assert
+      expect(unitSymbol).toBeInstanceOf(UnitSymbol)
+      expect(unitSymbol.getValue()).toBe('g')
+    })
+
+    it('createメソッドでもバリデーションが実行される', () => {
+      // Act & Assert
+      expect(() => UnitSymbol.create('')).toThrow(RequiredFieldException)
+      expect(() => UnitSymbol.create('12345678901')).toThrow(InvalidFieldException)
     })
   })
 

@@ -277,6 +277,42 @@ describe('IngredientStock', () => {
       // Act & Assert
       expect(() => stock.updateStorageLocation(newLocation)).toThrow('無効な在庫です')
     })
+
+    it('削除済み在庫を消費しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.delete()
+
+      // Act & Assert
+      expect(() => stock.consume(new Quantity(3))).toThrow('無効な在庫です')
+    })
+
+    it('削除済み在庫に追加しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.delete()
+
+      // Act & Assert
+      expect(() => stock.add(new Quantity(5))).toThrow('無効な在庫です')
+    })
+
+    it('非アクティブな在庫を消費しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.deactivate()
+
+      // Act & Assert
+      expect(() => stock.consume(new Quantity(3))).toThrow('無効な在庫です')
+    })
+
+    it('非アクティブな在庫に追加しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.deactivate()
+
+      // Act & Assert
+      expect(() => stock.add(new Quantity(5))).toThrow('無効な在庫です')
+    })
   })
 
   describe('作成者・更新者の追跡', () => {

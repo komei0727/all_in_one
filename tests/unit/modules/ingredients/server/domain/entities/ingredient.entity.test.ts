@@ -119,6 +119,30 @@ describe('Ingredient', () => {
       // Assert
       expect(ingredient.getMemo()).toEqual(newMemo)
     })
+
+    it('削除済みの食材のメモを更新しようとするとエラー', () => {
+      // 食材を作成して削除
+      const ingredient = new IngredientBuilder().withMemo('メモ').build()
+      ingredient.delete()
+      const newMemo = new Memo('新しいメモ')
+
+      // Act & Assert
+      expect(() => ingredient.updateMemo(newMemo)).toThrow('削除済みの食材は更新できません')
+    })
+
+    it('更新時にユーザーIDが記録される', () => {
+      // 食材を作成
+      const ingredient = new IngredientBuilder().withMemo('古いメモ').build()
+      const newMemo = new Memo('新しいメモ')
+      const userId = 'user-123'
+
+      // Act
+      ingredient.updateMemo(newMemo, userId)
+
+      // Assert
+      expect(ingredient.getMemo()).toEqual(newMemo)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+    })
   })
 
   describe('isExpired', () => {

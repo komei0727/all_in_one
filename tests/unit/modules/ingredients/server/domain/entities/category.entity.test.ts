@@ -44,6 +44,39 @@ describe('Category', () => {
       // Assert
       expect(category.getDisplayOrder()).toBe(displayOrder)
     })
+
+    it('displayOrderが指定されない場合はデフォルト値を使用する', () => {
+      // Arrange & Act
+      const category = new Category({
+        id: 'cat1',
+        name: '野菜',
+        // displayOrderを指定しない
+      })
+
+      // Assert
+      expect(category.getDisplayOrder()).toBe(0) // DisplayOrder.default()の値
+    })
+  })
+
+  describe('toJSON', () => {
+    it('オブジェクトに変換できる', () => {
+      // Arrange
+      const category = new CategoryBuilder()
+        .withId('cat1')
+        .withName('野菜')
+        .withDisplayOrder(5)
+        .build()
+
+      // Act
+      const json = category.toJSON()
+
+      // Assert
+      expect(json).toEqual({
+        id: 'cat1',
+        name: '野菜',
+        displayOrder: 5,
+      })
+    })
   })
 
   describe('プリセットカテゴリー', () => {
