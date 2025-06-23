@@ -1,12 +1,11 @@
-import { Faker, ja } from '@faker-js/faker'
+import { faker } from '@faker-js/faker/locale/ja'
 import { createId } from '@paralleldrive/cuid2'
 
 /**
- * 日本語ロケールを設定したFakerインスタンス
+ * 日本語ロケール専用のFakerインスタンス
+ * 日本語パッケージのみをインポートすることで読み込みを高速化
  */
-export const faker = new Faker({
-  locale: ja,
-})
+export { faker }
 
 // シードを設定して再現性を確保（必要に応じて）
 // faker.seed(123)
