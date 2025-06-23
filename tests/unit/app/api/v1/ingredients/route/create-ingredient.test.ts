@@ -108,7 +108,7 @@ describe('POST /api/v1/ingredients', () => {
 
     vi.mocked(prisma.category.findUnique).mockResolvedValue(mockCategory)
     vi.mocked(prisma.unit.findUnique).mockResolvedValue(mockUnit)
-    vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
       // トランザクション内で使用するモックprismaオブジェクト
       const txPrisma = {
         ingredient: {
@@ -117,7 +117,7 @@ describe('POST /api/v1/ingredients', () => {
         ingredientStock: {
           create: vi.fn().mockResolvedValue(mockStock),
         },
-      } as any
+      }
       return callback(txPrisma)
     })
     vi.mocked(prisma.ingredient.findUnique).mockResolvedValue(null)

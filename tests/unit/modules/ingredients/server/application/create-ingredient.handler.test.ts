@@ -2,14 +2,20 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { CreateIngredientCommand } from '@/modules/ingredients/server/application/commands/create-ingredient.command'
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
-import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
 import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
+
+import {
+  createMockIngredientRepository,
+  createMockCategoryRepository,
+  createMockUnitRepository,
+  createTestCategory,
+  createTestUnit,
+} from '../../../../../__fixtures__'
 
 describe('CreateIngredientHandler', () => {
   let handler: CreateIngredientHandler
@@ -19,23 +25,9 @@ describe('CreateIngredientHandler', () => {
 
   beforeEach(() => {
     // モックリポジトリの作成
-    ingredientRepository = {
-      save: vi.fn(),
-      findById: vi.fn(),
-      findByName: vi.fn(),
-      findAll: vi.fn(),
-      delete: vi.fn(),
-    }
-
-    categoryRepository = {
-      findById: vi.fn(),
-      findAllActive: vi.fn(),
-    }
-
-    unitRepository = {
-      findById: vi.fn(),
-      findAllActive: vi.fn(),
-    }
+    ingredientRepository = createMockIngredientRepository()
+    categoryRepository = createMockCategoryRepository()
+    unitRepository = createMockUnitRepository()
 
     handler = new CreateIngredientHandler(ingredientRepository, categoryRepository, unitRepository)
   })
@@ -61,18 +53,8 @@ describe('CreateIngredientHandler', () => {
         memo: '新鮮なトマト',
       })
 
-      const mockCategory = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        name: '野菜',
-        displayOrder: 1,
-      })
-
-      const mockUnit = new Unit({
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        name: '個',
-        symbol: '個',
-        displayOrder: 1,
-      })
+      const mockCategory = createTestCategory()
+      const mockUnit = createTestUnit()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(mockUnit)
@@ -141,11 +123,7 @@ describe('CreateIngredientHandler', () => {
         purchaseDate: '2024-12-20',
       })
 
-      const mockCategory = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        name: '野菜',
-        displayOrder: 1,
-      })
+      const mockCategory = createTestCategory()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(null)
@@ -170,18 +148,8 @@ describe('CreateIngredientHandler', () => {
         purchaseDate: '2024-12-20',
       })
 
-      const mockCategory = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        name: '野菜',
-        displayOrder: 1,
-      })
-
-      const mockUnit = new Unit({
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        name: '個',
-        symbol: '個',
-        displayOrder: 1,
-      })
+      const mockCategory = createTestCategory()
+      const mockUnit = createTestUnit()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(mockUnit)
