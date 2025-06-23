@@ -266,4 +266,137 @@ describe('Ingredient', () => {
       expect(ingredient.isExpired()).toBe(false)
     })
   })
+
+  describe('delete', () => {
+    it('食材を論理削除できる', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+
+      // Act
+      ingredient.delete()
+
+      // Assert
+      expect(ingredient.getDeletedAt()).not.toBeNull()
+      expect(ingredient.isDeleted()).toBe(true)
+    })
+
+    it('削除時にユーザーIDを記録できる', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+      const userId = 'user-123'
+
+      // Act
+      ingredient.delete(userId)
+
+      // Assert
+      expect(ingredient.getDeletedAt()).not.toBeNull()
+      expect(ingredient.isDeleted()).toBe(true)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+    })
+
+    it('すでに削除済みの食材を削除しようとするとエラー', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+      ingredient.delete()
+
+      // Act & Assert
+      expect(() => ingredient.delete()).toThrow('すでに削除されています')
+    })
+  })
+
+  describe('削除済み食材の更新制限', () => {
+    it('削除済み食材の名前を更新しようとするとエラー', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+      ingredient.delete()
+      const newName = new IngredientName('新しいトマト')
+
+      // Act & Assert
+      expect(() => ingredient.updateName(newName)).toThrow('削除済みの食材は更新できません')
+    })
+
+    it('削除済み食材のカテゴリーを更新しようとするとエラー', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+      ingredient.delete()
+      const newCategoryId = new CategoryId('550e8400-e29b-41d4-a716-446655440002')
+
+      // Act & Assert
+      expect(() => ingredient.updateCategory(newCategoryId)).toThrow(
+        '削除済みの食材は更新できません'
+      )
+    })
+
+    it('削除済み食材のメモを更新しようとするとエラー', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+      ingredient.delete()
+      const newMemo = new Memo('新しいメモ')
+
+      // Act & Assert
+      expect(() => ingredient.updateMemo(newMemo)).toThrow('削除済みの食材は更新できません')
+    })
+  })
+
+  describe('作成者・更新者の追跡', () => {
+    it('作成時に作成者を記録できる', () => {
+      // Arrange & Act
+      const ingredient = new Ingredient({
+        id: IngredientId.generate(),
+        name: new IngredientName('トマト'),
+        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440000'),
+        memo: new Memo('新鮮なトマト'),
+        createdBy: 'user-001',
+      })
+
+      // Assert
+      expect(ingredient.getCreatedBy()).toBe('user-001')
+    })
+
+    it('更新時に更新者を記録できる', () => {
+      // Arrange & Act
+      const ingredient = new Ingredient({
+        id: IngredientId.generate(),
+        name: new IngredientName('トマト'),
+        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440000'),
+        memo: new Memo('新鮮なトマト'),
+        updatedBy: 'user-002',
+      })
+
+      // Assert
+      expect(ingredient.getUpdatedBy()).toBe('user-002')
+    })
+
+    it('各操作で更新者を記録できる', () => {
+      // Arrange
+      const ingredient = createTestIngredient()
+      const userId = 'user-003'
+
+      // Act & Assert - setStock
+      const stock = createTestStock()
+      ingredient.setStock(stock, userId)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - removeStock
+      ingredient.removeStock(userId)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - consume
+      ingredient.setStock(createTestStock())
+      ingredient.consume(new Quantity(1), userId)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - updateName
+      ingredient.updateName(new IngredientName('新しいトマト'), userId)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - updateCategory
+      ingredient.updateCategory(new CategoryId('550e8400-e29b-41d4-a716-446655440001'), userId)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - updateMemo
+      ingredient.updateMemo(new Memo('新しいメモ'), userId)
+      expect(ingredient.getUpdatedBy()).toBe(userId)
+    })
+  })
 })

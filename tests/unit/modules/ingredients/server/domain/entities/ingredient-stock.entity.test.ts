@@ -255,4 +255,99 @@ describe('IngredientStock', () => {
       expect(days).toBeNull()
     })
   })
+
+  describe('delete', () => {
+    it('在庫を論理削除できる', () => {
+      // Arrange
+      const stock = createTestStock()
+
+      // Act
+      stock.delete()
+
+      // Assert
+      expect(stock.getDeletedAt()).not.toBeNull()
+      expect(stock.getIsActive()).toBe(false)
+    })
+
+    it('削除時にユーザーIDを記録できる', () => {
+      // Arrange
+      const stock = createTestStock()
+      const userId = 'user-123'
+
+      // Act
+      stock.delete(userId)
+
+      // Assert
+      expect(stock.getDeletedAt()).not.toBeNull()
+      expect(stock.getIsActive()).toBe(false)
+      expect(stock.getUpdatedBy()).toBe(userId)
+    })
+
+    it('すでに削除済みの在庫を削除しようとするとエラー', () => {
+      // Arrange
+      const stock = createTestStock()
+      stock.delete()
+
+      // Act & Assert
+      expect(() => stock.delete()).toThrow('すでに削除されています')
+    })
+  })
+
+  describe('作成者・更新者の追跡', () => {
+    it('作成時に作成者を記録できる', () => {
+      // Arrange & Act
+      const stock = new IngredientStock({
+        quantity: new Quantity(3),
+        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440001'),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
+        bestBeforeDate: new Date('2024-12-31'),
+        expiryDate: new Date('2025-01-05'),
+        purchaseDate: new Date('2024-12-20'),
+        price: new Price(300),
+        createdBy: 'user-001',
+      })
+
+      // Assert
+      expect(stock.getCreatedBy()).toBe('user-001')
+    })
+
+    it('更新時に更新者を記録できる', () => {
+      // Arrange
+      const stock = new IngredientStock({
+        quantity: new Quantity(3),
+        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440001'),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
+        bestBeforeDate: new Date('2024-12-31'),
+        expiryDate: new Date('2025-01-05'),
+        purchaseDate: new Date('2024-12-20'),
+        price: new Price(300),
+        updatedBy: 'user-002',
+      })
+
+      // Assert
+      expect(stock.getUpdatedBy()).toBe('user-002')
+    })
+
+    it('各操作で更新者を記録できる', () => {
+      // Arrange
+      const stock = createTestStock()
+      const userId = 'user-003'
+
+      // Act & Assert - consume
+      stock.consume(new Quantity(1), userId)
+      expect(stock.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - add
+      stock.add(new Quantity(2), userId)
+      expect(stock.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - updateStorageLocation
+      stock.updateStorageLocation(new StorageLocation(StorageType.FROZEN, '冷凍庫'), userId)
+      expect(stock.getUpdatedBy()).toBe(userId)
+
+      // Act & Assert - deactivate
+      stock.deactivate(userId)
+      expect(stock.getUpdatedBy()).toBe(userId)
+    })
+  })
 })
