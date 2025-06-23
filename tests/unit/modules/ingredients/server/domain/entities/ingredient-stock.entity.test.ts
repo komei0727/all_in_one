@@ -293,6 +293,37 @@ describe('IngredientStock', () => {
     })
   })
 
+  describe('削除済み在庫の操作制限', () => {
+    it('削除済み在庫の保管場所を更新しようとするとエラー', () => {
+      // Arrange
+      const stock = createTestStock()
+      stock.delete()
+      const newLocation = new StorageLocation(StorageType.FROZEN, '冷凍庫')
+
+      // Act & Assert
+      expect(() => stock.updateStorageLocation(newLocation)).toThrow('無効な在庫です')
+    })
+
+    it('削除済み在庫を非アクティブ化しようとするとエラー', () => {
+      // Arrange
+      const stock = createTestStock()
+      stock.delete()
+
+      // Act & Assert
+      expect(() => stock.deactivate()).toThrow('削除済みの在庫です')
+    })
+
+    it('非アクティブな在庫の保管場所を更新しようとするとエラー', () => {
+      // Arrange
+      const stock = createTestStock()
+      stock.deactivate()
+      const newLocation = new StorageLocation(StorageType.FROZEN, '冷凍庫')
+
+      // Act & Assert
+      expect(() => stock.updateStorageLocation(newLocation)).toThrow('無効な在庫です')
+    })
+  })
+
   describe('作成者・更新者の追跡', () => {
     it('作成時に作成者を記録できる', () => {
       // Arrange & Act
