@@ -10,12 +10,14 @@ import { UnitRepository } from '@/modules/ingredients/server/domain/repositories
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 
 import {
+  createTestCategory,
+  createTestUnit,
+} from '../../../../../../__fixtures__/factories/entities'
+import {
   createMockIngredientRepository,
   createMockCategoryRepository,
   createMockUnitRepository,
-  createTestCategory,
-  createTestUnit,
-} from '../../../../../__fixtures__'
+} from '../../../../../../__fixtures__/mocks/repositories'
 
 describe('CreateIngredientHandler', () => {
   let handler: CreateIngredientHandler

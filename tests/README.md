@@ -22,10 +22,50 @@ tests/
 │   ├── factories/        # エンティティファクトリー
 │   └── mocks/           # モックオブジェクト
 ├── unit/                 # 単体テスト
+│   ├── app/             # Next.js App Router
+│   └── modules/         # ビジネスモジュール
+│       └── ingredients/server/
+│           ├── api/         # API層（handlers, validators）
+│           ├── application/ # Application層（commands, queries, mappers）
+│           ├── domain/      # Domain層（entities, value-objects, exceptions）
+│           └── infrastructure/ # Infrastructure層（repositories）
 ├── integration/          # 統合テスト
 ├── e2e/                  # E2Eテスト
 └── setup/               # テスト設定
 ```
+
+### 機能別グループ化
+
+各層のテストは機能別にグループ化されています：
+
+- **Application層**: `commands/`, `queries/`, `mappers/`
+- **Domain層**: `entities/`, `value-objects/`, `exceptions/`
+- **API層**: `handlers/`, `validators/`
+- **Infrastructure層**: `repositories/`
+
+## テストファイル命名規則
+
+### 基本原則
+
+- ソースファイルと完全に一致させる + `.test.ts`
+- 型情報を含める（entity, vo, exception, handler, mapper等）
+- ディレクトリ構造で階層を表現（ファイル名では繰り返さない）
+
+### 各層の命名規則
+
+| レイヤー           | 対象           | 命名規則                    | 例                                     |
+| ------------------ | -------------- | --------------------------- | -------------------------------------- |
+| **Domain**         | エンティティ   | `{name}.entity.test.ts`     | `ingredient.entity.test.ts`            |
+|                    | 値オブジェクト | `{name}.vo.test.ts`         | `ingredient-name.vo.test.ts`           |
+|                    | 例外           | `{name}.exception.test.ts`  | `validation.exception.test.ts`         |
+| **Application**    | コマンド       | `{name}.command.test.ts`    | `create-ingredient.command.test.ts`    |
+|                    | ハンドラー     | `{name}.handler.test.ts`    | `create-ingredient.handler.test.ts`    |
+|                    | クエリ         | `{name}.query.test.ts`      | `get-categories.query.test.ts`         |
+|                    | マッパー       | `{name}.mapper.test.ts`     | `ingredient.mapper.test.ts`            |
+| **API**            | ハンドラー     | `{name}.handler.test.ts`    | `create-ingredient.handler.test.ts`    |
+|                    | バリデーター   | `{name}.validator.test.ts`  | `create-ingredient.validator.test.ts`  |
+| **API Route**      | ルート         | `{resource}.route.test.ts`  | `ingredients.route.test.ts`            |
+| **Infrastructure** | リポジトリ     | `{name}.repository.test.ts` | `prisma-ingredient.repository.test.ts` |
 
 ## 各テストタイプの詳細
 

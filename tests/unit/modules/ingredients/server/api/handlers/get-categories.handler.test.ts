@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
-import { CategoryListDTO } from '@/modules/ingredients/server/application/dtos/category/category-list.dto'
-import { CategoryDTO } from '@/modules/ingredients/server/application/dtos/category/category.dto'
-import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories'
+import { CategoryListDTO } from '@/modules/ingredients/server/application/dtos/category-list.dto'
+import { CategoryDTO } from '@/modules/ingredients/server/application/dtos/category.dto'
+import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
 
 // モジュールのモック
-vi.mock('@/modules/ingredients/server/application/queries/get-categories')
+vi.mock('@/modules/ingredients/server/application/queries/get-categories.handler')
 vi.mock('@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository')
 vi.mock('@/lib/prisma/client', () => ({
   prisma: {},
@@ -22,12 +22,12 @@ vi.mock('@/lib/prisma/client', () => ({
  */
 describe('GetCategoriesHandler', () => {
   let handler: GetCategoriesHandler
-  let mockQueryHandler: { execute: ReturnType<typeof vi.fn> }
+  let mockQueryHandler: { handle: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     vi.clearAllMocks()
     mockQueryHandler = {
-      execute: vi.fn(),
+      handle: vi.fn(),
     }
     vi.mocked(GetCategoriesQueryHandler).mockImplementation(
       () => mockQueryHandler as unknown as GetCategoriesQueryHandler
@@ -40,21 +40,21 @@ describe('GetCategoriesHandler', () => {
     // Arrange
     const categoryDTOs = [new CategoryDTO('cat1', '野菜', 1), new CategoryDTO('cat2', '肉類', 2)]
     const mockDTO = new CategoryListDTO(categoryDTOs)
-    mockQueryHandler.execute.mockResolvedValue(mockDTO)
+    mockQueryHandler.handle.mockResolvedValue(mockDTO)
 
     // Act
     const result = await handler.handle()
 
     // Assert
     expect(result).toEqual(mockDTO.toJSON())
-    expect(mockQueryHandler.execute).toHaveBeenCalledOnce()
+    expect(mockQueryHandler.handle).toHaveBeenCalledOnce()
   })
 
   it('should propagate errors from query handler', async () => {
     // クエリハンドラーのエラーが伝播することを確認
     // Arrange
     const error = new Error('Database error')
-    mockQueryHandler.execute.mockRejectedValue(error)
+    mockQueryHandler.handle.mockRejectedValue(error)
 
     // Act & Assert
     await expect(handler.handle()).rejects.toThrow('Database error')

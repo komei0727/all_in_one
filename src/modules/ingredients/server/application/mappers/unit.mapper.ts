@@ -1,6 +1,6 @@
 import { Unit } from '../../domain/entities/unit.entity'
-import { UnitListDTO } from '../dtos/unit/unit-list.dto'
-import { UnitDTO } from '../dtos/unit/unit.dto'
+import { UnitListDTO } from '../dtos/unit-list.dto'
+import { UnitDTO } from '../dtos/unit.dto'
 
 /**
  * 単位マッパー

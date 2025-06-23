@@ -1,7 +1,7 @@
 import { Category } from '../../domain/entities/category.entity'
 import { Ingredient } from '../../domain/entities/ingredient.entity'
 import { Unit } from '../../domain/entities/unit.entity'
-import { IngredientDto } from '../dtos/ingredient/ingredient.dto'
+import { IngredientDto } from '../dtos/ingredient.dto'
 
 /**
  * 食材マッパー

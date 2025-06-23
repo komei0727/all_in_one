@@ -1,6 +1,6 @@
 import { Category } from '../../domain/entities/category.entity'
-import { CategoryListDTO } from '../dtos/category/category-list.dto'
-import { CategoryDTO } from '../dtos/category/category.dto'
+import { CategoryListDTO } from '../dtos/category-list.dto'
+import { CategoryDTO } from '../dtos/category.dto'
 
 /**
  * カテゴリマッパー

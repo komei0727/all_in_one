@@ -1,3 +1,4 @@
+import { GetUnitsQuery } from '../../../application/queries/get-units.query'
 import { CompositionRoot } from '../../../infrastructure/composition-root'
 
 /**
@@ -9,17 +10,25 @@ import { CompositionRoot } from '../../../infrastructure/composition-root'
 export class GetUnitsHandler {
   /**
    * 単位一覧を取得
+   * @param params クエリパラメータ
    * @returns 単位一覧のレスポンス
    */
-  async handle() {
+  async handle(params?: { sortBy?: 'displayOrder' | 'name' | 'symbol'; groupByType?: boolean }) {
     // DIコンテナからクエリハンドラーを取得
     const compositionRoot = CompositionRoot.getInstance()
     const queryHandler = compositionRoot.getGetUnitsQueryHandler()
 
-    // クエリを実行
-    const dto = await queryHandler.execute()
+    // クエリオブジェクトを作成
+    const query = new GetUnitsQuery(params)
 
-    // DTOをJSON形式にシリアライズして返却
-    return dto.toJSON()
+    // クエリを実行
+    const result = await queryHandler.handle(query)
+
+    // 結果の形式に応じて返却
+    if ('unitsByType' in result) {
+      return result
+    } else {
+      return result.toJSON()
+    }
   }
 }
