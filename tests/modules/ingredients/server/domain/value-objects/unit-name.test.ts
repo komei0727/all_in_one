@@ -3,103 +3,58 @@ import { describe, it, expect } from 'vitest'
 import {
   RequiredFieldException,
   InvalidFieldException,
-} from '@/modules/ingredients/server/domain/exceptions/validation.exception'
-import { UnitName } from '@/modules/ingredients/server/domain/value-objects/unit-name.vo'
+} from '@/modules/ingredients/server/domain/exceptions'
+import { UnitName } from '@/modules/ingredients/server/domain/value-objects'
 
-/**
- * UnitName値オブジェクトのテスト
- *
- * テスト対象:
- * - 正常な値の受け入れ
- * - 空文字列の拒否
- * - 文字数制限（30文字）
- * - トリミング処理
- * - 等価性判定
- */
 describe('UnitName', () => {
-  describe('constructor', () => {
-    it('should create with valid name', () => {
-      // Arrange & Act
-      const name = new UnitName('グラム')
-
-      // Assert
-      expect(name.getValue()).toBe('グラム')
+  describe('create', () => {
+    // 正常系のテスト
+    it('有効な単位名でインスタンスを生成できる', () => {
+      const name = 'グラム'
+      const unitName = UnitName.create(name)
+      expect(unitName.getValue()).toBe(name)
     })
 
-    it('should trim whitespace', () => {
-      // Arrange & Act
-      const name = new UnitName('  キログラム  ')
-
-      // Assert
-      expect(name.getValue()).toBe('キログラム')
+    it('前後の空白をトリミングする', () => {
+      const name = '  キログラム  '
+      const unitName = UnitName.create(name)
+      expect(unitName.getValue()).toBe('キログラム')
     })
 
-    it('should throw error for empty string', () => {
-      // Arrange & Act & Assert
-      expect(() => new UnitName('')).toThrow(RequiredFieldException)
+    it('最大文字数（30文字）の単位名を許可する', () => {
+      const name = 'あ'.repeat(30)
+      const unitName = UnitName.create(name)
+      expect(unitName.getValue()).toBe(name)
     })
 
-    it('should throw error for whitespace only string', () => {
-      // Arrange & Act & Assert
-      expect(() => new UnitName('   ')).toThrow(RequiredFieldException)
+    // 異常系のテスト
+    it('空文字の場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => UnitName.create('')).toThrow(RequiredFieldException)
+      expect(() => UnitName.create('')).toThrow('単位名 is required')
     })
 
-    it('should throw error for name exceeding 30 characters', () => {
-      // Arrange
-      const longName = 'あ'.repeat(31)
-
-      // Act & Assert
-      expect(() => new UnitName(longName)).toThrow(InvalidFieldException)
+    it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => UnitName.create('   ')).toThrow(RequiredFieldException)
     })
 
-    it('should accept name with exactly 30 characters', () => {
-      // Arrange
-      const maxLengthName = 'あ'.repeat(30)
-
-      // Act
-      const name = new UnitName(maxLengthName)
-
-      // Assert
-      expect(name.getValue()).toBe(maxLengthName)
+    it('30文字を超える場合はInvalidFieldExceptionをスローする', () => {
+      const name = 'あ'.repeat(31)
+      expect(() => UnitName.create(name)).toThrow(InvalidFieldException)
+      expect(() => UnitName.create(name)).toThrow('30文字以内で入力してください')
     })
   })
 
   describe('equals', () => {
-    it('should return true for same values', () => {
-      // Arrange
-      const name1 = new UnitName('グラム')
-      const name2 = new UnitName('グラム')
-
-      // Act & Assert
+    it('同じ値の場合はtrueを返す', () => {
+      const name1 = UnitName.create('グラム')
+      const name2 = UnitName.create('グラム')
       expect(name1.equals(name2)).toBe(true)
     })
 
-    it('should return true for same values after trimming', () => {
-      // Arrange
-      const name1 = new UnitName('  グラム  ')
-      const name2 = new UnitName('グラム')
-
-      // Act & Assert
-      expect(name1.equals(name2)).toBe(true)
-    })
-
-    it('should return false for different values', () => {
-      // Arrange
-      const name1 = new UnitName('グラム')
-      const name2 = new UnitName('キログラム')
-
-      // Act & Assert
+    it('異なる値の場合はfalseを返す', () => {
+      const name1 = UnitName.create('グラム')
+      const name2 = UnitName.create('キログラム')
       expect(name1.equals(name2)).toBe(false)
-    })
-  })
-
-  describe('toString', () => {
-    it('should return string representation', () => {
-      // Arrange
-      const name = new UnitName('ミリリットル')
-
-      // Act & Assert
-      expect(name.toString()).toBe('ミリリットル')
     })
   })
 })

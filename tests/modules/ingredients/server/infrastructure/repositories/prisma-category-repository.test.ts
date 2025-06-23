@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { prisma } from '@/lib/prisma/client'
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
+import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 
 // Prismaクライアントのモック
@@ -108,7 +109,7 @@ describe('PrismaCategoryRepository', () => {
       vi.mocked(prisma.category.findUnique).mockResolvedValue(mockDbCategory)
 
       // Act
-      const result = await repository.findById('cat1')
+      const result = await repository.findById(new CategoryId('cat1'))
 
       // Assert
       expect(result).toBeInstanceOf(Category)
@@ -127,7 +128,7 @@ describe('PrismaCategoryRepository', () => {
       vi.mocked(prisma.category.findUnique).mockResolvedValue(null)
 
       // Act
-      const result = await repository.findById('non-existent-id')
+      const result = await repository.findById(new CategoryId('non-existent-id'))
 
       // Assert
       expect(result).toBeNull()

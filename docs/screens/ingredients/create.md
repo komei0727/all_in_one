@@ -5,7 +5,7 @@
 - **画面ID**: SCREEN_INGREDIENT_CREATE
 - **パス**: /ingredients/create
 - **作成日**: 2025-01-21
-- **更新日**: 2025-01-21
+- **更新日**: 2025-01-22
 - **ステータス**: 設計中
 - **担当者**: @komei0727
 
@@ -114,7 +114,7 @@
 | 保存場所     | enum   | Yes  | REFRIGERATED/FROZEN/ROOM_TEMPERATURE | REFRIGERATED |
 | 賞味期限     | date   | No   | 現在日付以降                         | null         |
 | 購入日       | date   | Yes  | -                                    | 今日         |
-| 価格         | number | No   | 0以上の整数                          | null         |
+| 価格         | number | No   | 0以上の数値、小数点以下2桁まで       | null         |
 | メモ         | string | No   | 最大200文字                          | 空文字       |
 
 ### 画面遷移
@@ -218,7 +218,7 @@ interface CreateIngredientRequest {
   expiryDate?: string | null // ISO 8601形式
   bestBeforeDate?: string | null // ISO 8601形式
   purchaseDate: string // ISO 8601形式
-  price?: number | null
+  price?: number | null // 小数点対応（例: 198.50）
   memo?: string | null
 }
 ```
@@ -227,24 +227,32 @@ interface CreateIngredientRequest {
 
 ```typescript
 interface CreateIngredientResponse {
-  data: {
+  ingredient: {
     id: string
     name: string
     categoryId: string
-    quantity: number
-    unitId: string
-    storageLocation: string
-    expiryDate: string | null
-    bestBeforeDate: string | null
-    purchaseDate: string
-    price: number | null
     memo: string | null
-    createdAt: string
-    updatedAt: string
-  }
-  meta: {
-    timestamp: string
-    version: string
+    category: {
+      id: string
+      name: string
+    }
+    currentStock: {
+      quantity: number
+      isInStock: boolean
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+      storageLocation: {
+        type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+        detail?: string
+      }
+      bestBeforeDate?: string
+      expiryDate?: string
+      purchaseDate: string
+      price?: number // 小数点対応
+    }
   }
 }
 ```
@@ -325,6 +333,7 @@ src/
 - 離脱防止（isDirtyの場合は確認ダイアログ）
 - 購入日のデフォルトは今日の日付
 - 数値入力は半角数字のみ受け付ける
+- 価格は小数点第2位まで入力可能（例: 198.50）
 - 送信中は保存ボタンを無効化
 
 ### テスト観点

@@ -3,103 +3,58 @@ import { describe, it, expect } from 'vitest'
 import {
   RequiredFieldException,
   InvalidFieldException,
-} from '@/modules/ingredients/server/domain/exceptions/validation.exception'
-import { CategoryName } from '@/modules/ingredients/server/domain/value-objects/category-name.vo'
+} from '@/modules/ingredients/server/domain/exceptions'
+import { CategoryName } from '@/modules/ingredients/server/domain/value-objects'
 
-/**
- * CategoryName値オブジェクトのテスト
- *
- * テスト対象:
- * - 正常な値の受け入れ
- * - 空文字列の拒否
- * - 文字数制限（20文字）
- * - トリミング処理
- * - 等価性判定
- */
 describe('CategoryName', () => {
-  describe('constructor', () => {
-    it('should create with valid name', () => {
-      // Arrange & Act
-      const name = new CategoryName('野菜')
-
-      // Assert
-      expect(name.getValue()).toBe('野菜')
+  describe('create', () => {
+    // 正常系のテスト
+    it('有効なカテゴリー名でインスタンスを生成できる', () => {
+      const name = '野菜'
+      const categoryName = CategoryName.create(name)
+      expect(categoryName.getValue()).toBe(name)
     })
 
-    it('should trim whitespace', () => {
-      // Arrange & Act
-      const name = new CategoryName('  肉類  ')
-
-      // Assert
-      expect(name.getValue()).toBe('肉類')
+    it('前後の空白をトリミングする', () => {
+      const name = '  肉・魚  '
+      const categoryName = CategoryName.create(name)
+      expect(categoryName.getValue()).toBe('肉・魚')
     })
 
-    it('should throw error for empty string', () => {
-      // Arrange & Act & Assert
-      expect(() => new CategoryName('')).toThrow(RequiredFieldException)
+    it('最大文字数（20文字）のカテゴリー名を許可する', () => {
+      const name = 'あ'.repeat(20)
+      const categoryName = CategoryName.create(name)
+      expect(categoryName.getValue()).toBe(name)
     })
 
-    it('should throw error for whitespace only string', () => {
-      // Arrange & Act & Assert
-      expect(() => new CategoryName('   ')).toThrow(RequiredFieldException)
+    // 異常系のテスト
+    it('空文字の場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => CategoryName.create('')).toThrow(RequiredFieldException)
+      expect(() => CategoryName.create('')).toThrow('カテゴリー名 is required')
     })
 
-    it('should throw error for name exceeding 20 characters', () => {
-      // Arrange
-      const longName = 'あ'.repeat(21)
-
-      // Act & Assert
-      expect(() => new CategoryName(longName)).toThrow(InvalidFieldException)
+    it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
+      expect(() => CategoryName.create('   ')).toThrow(RequiredFieldException)
     })
 
-    it('should accept name with exactly 20 characters', () => {
-      // Arrange
-      const maxLengthName = 'あ'.repeat(20)
-
-      // Act
-      const name = new CategoryName(maxLengthName)
-
-      // Assert
-      expect(name.getValue()).toBe(maxLengthName)
+    it('20文字を超える場合はInvalidFieldExceptionをスローする', () => {
+      const name = 'あ'.repeat(21)
+      expect(() => CategoryName.create(name)).toThrow(InvalidFieldException)
+      expect(() => CategoryName.create(name)).toThrow('20文字以内で入力してください')
     })
   })
 
   describe('equals', () => {
-    it('should return true for same values', () => {
-      // Arrange
-      const name1 = new CategoryName('野菜')
-      const name2 = new CategoryName('野菜')
-
-      // Act & Assert
+    it('同じ値の場合はtrueを返す', () => {
+      const name1 = CategoryName.create('野菜')
+      const name2 = CategoryName.create('野菜')
       expect(name1.equals(name2)).toBe(true)
     })
 
-    it('should return true for same values after trimming', () => {
-      // Arrange
-      const name1 = new CategoryName('  野菜  ')
-      const name2 = new CategoryName('野菜')
-
-      // Act & Assert
-      expect(name1.equals(name2)).toBe(true)
-    })
-
-    it('should return false for different values', () => {
-      // Arrange
-      const name1 = new CategoryName('野菜')
-      const name2 = new CategoryName('肉類')
-
-      // Act & Assert
+    it('異なる値の場合はfalseを返す', () => {
+      const name1 = CategoryName.create('野菜')
+      const name2 = CategoryName.create('肉・魚')
       expect(name1.equals(name2)).toBe(false)
-    })
-  })
-
-  describe('toString', () => {
-    it('should return string representation', () => {
-      // Arrange
-      const name = new CategoryName('調味料')
-
-      // Act & Assert
-      expect(name.toString()).toBe('調味料')
     })
   })
 })

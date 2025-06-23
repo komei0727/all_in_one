@@ -75,6 +75,15 @@ describe('ValueObject', () => {
       expect(vo.equals(undefined as unknown as TestValueObject)).toBe(false)
     })
 
+    it('should return false for non-ValueObject instances', () => {
+      // Arrange
+      const vo = new TestValueObject('value')
+      const notValueObject = { value: 'value' } as unknown as TestValueObject
+
+      // Act & Assert
+      expect(vo.equals(notValueObject)).toBe(false)
+    })
+
     it('should work with different types', () => {
       // Arrange
       const numberVo1 = new NumberValueObject(42)

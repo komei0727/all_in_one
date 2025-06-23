@@ -1,16 +1,18 @@
 /* eslint-disable no-console */
-import { PrismaClient, StorageLocation, UnitType } from '@prisma/client'
+import { PrismaClient, StorageLocation, UnitType, Prisma } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log('Starting seed...')
 
-  // Delete existing data
+  // Delete existing data (順序に注意)
+  await prisma.ingredientStockHistory.deleteMany()
   await prisma.ingredientStock.deleteMany()
   await prisma.ingredient.deleteMany()
   await prisma.unit.deleteMany()
   await prisma.category.deleteMany()
+  await prisma.domainEvent.deleteMany()
 
   // Create categories
   const categories = await Promise.all([
@@ -133,16 +135,15 @@ async function main() {
       data: {
         name: 'トマト',
         categoryId: vegetableCategory.id,
-        unitId: pieceUnit.id,
-        expiryDate: nextWeek,
-        storageLocation: StorageLocation.REFRIGERATED,
-        notes: '有機栽培',
+        memo: '有機栽培',
         stocks: {
           create: {
             quantity: 3,
             purchaseDate: now,
-            purchasePrice: 300,
+            price: new Prisma.Decimal(300),
             unitId: pieceUnit.id,
+            storageLocationType: StorageLocation.REFRIGERATED,
+            expiryDate: nextWeek,
           },
         },
       },
@@ -151,16 +152,15 @@ async function main() {
       data: {
         name: '鶏もも肉',
         categoryId: meatFishCategory.id,
-        unitId: gramUnit.id,
-        expiryDate: tomorrow,
-        bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        storageLocation: StorageLocation.REFRIGERATED,
         stocks: {
           create: {
             quantity: 500,
             purchaseDate: now,
-            purchasePrice: 450,
+            price: new Prisma.Decimal(450),
             unitId: gramUnit.id,
+            storageLocationType: StorageLocation.REFRIGERATED,
+            expiryDate: tomorrow,
+            bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
           },
         },
       },
@@ -169,15 +169,14 @@ async function main() {
       data: {
         name: '牛乳',
         categoryId: dairyCategory.id,
-        unitId: literUnit.id,
-        expiryDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-        storageLocation: StorageLocation.REFRIGERATED,
         stocks: {
           create: {
             quantity: 1,
             purchaseDate: now,
-            purchasePrice: 250,
+            price: new Prisma.Decimal(250),
             unitId: literUnit.id,
+            storageLocationType: StorageLocation.REFRIGERATED,
+            expiryDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
           },
         },
       },
@@ -186,16 +185,15 @@ async function main() {
       data: {
         name: '卵',
         categoryId: dairyCategory.id,
-        unitId: packUnit.id,
-        expiryDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-        storageLocation: StorageLocation.REFRIGERATED,
-        notes: 'Lサイズ',
+        memo: 'Lサイズ',
         stocks: {
           create: {
             quantity: 10,
             purchaseDate: now,
-            purchasePrice: 280,
+            price: new Prisma.Decimal(280),
             unitId: packUnit.id,
+            storageLocationType: StorageLocation.REFRIGERATED,
+            expiryDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
           },
         },
       },
@@ -204,15 +202,14 @@ async function main() {
       data: {
         name: '醤油',
         categoryId: seasoningCategory.id,
-        unitId: bottleUnit.id,
-        expiryDate: nextMonth,
-        storageLocation: StorageLocation.ROOM_TEMPERATURE,
         stocks: {
           create: {
             quantity: 1,
             purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-            purchasePrice: 350,
+            price: new Prisma.Decimal(350),
             unitId: bottleUnit.id,
+            storageLocationType: StorageLocation.ROOM_TEMPERATURE,
+            expiryDate: nextMonth,
           },
         },
       },

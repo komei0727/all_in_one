@@ -5,7 +5,7 @@
 - **画面ID**: SCREEN_INGREDIENT_EDIT
 - **パス**: /ingredients/[id]/edit
 - **作成日**: 2025-01-21
-- **更新日**: 2025-01-21
+- **更新日**: 2025-01-22
 - **ステータス**: 設計中
 - **担当者**: @komei0727
 
@@ -123,7 +123,7 @@
 | 保存場所     | enum   | Yes  | REFRIGERATED/FROZEN/ROOM_TEMPERATURE | 現在値 |
 | 賞味期限     | date   | No   | -                                    | 現在値 |
 | 購入日       | date   | Yes  | -                                    | 現在値 |
-| 価格         | number | No   | 0以上の整数                          | 現在値 |
+| 価格         | number | No   | 0以上の数値、小数点以下2桁まで       | 現在値 |
 | メモ         | string | No   | 最大200文字                          | 現在値 |
 
 ### 画面遷移
@@ -178,7 +178,7 @@ interface IngredientDetailResponse {
     bestBeforeDate: string | null
     expiryDate: string | null
     purchaseDate: string
-    price: number | null
+    price: number | null // 小数点対応
     memo: string | null
     daysUntilExpiry: number | null
     expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED'
@@ -234,7 +234,7 @@ interface UpdateIngredientRequest {
   expiryDate?: string | null
   bestBeforeDate?: string | null
   purchaseDate: string
-  price?: number | null
+  price?: number | null // 小数点対応（例: 198.50）
   memo?: string | null
 }
 ```
@@ -243,24 +243,32 @@ interface UpdateIngredientRequest {
 
 ```typescript
 interface UpdateIngredientResponse {
-  data: {
+  ingredient: {
     id: string
     name: string
     categoryId: string
-    quantity: number
-    unitId: string
-    storageLocation: string
-    expiryDate: string | null
-    bestBeforeDate: string | null
-    purchaseDate: string
-    price: number | null
     memo: string | null
-    createdAt: string
-    updatedAt: string
-  }
-  meta: {
-    timestamp: string
-    version: string
+    category: {
+      id: string
+      name: string
+    }
+    currentStock: {
+      quantity: number
+      isInStock: boolean
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+      storageLocation: {
+        type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+        detail?: string
+      }
+      bestBeforeDate?: string
+      expiryDate?: string
+      purchaseDate: string
+      price?: number // 小数点対応
+    }
   }
 }
 ```

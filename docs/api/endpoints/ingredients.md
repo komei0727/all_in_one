@@ -333,7 +333,7 @@ interface CreateIngredientRequest {
   expiryDate?: string | null // ISO 8601形式
   bestBeforeDate?: string | null // ISO 8601形式
   purchaseDate: string // ISO 8601形式
-  price?: number | null // 0以上の整数（円単位）
+  price?: number | null // 0以上の数値（小数点以下2桁まで対応）
   memo?: string | null // 最大200文字
 }
 ```
@@ -345,7 +345,7 @@ interface CreateIngredientRequest {
 - `quantity.unitId`: 必須、存在する単位ID
 - `storageLocation.type`: 必須、定義された値のみ
 - `storageLocation.detail`: 任意、最大50文字
-- `price`: 0以上の整数
+- `price`: 0以上の数値（小数点以下2桁まで）
 - `expiryDate/bestBeforeDate`: 未来の日付のみ許可
 - `memo`: 最大200文字
 
@@ -355,24 +355,33 @@ interface CreateIngredientRequest {
 
 ```typescript
 interface CreateIngredientResponse {
-  data: {
+  ingredient: {
     id: string
     name: string
-    categoryId: string
-    quantity: number
-    unitId: string
-    storageLocation: string
-    expiryDate: string | null
-    bestBeforeDate: string | null
-    purchaseDate: string
-    price: number | null
     memo: string | null
+    category: {
+      id: string
+      name: string
+    }
+    currentStock: {
+      quantity: number
+      isInStock: boolean
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+      storageLocation: {
+        type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+        detail?: string
+      }
+      bestBeforeDate?: string
+      expiryDate?: string
+      purchaseDate: string
+      price?: number // 小数点対応
+    }
     createdAt: string
     updatedAt: string
-  }
-  meta: {
-    timestamp: string
-    version: string
   }
 }
 ```
@@ -902,7 +911,7 @@ interface ConsumeIngredientResponse {
 ```typescript
 interface ReplenishIngredientRequest {
   quantity: number // 補充する数量（0より大きい値）
-  purchasePrice?: number // 購入価格（円）
+  purchasePrice?: number // 購入価格（小数点以下2桁まで対応）
   purchaseDate?: string // 購入日（ISO 8601形式）
   bestBeforeDate?: string // 新しい賞味期限
   expiryDate?: string // 新しい消費期限
@@ -1375,6 +1384,12 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 - `DELETE /api/v1/ingredients/{id}` は `deletedAt` フィールドを設定
 - 削除された食材は通常の一覧取得では表示されない
 - 履歴や統計のために削除済みデータも保持される
+
+## 更新履歴
+
+| 日付       | 内容                                                                              | 更新者  |
+| ---------- | --------------------------------------------------------------------------------- | ------- |
+| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正 | @system |
 
 ## 関連ドキュメント
 

@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 
 import { Category } from '../../domain/entities/category.entity'
 import { CategoryRepository } from '../../domain/repositories/category-repository.interface'
+import { CategoryId } from '../../domain/value-objects'
 
 /**
  * PrismaCategoryRepository
@@ -34,9 +35,9 @@ export class PrismaCategoryRepository implements CategoryRepository {
   /**
    * IDによるカテゴリーの取得
    */
-  async findById(id: string): Promise<Category | null> {
+  async findById(id: CategoryId): Promise<Category | null> {
     const category = await this.prisma.category.findUnique({
-      where: { id },
+      where: { id: id.getValue() },
     })
 
     if (!category) {
