@@ -17,6 +17,7 @@ import {
   Quantity,
   StorageLocation,
   UnitId,
+  ExpiryInfo,
 } from '../../domain/value-objects'
 
 /**
@@ -51,6 +52,14 @@ export class CreateIngredientHandler {
       throw new UnitNotFoundException(unitId.getValue())
     }
 
+    // 期限情報の作成
+    const expiryInfo = new ExpiryInfo({
+      bestBeforeDate: command.expiryInfo?.bestBeforeDate
+        ? new Date(command.expiryInfo.bestBeforeDate)
+        : null,
+      useByDate: command.expiryInfo?.useByDate ? new Date(command.expiryInfo.useByDate) : null,
+    })
+
     // 在庫情報の作成
     const stock = new IngredientStock({
       quantity: new Quantity(command.quantity.amount),
@@ -59,8 +68,7 @@ export class CreateIngredientHandler {
         command.storageLocation.type,
         command.storageLocation.detail
       ),
-      bestBeforeDate: command.bestBeforeDate ? new Date(command.bestBeforeDate) : null,
-      expiryDate: command.expiryDate ? new Date(command.expiryDate) : null,
+      expiryInfo,
       purchaseDate: new Date(command.purchaseDate),
       price: command.price !== undefined ? new Price(command.price) : null,
     })

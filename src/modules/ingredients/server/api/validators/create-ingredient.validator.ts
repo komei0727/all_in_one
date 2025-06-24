@@ -24,6 +24,16 @@ const storageTypeSchema = z.enum(['REFRIGERATED', 'FROZEN', 'ROOM_TEMPERATURE'],
 })
 
 /**
+ * 期限情報のバリデーションスキーマ
+ */
+const expiryInfoSchema = z
+  .object({
+    bestBeforeDate: dateStringSchema.nullable().optional(),
+    useByDate: dateStringSchema.nullable().optional(),
+  })
+  .nullable()
+
+/**
  * 食材作成リクエストのバリデーションスキーマ
  */
 export const createIngredientSchema = z.object({
@@ -50,9 +60,7 @@ export const createIngredientSchema = z.object({
       .optional(),
   }),
 
-  bestBeforeDate: dateStringSchema.optional(),
-
-  expiryDate: dateStringSchema.optional(),
+  expiryInfo: expiryInfoSchema.optional(),
 
   purchaseDate: dateStringSchema,
 

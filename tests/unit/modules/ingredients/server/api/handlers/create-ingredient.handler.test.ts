@@ -19,6 +19,7 @@ import {
   StorageLocation,
   StorageType,
   Price,
+  ExpiryInfo,
 } from '@/modules/ingredients/server/domain/value-objects'
 
 describe('CreateIngredientApiHandler', () => {
@@ -57,8 +58,10 @@ describe('CreateIngredientApiHandler', () => {
           type: 'REFRIGERATED' as const,
           detail: '野菜室',
         },
-        bestBeforeDate: '2024-12-31',
-        expiryDate: '2025-01-05',
+        expiryInfo: {
+          bestBeforeDate: '2024-12-31',
+          useByDate: '2024-12-27',
+        },
         purchaseDate: '2024-12-20',
         price: 300,
         memo: '新鮮なトマト',
@@ -75,8 +78,10 @@ describe('CreateIngredientApiHandler', () => {
         quantity: new Quantity(3),
         unitId: new UnitId('550e8400-e29b-41d4-a716-446655440001'),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
-        bestBeforeDate: new Date('2024-12-31'),
-        expiryDate: new Date('2025-01-05'),
+        expiryInfo: new ExpiryInfo({
+          bestBeforeDate: new Date('2024-12-31'),
+          useByDate: new Date('2024-12-27'),
+        }),
         purchaseDate: new Date('2024-12-20'),
         price: new Price(300),
       })
@@ -123,7 +128,7 @@ describe('CreateIngredientApiHandler', () => {
             detail: '野菜室',
           },
           bestBeforeDate: '2024-12-31',
-          expiryDate: '2025-01-05',
+          useByDate: '2024-12-27',
           purchaseDate: '2024-12-20',
           price: 300,
           isInStock: true,
@@ -146,8 +151,10 @@ describe('CreateIngredientApiHandler', () => {
             type: 'REFRIGERATED',
             detail: '野菜室',
           },
-          bestBeforeDate: '2024-12-31',
-          expiryDate: '2025-01-05',
+          expiryInfo: {
+            bestBeforeDate: '2024-12-31',
+            useByDate: '2024-12-27',
+          },
           purchaseDate: '2024-12-20',
           price: 300,
           memo: '新鮮なトマト',

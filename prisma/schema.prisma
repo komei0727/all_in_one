@@ -113,7 +113,7 @@ model IngredientStock {
   storageLocationType   StorageLocation  // 保管場所タイプ
   storageLocationDetail String?          // 保管場所の詳細
   bestBeforeDate        DateTime?        // 賞味期限
-  expiryDate            DateTime?        // 消費期限
+  useByDate             DateTime?        // 消費期限
   purchaseDate          DateTime         // 購入日
   price                 Decimal?         @db.Decimal(10, 2)  // 価格（小数点対応）
   isActive              Boolean          @default(true)  // アクティブな在庫かどうか
@@ -130,8 +130,9 @@ model IngredientStock {
   @@index([ingredientId, isActive])
   @@index([purchaseDate])
   @@index([bestBeforeDate])
-  @@index([expiryDate])
+  @@index([useByDate])
   @@index([deletedAt])
+  @@index([bestBeforeDate, useByDate, isActive]) // 期限チェック用複合インデックス
   @@map("ingredient_stocks")
 }
 

@@ -22,7 +22,7 @@ export class IngredientDto {
         detail: string | null
       }
       bestBeforeDate: string | null
-      expiryDate: string | null
+      useByDate: string | null
       purchaseDate: string
       price: number | null
       isInStock: boolean

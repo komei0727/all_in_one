@@ -6,6 +6,7 @@ import {
   StorageLocation,
   StorageType,
   Price,
+  ExpiryInfo,
 } from '@/modules/ingredients/server/domain/value-objects'
 
 import { BaseBuilder } from '../base.builder'
@@ -16,8 +17,7 @@ interface IngredientStockProps {
   quantity: Quantity
   unitId: UnitId
   storageLocation: StorageLocation
-  bestBeforeDate: Date | null
-  expiryDate: Date | null
+  expiryInfo: ExpiryInfo
   purchaseDate: Date
   price: Price | null
 }
@@ -33,8 +33,10 @@ export class IngredientStockBuilder extends BaseBuilder<IngredientStockProps, In
       quantity: new Quantity(testDataHelpers.quantity()),
       unitId: new UnitId(testDataHelpers.cuid()),
       storageLocation: new StorageLocation(StorageType.REFRIGERATED),
-      bestBeforeDate: testDataHelpers.futureDate(),
-      expiryDate: null,
+      expiryInfo: new ExpiryInfo({
+        bestBeforeDate: testDataHelpers.futureDate(7), // 7日後
+        useByDate: testDataHelpers.futureDate(3), // 3日後（消費期限は賞味期限より前）
+      }),
       purchaseDate: new Date(),
       price: new Price(testDataHelpers.price()),
     }
@@ -108,45 +110,89 @@ export class IngredientStockBuilder extends BaseBuilder<IngredientStockProps, In
   }
 
   /**
+   * 期限情報を設定
+   */
+  withExpiryInfo(expiryInfo: ExpiryInfo): this {
+    return this.with('expiryInfo', expiryInfo)
+  }
+
+  /**
    * 賞味期限を設定
    */
   withBestBeforeDate(date: Date | null): this {
-    return this.with('bestBeforeDate', date)
+    const currentExpiryInfo = this.props.expiryInfo as ExpiryInfo
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: date,
+        useByDate: currentExpiryInfo.getUseByDate(),
+      })
+    )
   }
 
   /**
    * 将来の賞味期限を設定（デフォルトは7日後）
    */
   withFutureBestBeforeDate(days: number = 7): this {
-    return this.with('bestBeforeDate', testDataHelpers.daysFromNow(days))
+    return this.withBestBeforeDate(testDataHelpers.daysFromNow(days))
   }
 
   /**
    * 過去の賞味期限を設定（期限切れ）
    */
   withPastBestBeforeDate(days: number = -7): this {
-    return this.with('bestBeforeDate', testDataHelpers.daysFromNow(days))
+    const bestBeforeDate = testDataHelpers.daysFromNow(days)
+    const currentExpiryInfo = this.props.expiryInfo as ExpiryInfo
+    const currentUseByDate = currentExpiryInfo.getUseByDate()
+
+    // 消費期限がnullまたは賞味期限より後の場合は、nullまたは賞味期限より前に設定
+    let useByDate = currentUseByDate
+    if (currentUseByDate && currentUseByDate > bestBeforeDate) {
+      useByDate = null
+    }
+
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: bestBeforeDate,
+        useByDate: useByDate,
+      })
+    )
   }
 
   /**
    * 消費期限を設定
    */
   withExpiryDate(date: Date | null): this {
-    return this.with('expiryDate', date)
+    const currentExpiryInfo = this.props.expiryInfo as ExpiryInfo
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: currentExpiryInfo.getBestBeforeDate(),
+        useByDate: date,
+      })
+    )
+  }
+
+  /**
+   * 消費期限を設定（別名）
+   */
+  withUseByDate(date: Date | null): this {
+    return this.withExpiryDate(date)
   }
 
   /**
    * 将来の消費期限を設定（デフォルトは3日後）
    */
   withFutureExpiryDate(days: number = 3): this {
-    return this.with('expiryDate', testDataHelpers.daysFromNow(days))
+    return this.withExpiryDate(testDataHelpers.daysFromNow(days))
   }
 
   /**
    * 過去の消費期限を設定（期限切れ）
    */
   withPastExpiryDate(days: number = -3): this {
-    return this.with('expiryDate', testDataHelpers.daysFromNow(days))
+    return this.withExpiryDate(testDataHelpers.daysFromNow(days))
   }
 
   /**
@@ -228,11 +274,18 @@ export const createTestIngredientStock = (
   if (overrides?.storageType) {
     builder.withStorageType(overrides.storageType, overrides.storageDetail)
   }
-  if (overrides?.bestBeforeDate) {
-    builder.withBestBeforeDate(new Date(overrides.bestBeforeDate))
-  }
-  if (overrides?.expiryDate) {
-    builder.withExpiryDate(new Date(overrides.expiryDate))
+  if (overrides?.bestBeforeDate || overrides?.expiryDate) {
+    const currentExpiryInfo = builder['props'].expiryInfo as ExpiryInfo
+    builder.withExpiryInfo(
+      new ExpiryInfo({
+        bestBeforeDate: overrides.bestBeforeDate
+          ? new Date(overrides.bestBeforeDate)
+          : currentExpiryInfo.getBestBeforeDate(),
+        useByDate: overrides.expiryDate
+          ? new Date(overrides.expiryDate)
+          : currentExpiryInfo.getUseByDate(),
+      })
+    )
   }
   if (overrides?.purchaseDate) {
     builder.withPurchaseDate(new Date(overrides.purchaseDate))

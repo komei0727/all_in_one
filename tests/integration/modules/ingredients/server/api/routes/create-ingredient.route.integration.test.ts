@@ -7,7 +7,10 @@ import { POST } from '@/app/api/v1/ingredients/route'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
-import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
+import {
+  CreateIngredientCommandBuilder,
+  testDataHelpers,
+} from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -61,9 +64,11 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
           ]),
           detail: faker.helpers.arrayElement(['野菜室', '冷凍庫', 'パントリー']),
         })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .withPrice(faker.number.int({ min: 100, max: 5000 }))
-        .withBestBeforeDate(faker.date.future({ years: 0.1 }).toISOString().split('T')[0])
+        .withBestBeforeDate(
+          testDataHelpers.dateStringFromNow(faker.number.int({ min: 7, max: 30 }))
+        )
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -112,7 +117,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         storageLocation: {
           type: StorageType.REFRIGERATED,
         },
-        purchaseDate: new Date().toISOString().split('T')[0],
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -132,7 +137,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       expect(data.ingredient.memo).toBeNull()
       expect(data.ingredient.currentStock.price).toBeNull()
       expect(data.ingredient.currentStock.bestBeforeDate).toBeNull()
-      expect(data.ingredient.currentStock.expiryDate).toBeNull()
+      expect(data.ingredient.currentStock.useByDate).toBeNull()
     })
 
     it('全てのオプションフィールドを含めて食材を作成できる', async () => {
@@ -145,10 +150,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
           type: StorageType.FROZEN,
           detail: '冷凍庫の引き出し',
         })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .withPrice(faker.number.int({ min: 100, max: 5000 }))
-        .withBestBeforeDate(faker.date.future({ years: 0.1 }).toISOString().split('T')[0])
-        .withExpiryDate(faker.date.future({ years: 0.2 }).toISOString().split('T')[0])
+        .withExpiryInfo({
+          bestBeforeDate: testDataHelpers.dateStringFromNow(faker.number.int({ min: 20, max: 60 })),
+          useByDate: testDataHelpers.dateStringFromNow(faker.number.int({ min: 10, max: 19 })),
+        })
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -168,7 +175,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       expect(data.ingredient.memo).toBe(fullCommand.memo)
       expect(data.ingredient.currentStock.price).toBe(fullCommand.price)
       expect(data.ingredient.currentStock.bestBeforeDate).toBeDefined()
-      expect(data.ingredient.currentStock.expiryDate).toBeDefined()
+      expect(data.ingredient.currentStock.useByDate).toBeDefined()
       expect(data.ingredient.currentStock.storageLocation.detail).toBe('冷凍庫の引き出し')
     })
   })
@@ -186,7 +193,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         storageLocation: {
           type: StorageType.REFRIGERATED,
         },
-        purchaseDate: new Date().toISOString().split('T')[0],
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -216,7 +223,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         .withCategoryId('cat00001')
         .withQuantity(5, 'unit0001')
         .withStorageLocation({ type: StorageType.REFRIGERATED })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -243,7 +250,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         .withCategoryId('cat00001')
         .withQuantity(0, 'unit0001')
         .withStorageLocation({ type: StorageType.REFRIGERATED })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -273,7 +280,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         .withCategoryId(nonExistentCategoryId)
         .withQuantity(5, 'unit0001')
         .withStorageLocation({ type: StorageType.REFRIGERATED })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -301,7 +308,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         .withCategoryId('cat00001')
         .withQuantity(5, nonExistentUnitId)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -349,7 +356,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         .withCategoryId('cat00001')
         .withQuantity(5, 'unit0001')
         .withStorageLocation({ type: StorageType.REFRIGERATED })
-        .withPurchaseDate(new Date().toISOString().split('T')[0])
+        .withPurchaseDate(testDataHelpers.todayString())
         .build()
 
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -377,7 +384,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
           .withCategoryId('cat00001')
           .withQuantity(faker.number.int({ min: 1, max: 10 }), 'unit0001')
           .withStorageLocation({ type: StorageType.REFRIGERATED })
-          .withPurchaseDate(new Date().toISOString().split('T')[0])
+          .withPurchaseDate(testDataHelpers.todayString())
           .build()
       )
 

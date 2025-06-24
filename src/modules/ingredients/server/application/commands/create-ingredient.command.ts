@@ -15,8 +15,10 @@ export class CreateIngredientCommand {
     type: StorageType
     detail?: string
   }
-  readonly bestBeforeDate?: string
-  readonly expiryDate?: string
+  readonly expiryInfo?: {
+    bestBeforeDate?: string | null
+    useByDate?: string | null
+  } | null
   readonly purchaseDate: string
   readonly price?: number
   readonly memo?: string
@@ -32,8 +34,10 @@ export class CreateIngredientCommand {
       type: StorageType
       detail?: string
     }
-    bestBeforeDate?: string
-    expiryDate?: string
+    expiryInfo?: {
+      bestBeforeDate?: string | null
+      useByDate?: string | null
+    } | null
     purchaseDate: string
     price?: number
     memo?: string
@@ -42,8 +46,7 @@ export class CreateIngredientCommand {
     this.categoryId = params.categoryId
     this.quantity = params.quantity
     this.storageLocation = params.storageLocation
-    this.bestBeforeDate = params.bestBeforeDate
-    this.expiryDate = params.expiryDate
+    this.expiryInfo = params.expiryInfo
     this.purchaseDate = params.purchaseDate
     this.price = params.price
     this.memo = params.memo

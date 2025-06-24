@@ -166,7 +166,7 @@ describe('Ingredient', () => {
       // 賞味期限が過ぎた在庫を作成
       const stock = new IngredientStockBuilder()
         .withPastBestBeforeDate()
-        .withExpiryDate(null)
+        .withUseByDate(null)
         .build()
       const ingredient = new IngredientBuilder().withStock(stock).build()
 
@@ -177,8 +177,8 @@ describe('Ingredient', () => {
     it('期限内の場合はfalseを返す', () => {
       // 期限内の在庫を作成
       const stock = new IngredientStockBuilder()
-        .withFutureExpiryDate()
         .withFutureBestBeforeDate()
+        .withFutureExpiryDate()
         .build()
       const ingredient = new IngredientBuilder().withStock(stock).build()
 

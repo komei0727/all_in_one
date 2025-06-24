@@ -1,5 +1,12 @@
 import { BusinessRuleException } from '../exceptions/business-rule.exception'
-import { IngredientStockId, Quantity, UnitId, StorageLocation, Price } from '../value-objects'
+import {
+  IngredientStockId,
+  Quantity,
+  UnitId,
+  StorageLocation,
+  Price,
+  ExpiryInfo,
+} from '../value-objects'
 
 /**
  * 食材在庫エンティティ
@@ -10,8 +17,7 @@ export class IngredientStock {
   private quantity: Quantity
   private readonly unitId: UnitId
   private storageLocation: StorageLocation
-  private readonly bestBeforeDate: Date | null
-  private readonly expiryDate: Date | null
+  private readonly expiryInfo: ExpiryInfo
   private readonly purchaseDate: Date
   private readonly price: Price | null
   private isActive: boolean
@@ -26,8 +32,7 @@ export class IngredientStock {
     quantity: Quantity
     unitId: UnitId
     storageLocation: StorageLocation
-    bestBeforeDate: Date | null
-    expiryDate: Date | null
+    expiryInfo: ExpiryInfo
     purchaseDate: Date
     price: Price | null
     isActive?: boolean
@@ -41,8 +46,7 @@ export class IngredientStock {
     this.quantity = params.quantity
     this.unitId = params.unitId
     this.storageLocation = params.storageLocation
-    this.bestBeforeDate = params.bestBeforeDate
-    this.expiryDate = params.expiryDate
+    this.expiryInfo = params.expiryInfo
     this.purchaseDate = params.purchaseDate
     this.price = params.price
     this.isActive = params.isActive ?? true
@@ -82,17 +86,10 @@ export class IngredientStock {
   }
 
   /**
-   * 賞味期限を取得
+   * 期限情報を取得
    */
-  getBestBeforeDate(): Date | null {
-    return this.bestBeforeDate
-  }
-
-  /**
-   * 消費期限を取得
-   */
-  getExpiryDate(): Date | null {
-    return this.expiryDate
+  getExpiryInfo(): ExpiryInfo {
+    return this.expiryInfo
   }
 
   /**
@@ -227,25 +224,7 @@ export class IngredientStock {
    * @returns 期限切れの場合true
    */
   isExpired(): boolean {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    // 賞味期限を優先的にチェック
-    if (this.bestBeforeDate) {
-      const bestBefore = new Date(this.bestBeforeDate)
-      bestBefore.setHours(0, 0, 0, 0)
-      return bestBefore < today
-    }
-
-    // 賞味期限がない場合は消費期限をチェック
-    if (this.expiryDate) {
-      const expiry = new Date(this.expiryDate)
-      expiry.setHours(0, 0, 0, 0)
-      return expiry < today
-    }
-
-    // どちらもない場合は期限切れではない
-    return false
+    return this.expiryInfo.isExpired()
   }
 
   /**
@@ -253,22 +232,7 @@ export class IngredientStock {
    * @returns 期限までの日数（過ぎている場合は負の値）、期限がない場合はnull
    */
   getDaysUntilExpiry(): number | null {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    // 賞味期限を優先的に使用
-    const targetDate = this.bestBeforeDate || this.expiryDate
-    if (!targetDate) {
-      return null
-    }
-
-    const target = new Date(targetDate)
-    target.setHours(0, 0, 0, 0)
-
-    const diffTime = target.getTime() - today.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-    return diffDays
+    return this.expiryInfo.getDaysUntilExpiry()
   }
 
   /**

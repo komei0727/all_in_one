@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { createIngredientSchema } from '@/modules/ingredients/server/api/validators/create-ingredient.validator'
 
-import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
+import {
+  CreateIngredientCommandBuilder,
+  testDataHelpers,
+} from '../../../../../../__fixtures__/builders'
 
 describe('createIngredientSchema', () => {
   describe('正常系', () => {
@@ -42,6 +45,49 @@ describe('createIngredientSchema', () => {
         expect(() => createIngredientSchema.parse(validData)).not.toThrow()
       })
     })
+
+    it('expiryInfoがnullの場合も受け入れる', () => {
+      // Arrange
+      const validData = {
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
+        quantity: {
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
+        },
+        storageLocation: {
+          type: 'REFRIGERATED',
+        },
+        purchaseDate: testDataHelpers.todayString(),
+        expiryInfo: null,
+      }
+
+      // Act & Assert
+      expect(() => createIngredientSchema.parse(validData)).not.toThrow()
+    })
+
+    it('expiryInfoの両方の日付がnullの場合も受け入れる', () => {
+      // Arrange
+      const validData = {
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
+        quantity: {
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
+        },
+        storageLocation: {
+          type: 'REFRIGERATED',
+        },
+        purchaseDate: testDataHelpers.todayString(),
+        expiryInfo: {
+          bestBeforeDate: null,
+          useByDate: null,
+        },
+      }
+
+      // Act & Assert
+      expect(() => createIngredientSchema.parse(validData)).not.toThrow()
+    })
   })
 
   describe('異常系 - name', () => {
@@ -68,16 +114,16 @@ describe('createIngredientSchema', () => {
     it('categoryIdが無効なID形式の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
+        name: testDataHelpers.ingredientName(),
         categoryId: 'short',
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       // Act & Assert
@@ -89,16 +135,16 @@ describe('createIngredientSchema', () => {
     it('amountが0の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
           amount: 0,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       // Act & Assert
@@ -108,16 +154,16 @@ describe('createIngredientSchema', () => {
     it('amountが負の値の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
           amount: -1,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       // Act & Assert
@@ -127,16 +173,16 @@ describe('createIngredientSchema', () => {
     it('unitIdが無効なID形式の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
+          amount: testDataHelpers.quantity(),
           unitId: 'short',
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       // Act & Assert
@@ -148,16 +194,16 @@ describe('createIngredientSchema', () => {
     it('typeが無効な値の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'INVALID_TYPE',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       // Act & Assert
@@ -167,17 +213,17 @@ describe('createIngredientSchema', () => {
     it('detailが51文字以上の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
           detail: 'あ'.repeat(51),
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
       }
 
       // Act & Assert
@@ -185,35 +231,63 @@ describe('createIngredientSchema', () => {
     })
   })
 
-  describe('異常系 - 日付', () => {
+  describe('異常系 - expiryInfo', () => {
     it('bestBeforeDateが無効な日付形式の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
-        bestBeforeDate: 'invalid-date',
+        purchaseDate: testDataHelpers.todayString(),
+        expiryInfo: {
+          bestBeforeDate: 'invalid-date',
+          useByDate: null,
+        },
       }
 
       // Act & Assert
       expect(() => createIngredientSchema.parse(invalidData)).toThrow()
     })
 
+    it('useByDateが無効な日付形式の場合エラー', () => {
+      // Arrange
+      const invalidData = {
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
+        quantity: {
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
+        },
+        storageLocation: {
+          type: 'REFRIGERATED',
+        },
+        purchaseDate: testDataHelpers.todayString(),
+        expiryInfo: {
+          bestBeforeDate: null,
+          useByDate: 'invalid-date',
+        },
+      }
+
+      // Act & Assert
+      expect(() => createIngredientSchema.parse(invalidData)).toThrow()
+    })
+  })
+
+  describe('異常系 - purchaseDate', () => {
     it('purchaseDateが無効な日付形式の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
@@ -230,16 +304,16 @@ describe('createIngredientSchema', () => {
     it('priceが負の値の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
         price: -100,
       }
 
@@ -250,16 +324,16 @@ describe('createIngredientSchema', () => {
     it('priceが小数点3桁以上の場合は通る（Zodでは検証できない）', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
         price: 100.555, // 小数点3桁
       }
 
@@ -274,16 +348,16 @@ describe('createIngredientSchema', () => {
     it('memoが201文字以上の場合エラー', () => {
       // Arrange
       const invalidData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
         quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
         },
         storageLocation: {
           type: 'REFRIGERATED',
         },
-        purchaseDate: '2024-12-20',
+        purchaseDate: testDataHelpers.todayString(),
         memo: 'あ'.repeat(201),
       }
 

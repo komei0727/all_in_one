@@ -155,9 +155,14 @@ export const testDataHelpers = {
   quantity: () => faker.number.float({ min: 0.1, max: 100, fractionDigits: 1 }),
 
   /**
-   * 将来の日付を生成（1日〜90日後）
+   * 将来の日付を生成（デフォルトは1日〜90日後、または指定日数後）
    */
-  futureDate: () => faker.date.future({ years: 0.25 }),
+  futureDate: (days?: number) => {
+    if (days !== undefined) {
+      return testDataHelpers.daysFromNow(days)
+    }
+    return faker.date.future({ years: 0.25 })
+  },
 
   /**
    * 過去の日付を生成（90日前〜昨日）
