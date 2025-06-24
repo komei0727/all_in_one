@@ -123,7 +123,7 @@ interface GetIngredientsParams {
   hasStock?: boolean // 在庫有無フィルタ
   expiringWithinDays?: number // 期限切れ日数フィルタ
   includeExpired?: boolean // 期限切れ食材を含むか
-  sortBy?: 'name' | 'updatedAt' | 'expiryDate' | 'quantity' // ソート項目
+  sortBy?: 'name' | 'updatedAt' | 'expiryDate' | 'quantity' // ソート項目（expiryDateはuseByDate優先）
   sortOrder?: 'asc' | 'desc' // ソート順
   page?: number // ページ番号（1から開始）
   limit?: number // 1ページあたりの件数（デフォルト: 20）
@@ -154,8 +154,10 @@ interface IngredientsListResponse {
       type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
       detail?: string
     }
-    bestBeforeDate: string | null // ISO 8601形式
-    expiryDate: string | null // ISO 8601形式
+    expiryInfo: {
+      bestBeforeDate: string | null // ISO 8601形式
+      useByDate: string | null // ISO 8601形式
+    } | null
     daysUntilExpiry: number | null
     expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED'
     isExpired: boolean
@@ -227,7 +229,7 @@ interface CategoriesResponse {
 interface IngredientsListState {
   searchKeyword: string
   selectedCategoryId: string
-  sortBy: 'name' | 'updatedAt' | 'expiryDate'
+  sortBy: 'name' | 'updatedAt' | 'expiryDate' // expiryDateはuseByDate優先
   sortOrder: 'asc' | 'desc'
   page: number
 }

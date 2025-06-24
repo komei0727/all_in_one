@@ -22,6 +22,18 @@
 - `POST /api/v1/ingredients/{id}/adjust` - 在庫を調整（棚卸し）
 - `POST /api/v1/ingredients/batch-consume` - 複数食材を一括消費
 
+### 在庫チェック
+
+- `GET /api/v1/ingredients/{id}/stock-status` - 食材の在庫状態取得
+- `GET /api/v1/ingredients/low-stock` - 在庫不足食材一覧
+
+### 期限管理
+
+- `GET /api/v1/ingredients/expiring-soon` - 期限切れ間近食材一覧
+- `GET /api/v1/ingredients/expired` - 期限切れ食材一覧
+- `POST /api/v1/ingredients/{id}/update-expiry` - 期限情報更新
+- `GET /api/v1/ingredients/expiry-statistics` - 期限統計取得
+
 ### 集計・サマリー
 
 - `GET /api/v1/ingredients/summary/by-category` - カテゴリー別在庫サマリー
@@ -59,7 +71,7 @@
 | ------------------ | ------- | ---- | ---------- | --------------------------------------------------- |
 | page               | number  | No   | 1          | ページ番号（1から開始）                             |
 | limit              | number  | No   | 20         | 1ページあたりの件数（最大100）                      |
-| search             | string  | No   | -          | 食材名での部分一致検索                              |
+| search             | string  | No   | -          | 食材名でのキーワード検索（部分一致）                |
 | categoryId         | string  | No   | -          | カテゴリーIDでフィルタ                              |
 | storageLocation    | string  | No   | -          | 保存場所でフィルタ                                  |
 | hasStock           | boolean | No   | -          | 在庫有無でフィルタ（true:在庫あり、false:在庫切れ） |
@@ -90,8 +102,10 @@ interface IngredientsListResponse {
         type: 'COUNT' | 'WEIGHT' | 'VOLUME'
       }
     }
-    expiryDate: string | null
-    bestBeforeDate: string | null
+    expiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    } | null
     storageLocation: {
       type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
       detail?: string
@@ -117,93 +131,6 @@ interface IngredientsListResponse {
     timestamp: string
     version: string
   }
-}
-```
-
-**レスポンス例**
-
-```json
-{
-  "data": [
-    {
-      "id": "clm1234567890",
-      "name": "牛乳",
-      "category": {
-        "id": "clm0987654321",
-        "name": "乳製品"
-      },
-      "quantity": {
-        "amount": 1000,
-        "unit": {
-          "id": "clm1111111111",
-          "name": "ml",
-          "symbol": "ml",
-          "type": "VOLUME"
-        }
-      },
-      "expiryDate": "2025-01-25",
-      "bestBeforeDate": null,
-      "storageLocation": {
-        "type": "REFRIGERATED",
-        "detail": "ドアポケット"
-      },
-      "daysUntilExpiry": 4,
-      "expiryStatus": "NEAR_EXPIRY",
-      "isExpired": false,
-      "isExpiringSoon": true,
-      "hasStock": true,
-      "updatedAt": "2025-01-21T10:30:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 45,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrev": false,
-    "nextPage": 2,
-    "prevPage": null
-  },
-  "meta": {
-    "timestamp": "2025-01-21T12:00:00Z",
-    "version": "1.0.0"
-  }
-}
-```
-
-### 実装例
-
-#### cURL
-
-```bash
-curl -X GET "http://localhost:3000/api/v1/ingredients?page=1&limit=20&search=牛乳&sortBy=name&sortOrder=asc" \
-  -H "Content-Type: application/json"
-```
-
-#### TypeScript
-
-```typescript
-async function fetchIngredients(params: {
-  page?: number
-  limit?: number
-  search?: string
-  categoryId?: string
-  sortBy?: 'name' | 'updatedAt' | 'expiryDate'
-  sortOrder?: 'asc' | 'desc'
-}) {
-  const queryParams = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined) {
-      queryParams.append(key, value.toString())
-    }
-  })
-
-  const response = await fetch(`/api/v1/ingredients?${queryParams}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch ingredients')
-  }
-  return response.json()
 }
 ```
 
@@ -256,8 +183,10 @@ interface IngredientDetailResponse {
       type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
       detail?: string
     }
-    bestBeforeDate: string | null
-    expiryDate: string | null
+    expiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    } | null
     purchaseDate: string
     price: number | null
     memo: string | null
@@ -281,23 +210,6 @@ interface IngredientDetailResponse {
 | ステータスコード | エラーコード | 説明                             |
 | ---------------- | ------------ | -------------------------------- |
 | 404              | NOT_FOUND    | 指定されたIDの食材が見つからない |
-
-### 実装例
-
-#### TypeScript
-
-```typescript
-async function fetchIngredientById(id: string) {
-  const response = await fetch(`/api/v1/ingredients/${id}`)
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error('Ingredient not found')
-    }
-    throw new Error('Failed to fetch ingredient')
-  }
-  return response.json()
-}
-```
 
 ---
 
@@ -330,8 +242,10 @@ interface CreateIngredientRequest {
     type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
     detail?: string // 保存場所の詳細（例：「ドアポケット」）最大50文字
   }
-  expiryDate?: string | null // ISO 8601形式
-  bestBeforeDate?: string | null // ISO 8601形式
+  expiryInfo?: {
+    bestBeforeDate?: string | null // 賞味期限（ISO 8601形式）
+    useByDate?: string | null // 消費期限（ISO 8601形式）
+  } | null
   purchaseDate: string // ISO 8601形式
   price?: number | null // 0以上の数値（小数点以下2桁まで対応）
   memo?: string | null // 最大200文字
@@ -346,7 +260,8 @@ interface CreateIngredientRequest {
 - `storageLocation.type`: 必須、定義された値のみ
 - `storageLocation.detail`: 任意、最大50文字
 - `price`: 0以上の数値（小数点以下2桁まで）
-- `expiryDate/bestBeforeDate`: 未来の日付のみ許可
+- `expiryInfo.bestBeforeDate/useByDate`: 未来の日付のみ許可
+- `expiryInfo`: useByDateはbestBeforeDate以前でなければならない
 - `memo`: 最大200文字
 
 ### レスポンス
@@ -375,8 +290,10 @@ interface CreateIngredientResponse {
         type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
         detail?: string
       }
-      bestBeforeDate?: string
-      expiryDate?: string
+      expiryInfo?: {
+        bestBeforeDate?: string
+        useByDate?: string
+      }
       purchaseDate: string
       price?: number // 小数点対応
     }
@@ -393,29 +310,6 @@ interface CreateIngredientResponse {
 | 400              | VALIDATION_ERROR     | 入力値が不正                                   |
 | 404              | NOT_FOUND            | 指定されたカテゴリーIDまたは単位IDが存在しない |
 | 409              | DUPLICATE_INGREDIENT | 同名の食材が既に存在（将来実装）               |
-
-### 実装例
-
-#### TypeScript
-
-```typescript
-async function createIngredient(data: CreateIngredientRequest) {
-  const response = await fetch('/api/v1/ingredients', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw error
-  }
-
-  return response.json()
-}
-```
 
 ---
 
@@ -454,8 +348,10 @@ interface UpdateIngredientRequest {
     type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
     detail?: string
   }
-  expiryDate?: string | null
-  bestBeforeDate?: string | null
+  expiryInfo?: {
+    bestBeforeDate?: string | null
+    useByDate?: string | null
+  } | null
   purchaseDate: string
   price?: number | null
   memo?: string | null
@@ -547,55 +443,6 @@ interface CategoriesResponse {
 }
 ```
 
-**レスポンス例**
-
-```json
-{
-  "data": [
-    {
-      "id": "clm0987654321",
-      "name": "野菜",
-      "description": "野菜類",
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
-    },
-    {
-      "id": "clm0987654322",
-      "name": "肉・魚",
-      "description": "肉類・魚介類",
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
-    }
-  ],
-  "meta": {
-    "timestamp": "2025-01-21T12:00:00Z",
-    "version": "1.0.0"
-  }
-}
-```
-
-### 実装例
-
-#### TypeScript (TanStack Query)
-
-```typescript
-import { useQuery } from '@tanstack/react-query'
-
-function useCategories() {
-  return useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const response = await fetch('/api/v1/ingredients/categories')
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories')
-      }
-      return response.json()
-    },
-    staleTime: 10 * 60 * 1000, // 10分間キャッシュ
-  })
-}
-```
-
 ---
 
 ## 単位一覧取得
@@ -634,49 +481,6 @@ interface UnitsResponse {
 }
 ```
 
-**レスポンス例**
-
-```json
-{
-  "data": [
-    {
-      "id": "clm1111111111",
-      "name": "個",
-      "symbol": "個",
-      "type": "COUNT",
-      "description": "個数",
-      "displayOrder": 1,
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
-    },
-    {
-      "id": "clm1111111112",
-      "name": "グラム",
-      "symbol": "g",
-      "type": "WEIGHT",
-      "description": "重量（グラム）",
-      "displayOrder": 10,
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
-    },
-    {
-      "id": "clm1111111113",
-      "name": "ミリリットル",
-      "symbol": "ml",
-      "type": "VOLUME",
-      "description": "容量（ミリリットル）",
-      "displayOrder": 20,
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
-    }
-  ],
-  "meta": {
-    "timestamp": "2025-01-21T12:00:00Z",
-    "version": "1.0.0"
-  }
-}
-```
-
 ## 共通仕様
 
 ### エラーレスポンス形式
@@ -705,67 +509,6 @@ interface ErrorResponse {
   meta: {
     timestamp: string
     correlationId: string // エラー追跡用ID
-  }
-}
-```
-
-#### エラーレスポンス例
-
-**在庫不足エラー**
-
-```json
-{
-  "error": {
-    "code": "INSUFFICIENT_STOCK",
-    "message": "在庫が不足しています",
-    "type": "BUSINESS_RULE_VIOLATION",
-    "details": {
-      "rule": "StockCannotBeNegative",
-      "constraints": {
-        "requested": 5,
-        "available": 3,
-        "shortage": 2,
-        "unit": "パック"
-      },
-      "suggestions": [
-        "在庫を補充してから再度お試しください",
-        "消費量を3パック以下に減らしてください"
-      ]
-    }
-  },
-  "meta": {
-    "timestamp": "2025-01-21T12:00:00Z",
-    "correlationId": "550e8400-e29b-41d4-a716-446655440000"
-  }
-}
-```
-
-**バリデーションエラー**
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "入力値が不正です",
-    "type": "VALIDATION_ERROR",
-    "details": {
-      "fields": [
-        {
-          "field": "name",
-          "message": "食材名は必須です",
-          "code": "REQUIRED"
-        },
-        {
-          "field": "quantity.amount",
-          "message": "数量は0より大きい値を入力してください",
-          "code": "MIN_VALUE"
-        }
-      ]
-    }
-  },
-  "meta": {
-    "timestamp": "2025-01-21T12:00:00Z",
-    "correlationId": "550e8400-e29b-41d4-a716-446655440001"
   }
 }
 ```
@@ -913,8 +656,11 @@ interface ReplenishIngredientRequest {
   quantity: number // 補充する数量（0より大きい値）
   purchasePrice?: number // 購入価格（小数点以下2桁まで対応）
   purchaseDate?: string // 購入日（ISO 8601形式）
-  bestBeforeDate?: string // 新しい賞味期限
-  expiryDate?: string // 新しい消費期限
+  expiryInfo?: {
+    // 新しい期限情報
+    bestBeforeDate?: string | null
+    useByDate?: string | null
+  } | null
   storageLocation?: {
     // 保存場所の変更
     type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
@@ -1126,6 +872,386 @@ interface AdjustIngredientResponse {
 | ---------------- | ------------- | ---------------------- |
 | 400              | INVALID_VALUE | 実際の在庫数量が負の値 |
 | 404              | NOT_FOUND     | 食材が見つからない     |
+
+---
+
+## 在庫状態取得
+
+### 概要
+
+指定された食材の現在の在庫状態を取得します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/{id}/stock-status`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface StockStatusResponse {
+  data: {
+    ingredientId: string
+    name: string
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    hasStock: boolean
+    isLowStock: boolean
+    stockLevel: 'OUT_OF_STOCK' | 'LOW' | 'NORMAL' | 'HIGH'
+    threshold?: number // 在庫不足闾値
+    lastUpdated: string
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 在庫不足食材一覧
+
+### 概要
+
+在庫が不足している食材の一覧を取得します。買い物提案に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/low-stock`
+- **認証**: 必要
+- **権限**: なし
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明                   |
+| ---------- | ------ | ---- | ---------- | ---------------------- |
+| page       | number | No   | 1          | ページ番号             |
+| limit      | number | No   | 20         | 1ページあたりの件数    |
+| categoryId | string | No   | -          | カテゴリーIDでフィルタ |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface LowStockIngredientsResponse {
+  data: Array<{
+    id: string
+    name: string
+    category: {
+      id: string
+      name: string
+    }
+    currentQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    threshold: number
+    shortage: number // 不足量
+    suggestedPurchaseAmount: number // 推奨購入量
+    lastPurchaseDate?: string
+    averageConsumptionRate?: number // 平均消費率（将来実装）
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 期限切れ間近食材一覧
+
+### 概要
+
+期限切れ間近の食材一覧を取得します。デフォルトでは3日以内に期限切れとなる食材を返します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/expiring-soon`
+- **認証**: 必要
+- **権限**: なし
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明                               |
+| ---------- | ------ | ---- | ---------- | ---------------------------------- |
+| days       | number | No   | 3          | 何日以内に期限切れとなる食材を取得 |
+| page       | number | No   | 1          | ページ番号                         |
+| limit      | number | No   | 20         | 1ページあたりの件数                |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ExpiringSoonIngredientsResponse {
+  data: Array<{
+    id: string
+    name: string
+    category: {
+      id: string
+      name: string
+    }
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    expiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    }
+    daysUntilExpiry: number
+    expiryDate: string // 表示用の期限日（useByDate優先）
+    expiryStatus: 'EXPIRING_SOON' | 'CRITICAL' // CRITICALは1日以内
+    storageLocation: {
+      type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
+      detail?: string
+    }
+  }>
+  summary: {
+    totalExpiringSoon: number
+    byCategoryCount: Array<{
+      categoryId: string
+      categoryName: string
+      count: number
+    }>
+  }
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 期限切れ食材一覧
+
+### 概要
+
+既に期限切れとなっている食材の一覧を取得します。廃棄候補の確認に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/expired`
+- **認証**: 必要
+- **権限**: なし
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ExpiredIngredientsResponse {
+  data: Array<{
+    id: string
+    name: string
+    category: {
+      id: string
+      name: string
+    }
+    quantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    expiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    }
+    expiredDate: string // 期限切れ日
+    daysExpired: number // 期限切れからの日数
+    estimatedLoss?: number // 推定損失額（将来実装）
+  }>
+  summary: {
+    totalExpired: number
+    totalEstimatedLoss?: number
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 期限情報更新
+
+### 概要
+
+食材の期限情報を更新します。賞味期限や消費期限の修正に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/{id}/update-expiry`
+- **認証**: 必要
+- **権限**: 食材の所有者
+
+### リクエスト
+
+#### リクエストボディ
+
+```typescript
+interface UpdateExpiryRequest {
+  expiryInfo: {
+    bestBeforeDate?: string | null // 賞味期限（ISO 8601形式）
+    useByDate?: string | null // 消費期限（ISO 8601形式）
+  }
+  reason?: string // 更新理由
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface UpdateExpiryResponse {
+  data: {
+    ingredientId: string
+    name: string
+    previousExpiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    }
+    newExpiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    }
+    updatedAt: string
+  }
+  events: Array<{
+    type: 'ExpiryInfoUpdated'
+    occurredAt: string
+    data: {
+      previousExpiryInfo: {
+        bestBeforeDate: string | null
+        useByDate: string | null
+      }
+      newExpiryInfo: {
+        bestBeforeDate: string | null
+        useByDate: string | null
+      }
+      reason?: string
+    }
+  }>
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード        | 説明                                  |
+| ---------------- | ------------------- | ------------------------------------- |
+| 400              | INVALID_EXPIRY_INFO | useByDateがbestBeforeDateより後の日付 |
+| 404              | NOT_FOUND           | 食材が見つからない                    |
+
+---
+
+## 期限統計取得
+
+### 概要
+
+食材の期限に関する統計情報を取得します。ダッシュボード表示や分析に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/ingredients/expiry-statistics`
+- **認証**: 必要
+- **権限**: なし
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ExpiryStatisticsResponse {
+  data: {
+    overview: {
+      totalIngredients: number
+      expiredCount: number
+      expiringSoonCount: number // 3日以内
+      freshCount: number // 7日以上
+    }
+    byStatus: Array<{
+      status: 'EXPIRED' | 'CRITICAL' | 'EXPIRING_SOON' | 'NEAR_EXPIRY' | 'FRESH'
+      count: number
+      percentage: number
+    }>
+    byCategory: Array<{
+      categoryId: string
+      categoryName: string
+      expired: number
+      expiringSoon: number
+      total: number
+    }>
+    trends: {
+      // 将来実装: 過去30日間の廃棄傾向
+      last30Days?: {
+        totalDiscarded: number
+        estimatedLoss: number
+      }
+    }
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
 
 ---
 
@@ -1387,9 +1513,10 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 
 ## 更新履歴
 
-| 日付       | 内容                                                                              | 更新者  |
-| ---------- | --------------------------------------------------------------------------------- | ------- |
-| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正 | @system |
+| 日付       | 内容                                                                              | 更新者     |
+| ---------- | --------------------------------------------------------------------------------- | ---------- |
+| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正 | @komei0727 |
+| 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
 
 ## 関連ドキュメント
 

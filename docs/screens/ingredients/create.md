@@ -113,6 +113,7 @@
 | 単位ID       | string | Yes  | 選択必須                             | 未選択       |
 | 保存場所     | enum   | Yes  | REFRIGERATED/FROZEN/ROOM_TEMPERATURE | REFRIGERATED |
 | 賞味期限     | date   | No   | 現在日付以降                         | null         |
+| 消費期限     | date   | No   | 現在日付以降、賞味期限以前           | null         |
 | 購入日       | date   | Yes  | -                                    | 今日         |
 | 価格         | number | No   | 0以上の数値、小数点以下2桁まで       | null         |
 | メモ         | string | No   | 最大200文字                          | 空文字       |
@@ -215,8 +216,10 @@ interface CreateIngredientRequest {
     type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
     detail?: string
   }
-  expiryDate?: string | null // ISO 8601形式
-  bestBeforeDate?: string | null // ISO 8601形式
+  expiryInfo?: {
+    bestBeforeDate?: string | null // 賞味期限（ISO 8601形式）
+    useByDate?: string | null // 消費期限（ISO 8601形式）
+  } | null
   purchaseDate: string // ISO 8601形式
   price?: number | null // 小数点対応（例: 198.50）
   memo?: string | null
@@ -248,8 +251,10 @@ interface CreateIngredientResponse {
         type: 'REFRIGERATED' | 'FROZEN' | 'ROOM_TEMPERATURE'
         detail?: string
       }
-      bestBeforeDate?: string
-      expiryDate?: string
+      expiryInfo?: {
+        bestBeforeDate?: string
+        useByDate?: string
+      }
       purchaseDate: string
       price?: number // 小数点対応
     }
