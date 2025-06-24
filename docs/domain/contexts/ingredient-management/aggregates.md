@@ -26,119 +26,13 @@ graph TD
     subgraph "食材集約"
         Ingredient[食材<br/>集約ルート]
         Quantity[数量<br/>値オブジェクト]
-        BestBeforeDate[賞味期限<br/>値オブジェクト]
-        ExpiryDate[消費期限<br/>値オブジェクト]
+        ExpiryInfo[期限情報<br/>値オブジェクト]
         StorageLocation[保存場所<br/>値オブジェクト]
 
         Ingredient --> Quantity
-        Ingredient --> BestBeforeDate
-        Ingredient --> ExpiryDate
+        Ingredient --> ExpiryInfo
         Ingredient --> StorageLocation
     end
-```
-
-### 集約ルート: Ingredient
-
-```typescript
-class Ingredient {
-  private readonly id: IngredientId
-  private name: IngredientName
-  private categoryId: CategoryId
-  private quantity: Quantity
-  private storageLocation: StorageLocation
-  private bestBeforeDate?: BestBeforeDate
-  private expiryDate?: ExpiryDate
-  private notes?: string
-  private readonly createdAt: Date
-  private updatedAt: Date
-  private deletedAt?: Date
-
-  // コンストラクタ（ファクトリ経由で生成）
-  constructor(params: IngredientParams) {
-    this.validateInvariants(params)
-    // 初期化処理
-  }
-
-  // ビジネスメソッド
-  consume(amount: Quantity): DomainEvent[] {
-    if (!this.quantity.canSubtract(amount)) {
-      throw new InsufficientStockError()
-    }
-
-    const previousQuantity = this.quantity
-    this.quantity = this.quantity.subtract(amount)
-    this.updatedAt = new Date()
-
-    const events: DomainEvent[] = [
-      new StockUpdatedEvent({
-        ingredientId: this.id,
-        previousQuantity,
-        currentQuantity: this.quantity,
-        updatedAt: this.updatedAt,
-      }),
-    ]
-
-    if (this.quantity.isZero()) {
-      events.push(
-        new OutOfStockEvent({
-          ingredientId: this.id,
-          ingredientName: this.name,
-          occurredAt: new Date(),
-        })
-      )
-    }
-
-    return events
-  }
-
-  replenish(amount: Quantity): DomainEvent[] {
-    this.quantity = this.quantity.add(amount)
-    this.updatedAt = new Date()
-
-    return [
-      new StockUpdatedEvent({
-        ingredientId: this.id,
-        previousQuantity: this.quantity.subtract(amount),
-        currentQuantity: this.quantity,
-        updatedAt: this.updatedAt,
-      }),
-    ]
-  }
-
-  updateExpiry(bestBefore?: Date, expiry?: Date): void {
-    if (expiry && bestBefore && expiry > bestBefore) {
-      throw new InvalidExpiryDateError()
-    }
-
-    this.bestBeforeDate = bestBefore ? new BestBeforeDate(bestBefore) : undefined
-    this.expiryDate = expiry ? new ExpiryDate(expiry) : undefined
-    this.updatedAt = new Date()
-  }
-
-  delete(): DomainEvent[] {
-    if (this.deletedAt) {
-      throw new AlreadyDeletedError()
-    }
-
-    this.deletedAt = new Date()
-    this.updatedAt = new Date()
-
-    return [
-      new IngredientDeletedEvent({
-        ingredientId: this.id,
-        deletedAt: this.deletedAt,
-      }),
-    ]
-  }
-
-  // 不変条件の検証
-  private validateInvariants(params: any): void {
-    // 数量は0以上
-    // 消費期限は賞味期限以前
-    // カテゴリーは必須
-    // etc...
-  }
-}
 ```
 
 ### 不変条件
@@ -150,8 +44,8 @@ class Ingredient {
 
 2. **期限の整合性**
 
-   - 消費期限 ≤ 賞味期限
-   - 期限の更新は両方同時に検証
+   - ExpiryInfo内で賞味期限と消費期限の整合性を保証
+   - 消費期限は賞味期限以前でなければならない
 
 3. **削除状態の整合性**
    - 削除済みの食材は更新不可
@@ -179,33 +73,6 @@ class Ingredient {
 
 カテゴリー集約は、食材の分類マスタを管理します。シンプルな集約で、カテゴリー情報のみを含みます。
 
-### 集約の構成
-
-```typescript
-class Category {
-  private readonly id: CategoryId
-  private name: CategoryName
-  private description?: string
-  private displayOrder: number
-  private readonly createdAt: Date
-  private updatedAt: Date
-
-  // ビジネスメソッド
-  updateName(name: string): void {
-    this.name = new CategoryName(name)
-    this.updatedAt = new Date()
-  }
-
-  updateDisplayOrder(order: number): void {
-    if (order < 0) {
-      throw new InvalidDisplayOrderError()
-    }
-    this.displayOrder = order
-    this.updatedAt = new Date()
-  }
-}
-```
-
 ### 不変条件
 
 1. カテゴリー名は一意
@@ -222,35 +89,6 @@ class Category {
 ### 概要
 
 単位集約は、数量の単位マスタを管理します。単位の種別（個数/重量/容量）によって振る舞いが異なります。
-
-### 集約の構成
-
-```typescript
-class Unit {
-  private readonly id: UnitId
-  private name: UnitName
-  private symbol: string
-  private type: UnitType
-  private displayOrder: number
-  private readonly createdAt: Date
-  private updatedAt: Date
-
-  // ビジネスメソッド
-  canConvertTo(other: Unit): boolean {
-    // 同じタイプの単位間のみ変換可能
-    return this.type === other.type
-  }
-
-  getConversionFactor(to: Unit): number {
-    if (!this.canConvertTo(to)) {
-      throw new IncompatibleUnitError()
-    }
-
-    // 変換係数を返す（例: g → kg = 0.001）
-    return UnitConversionService.getConversionFactor(this, to)
-  }
-}
-```
 
 ### 不変条件
 
@@ -287,50 +125,37 @@ graph LR
 
 ### IngredientRepository
 
-```typescript
-interface IngredientRepository {
-  // 基本操作
-  save(ingredient: Ingredient): Promise<void>
-  findById(id: IngredientId): Promise<Ingredient | null>
-  findAll(): Promise<Ingredient[]>
-  delete(id: IngredientId): Promise<void>
+#### 基本操作
 
-  // 検索
-  findByCategory(categoryId: CategoryId): Promise<Ingredient[]>
-  findExpiringSoon(days: number): Promise<Ingredient[]>
-  findByStorageLocation(location: StorageLocationType): Promise<Ingredient[]>
+- `save(ingredient)` - 食材の保存
+- `findById(id)` - ID による検索
+- `findAll()` - 全件取得
+- `delete(id)` - 論理削除
 
-  // 一意性チェック
-  existsByNameAndExpiryAndLocation(
-    name: IngredientName,
-    expiry: Date | null,
-    location: StorageLocation
-  ): Promise<boolean>
-}
-```
+#### ビジネス要件に基づく検索
+
+- `findByCategory(categoryId)` - カテゴリー別取得
+- `findExpiringSoon(days)` - 期限切れ間近の取得
+- `findByStorageLocation(location)` - 保存場所別取得
+
+#### 一意性チェック
+
+- `existsByNameAndExpiryAndLocation(name, expiryInfo, location)` - 重複チェック
 
 ### CategoryRepository
 
-```typescript
-interface CategoryRepository {
-  save(category: Category): Promise<void>
-  findById(id: CategoryId): Promise<Category | null>
-  findAll(): Promise<Category[]>
-  existsByName(name: CategoryName): Promise<boolean>
-}
-```
+- `save(category)` - カテゴリーの保存
+- `findById(id)` - ID による検索
+- `findAll()` - 全件取得（表示順）
+- `existsByName(name)` - 名前の重複チェック
 
 ### UnitRepository
 
-```typescript
-interface UnitRepository {
-  save(unit: Unit): Promise<void>
-  findById(id: UnitId): Promise<Unit | null>
-  findAll(): Promise<Unit[]>
-  findByType(type: UnitType): Promise<Unit[]>
-  existsByNameOrSymbol(name: string, symbol: string): Promise<boolean>
-}
-```
+- `save(unit)` - 単位の保存
+- `findById(id)` - ID による検索
+- `findAll()` - 全件取得
+- `findByType(type)` - タイプ別取得
+- `existsByNameOrSymbol(name, symbol)` - 重複チェック
 
 ## パフォーマンス考慮事項
 
@@ -380,6 +205,6 @@ interface UnitRepository {
 
 ## 更新履歴
 
-| 日付       | 内容     | 作成者  |
-| ---------- | -------- | ------- |
-| 2025-01-21 | 初版作成 | @system |
+| 日付       | 内容 | 作成者     |
+| ---------- | ---- | ---------- |
+| 2025-06-24 | 初版 | @komei0727 |
