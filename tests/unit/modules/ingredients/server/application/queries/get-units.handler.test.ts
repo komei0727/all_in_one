@@ -91,9 +91,9 @@ describe('GetUnitsQueryHandler', () => {
       // sortBy: 'symbol'の場合のソート処理を確認
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-        new Unit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
+        new Unit({ id: 'unit12345678', name: 'グラム', symbol: 'g', displayOrder: 1 }),
+        new Unit({ id: 'unit23456789', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
+        new Unit({ id: 'unit34567890', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -105,9 +105,9 @@ describe('GetUnitsQueryHandler', () => {
       // Assert
       expect(result).toEqual({
         units: [
-          { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-          { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
-          { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+          { id: 'unit12345678', name: 'グラム', symbol: 'g', displayOrder: 1 },
+          { id: 'unit23456789', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+          { id: 'unit34567890', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
         ],
       })
     })
@@ -118,11 +118,11 @@ describe('GetUnitsQueryHandler', () => {
       // groupByType: trueの場合のグルーピング処理を確認
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-        new Unit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
-        new Unit({ id: 'unit4', name: 'リットル', symbol: 'L', displayOrder: 4 }),
-        new Unit({ id: 'unit5', name: '個', symbol: '個', displayOrder: 5 }),
+        new Unit({ id: 'unit12345678', name: 'グラム', symbol: 'g', displayOrder: 1 }),
+        new Unit({ id: 'unit23456789', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
+        new Unit({ id: 'unit34567890', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
+        new Unit({ id: 'unit45678901', name: 'リットル', symbol: 'L', displayOrder: 4 }),
+        new Unit({ id: 'unit56789012', name: '個', symbol: '個', displayOrder: 5 }),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -135,14 +135,14 @@ describe('GetUnitsQueryHandler', () => {
       expect(result).toEqual({
         unitsByType: {
           weight: [
-            { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-            { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+            { id: 'unit12345678', name: 'グラム', symbol: 'g', displayOrder: 1 },
+            { id: 'unit23456789', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
           ],
           volume: [
-            { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
-            { id: 'unit4', name: 'リットル', symbol: 'L', displayOrder: 4 },
+            { id: 'unit34567890', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+            { id: 'unit45678901', name: 'リットル', symbol: 'L', displayOrder: 4 },
           ],
-          count: [{ id: 'unit5', name: '個', symbol: '個', displayOrder: 5 }],
+          count: [{ id: 'unit56789012', name: '個', symbol: '個', displayOrder: 5 }],
         },
       })
     })
@@ -151,10 +151,10 @@ describe('GetUnitsQueryHandler', () => {
       // groupByType: true かつ sortBy: 'name' の場合
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-        new Unit({ id: 'unit2', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit3', name: 'リットル', symbol: 'L', displayOrder: 4 }),
-        new Unit({ id: 'unit4', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
+        new Unit({ id: 'unit12345678', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
+        new Unit({ id: 'unit23456789', name: 'グラム', symbol: 'g', displayOrder: 1 }),
+        new Unit({ id: 'unit34567890', name: 'リットル', symbol: 'L', displayOrder: 4 }),
+        new Unit({ id: 'unit45678901', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -167,12 +167,12 @@ describe('GetUnitsQueryHandler', () => {
       expect(result).toEqual({
         unitsByType: {
           weight: [
-            { id: 'unit1', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
-            { id: 'unit2', name: 'グラム', symbol: 'g', displayOrder: 1 },
+            { id: 'unit12345678', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+            { id: 'unit23456789', name: 'グラム', symbol: 'g', displayOrder: 1 },
           ],
           volume: [
-            { id: 'unit4', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
-            { id: 'unit3', name: 'リットル', symbol: 'L', displayOrder: 4 },
+            { id: 'unit45678901', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+            { id: 'unit34567890', name: 'リットル', symbol: 'L', displayOrder: 4 },
           ],
         },
       })
@@ -182,10 +182,10 @@ describe('GetUnitsQueryHandler', () => {
       // 分類できない単位が'other'グループに分類されることを確認
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'センチメートル', symbol: 'cm', displayOrder: 2 }),
-        new Unit({ id: 'unit3', name: 'メートル', symbol: 'm', displayOrder: 3 }),
-        new Unit({ id: 'unit4', name: '個', symbol: '個', displayOrder: 4 }),
+        new Unit({ id: 'unit12345678', name: 'グラム', symbol: 'g', displayOrder: 1 }),
+        new Unit({ id: 'unit23456789', name: 'センチメートル', symbol: 'cm', displayOrder: 2 }),
+        new Unit({ id: 'unit34567890', name: 'メートル', symbol: 'm', displayOrder: 3 }),
+        new Unit({ id: 'unit45678901', name: '個', symbol: '個', displayOrder: 4 }),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -197,11 +197,11 @@ describe('GetUnitsQueryHandler', () => {
       // Assert
       expect(result).toEqual({
         unitsByType: {
-          weight: [{ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }],
-          count: [{ id: 'unit4', name: '個', symbol: '個', displayOrder: 4 }],
+          weight: [{ id: 'unit12345678', name: 'グラム', symbol: 'g', displayOrder: 1 }],
+          count: [{ id: 'unit45678901', name: '個', symbol: '個', displayOrder: 4 }],
           other: [
-            { id: 'unit2', name: 'センチメートル', symbol: 'cm', displayOrder: 2 },
-            { id: 'unit3', name: 'メートル', symbol: 'm', displayOrder: 3 },
+            { id: 'unit23456789', name: 'センチメートル', symbol: 'cm', displayOrder: 2 },
+            { id: 'unit34567890', name: 'メートル', symbol: 'm', displayOrder: 3 },
           ],
         },
       })

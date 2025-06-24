@@ -1,14 +1,14 @@
+import { createId } from '@paralleldrive/cuid2'
 import { NextRequest } from 'next/server'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { POST } from '@/app/api/v1/ingredients/route'
-import { StorageLocation, UnitType } from '@/generated/prisma'
+import { StorageLocation, UnitType, Prisma } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
 
-// Prismaクライアントのモック
+// Prismaクライアントのモック（統合されたIngredientエンティティ対応）
 vi.mock('@/lib/prisma/client', () => ({
   prisma: {
-    $transaction: vi.fn(),
     category: {
       findUnique: vi.fn(),
     },
@@ -17,11 +17,8 @@ vi.mock('@/lib/prisma/client', () => ({
     },
     ingredient: {
       create: vi.fn(),
+      upsert: vi.fn(),
       findUnique: vi.fn(),
-    },
-    ingredientStock: {
-      create: vi.fn(),
-      findFirst: vi.fn(),
     },
   },
 }))
@@ -36,20 +33,24 @@ describe('POST /api/v1/ingredients', () => {
   })
 
   it('正常に食材を作成できる', async () => {
-    // テストデータの準備
+    // テストデータの準備（統合されたIngredientエンティティ対応）
+    const categoryId = createId()
+    const unitId = createId()
     const requestBody = {
       name: 'トマト',
-      categoryId: '550e8400-e29b-41d4-a716-446655440000',
+      categoryId: categoryId,
       quantity: {
         amount: 3,
-        unitId: '550e8400-e29b-41d4-a716-446655440001',
+        unitId: unitId,
       },
       storageLocation: {
         type: 'REFRIGERATED',
         detail: '野菜室',
       },
-      bestBeforeDate: '2024-12-31',
-      useByDate: '2025-01-05',
+      expiryInfo: {
+        bestBeforeDate: '2024-12-31',
+        useByDate: '2024-12-30', // 消費期限は賞味期限より前に設定
+      },
       purchaseDate: '2024-12-20',
       price: 300,
       memo: '新鮮なトマト',
@@ -57,7 +58,7 @@ describe('POST /api/v1/ingredients', () => {
 
     // モックの設定
     const mockCategory = {
-      id: '550e8400-e29b-41d4-a716-446655440000',
+      id: categoryId,
       name: '野菜',
       displayOrder: 1,
       isActive: true,
@@ -67,7 +68,7 @@ describe('POST /api/v1/ingredients', () => {
     }
 
     const mockUnit = {
-      id: '550e8400-e29b-41d4-a716-446655440001',
+      id: unitId,
       name: '個',
       symbol: '個',
       type: UnitType.COUNT,
@@ -78,49 +79,38 @@ describe('POST /api/v1/ingredients', () => {
       updatedAt: new Date(),
     }
 
+    // 統合されたIngredientエンティティのモック（Prisma.Decimalをモック）
     const mockIngredient = {
-      id: '550e8400-e29b-41d4-a716-446655440002',
+      id: createId(),
+      userId: createId(), // ユーザーIDを追加
       name: 'トマト',
-      categoryId: mockCategory.id,
+      categoryId: categoryId,
       memo: '新鮮なトマト',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
-      category: mockCategory,
-    }
-
-    const mockStock = {
-      id: '550e8400-e29b-41d4-a716-446655440003',
-      ingredientId: mockIngredient.id,
-      quantity: 3,
-      unitId: mockUnit.id,
+      price: new (class {
+        toNumber() {
+          return 300
+        }
+      })() as unknown as Prisma.Decimal, // Prisma.Decimalをモック
+      purchaseDate: new Date('2024-12-20'),
+      quantity: new (class {
+        toNumber() {
+          return 3
+        }
+      })() as unknown as Prisma.Decimal, // Prisma.Decimalをモック
+      unitId: unitId,
+      threshold: null,
       storageLocationType: StorageLocation.REFRIGERATED,
       storageLocationDetail: '野菜室',
       bestBeforeDate: new Date('2024-12-31'),
-      useByDate: new Date('2025-01-05'),
-      purchaseDate: new Date('2024-12-20'),
-      price: 300,
-      isActive: true,
+      useByDate: new Date('2024-12-30'),
       createdAt: new Date(),
       updatedAt: new Date(),
-      unit: mockUnit,
+      deletedAt: null,
     }
 
     vi.mocked(prisma.category.findUnique).mockResolvedValue(mockCategory)
     vi.mocked(prisma.unit.findUnique).mockResolvedValue(mockUnit)
-    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
-      // トランザクション内で使用するモックprismaオブジェクト
-      const txPrisma = {
-        ingredient: {
-          upsert: vi.fn().mockResolvedValue(mockIngredient),
-        },
-        ingredientStock: {
-          create: vi.fn().mockResolvedValue(mockStock),
-        },
-      }
-      return callback(txPrisma)
-    })
-    vi.mocked(prisma.ingredient.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.ingredient.upsert).mockResolvedValue(mockIngredient)
 
     // リクエストの作成
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -135,7 +125,7 @@ describe('POST /api/v1/ingredients', () => {
     const response = await POST(request)
     const responseBody = await response.json()
 
-    // レスポンスの検証
+    // レスポンスの検証（統合されたIngredientエンティティ対応）
     expect(response.status).toBe(201)
     expect(responseBody).toMatchObject({
       ingredient: {
@@ -157,6 +147,8 @@ describe('POST /api/v1/ingredients', () => {
             type: 'REFRIGERATED',
             detail: '野菜室',
           },
+          bestBeforeDate: '2024-12-31',
+          useByDate: '2024-12-30',
           purchaseDate: '2024-12-20',
           price: 300,
           isInStock: true,
@@ -169,10 +161,10 @@ describe('POST /api/v1/ingredients', () => {
     // テストデータの準備
     const requestBody = {
       name: 'トマト',
-      categoryId: '550e8400-e29b-41d4-a716-446655440999', // 存在しないが有効なUUID
+      categoryId: createId(), // 存在しないが有効なCUID
       quantity: {
         amount: 3,
-        unitId: '550e8400-e29b-41d4-a716-446655440001',
+        unitId: createId(),
       },
       storageLocation: {
         type: 'REFRIGERATED',
@@ -183,7 +175,7 @@ describe('POST /api/v1/ingredients', () => {
     // モックの設定
     vi.mocked(prisma.category.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.unit.findUnique).mockResolvedValue({
-      id: '550e8400-e29b-41d4-a716-446655440001',
+      id: createId(),
       name: '個',
       symbol: '個',
       type: UnitType.COUNT,
@@ -221,10 +213,10 @@ describe('POST /api/v1/ingredients', () => {
     // テストデータの準備（名前が空文字列）
     const requestBody = {
       name: '',
-      categoryId: '550e8400-e29b-41d4-a716-446655440000',
+      categoryId: createId(),
       quantity: {
         amount: 3,
-        unitId: '550e8400-e29b-41d4-a716-446655440001',
+        unitId: createId(),
       },
       storageLocation: {
         type: 'REFRIGERATED',
@@ -273,7 +265,10 @@ describe('POST /api/v1/ingredients', () => {
     expect(response.status).toBe(500)
     expect(responseBody).toMatchObject({
       error: {
-        message: expect.any(String),
+        code: 'INTERNAL_ERROR',
+        message: 'サーバーエラーが発生しました。しばらく時間をおいて再試行してください',
+        timestamp: expect.any(String),
+        path: '/api/v1/ingredients',
       },
     })
   })

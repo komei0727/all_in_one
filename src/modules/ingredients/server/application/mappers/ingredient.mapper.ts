@@ -9,15 +9,13 @@ import { IngredientDto } from '../dtos/ingredient.dto'
  */
 export class IngredientMapper {
   /**
-   * エンティティからDTOへ変換
+   * エンティティからDTOへ変換（統合されたIngredientエンティティ対応）
    * @param ingredient 食材エンティティ
    * @param category カテゴリーエンティティ（オプション）
    * @param unit 単位エンティティ（オプション）
    * @returns 食材DTO
    */
   static toDto(ingredient: Ingredient, category?: Category, unit?: Unit): IngredientDto {
-    const stock = ingredient.getCurrentStock()
-
     return new IngredientDto(
       ingredient.getId().getValue(),
       ingredient.getName().getValue(),
@@ -27,23 +25,24 @@ export class IngredientMapper {
             name: category.name.getValue(),
           }
         : null,
-      stock && unit
+      unit
         ? {
-            quantity: stock.getQuantity().getValue(),
+            quantity: ingredient.getQuantity().getValue(),
             unit: {
               id: unit.id.getValue(),
               name: unit.name.getValue(),
               symbol: unit.symbol.getValue(),
             },
             storageLocation: {
-              type: stock.getStorageLocation().getType(),
-              detail: stock.getStorageLocation().getDetail() || null,
+              type: ingredient.getStorageLocation().getType(),
+              detail: ingredient.getStorageLocation().getDetail() || null,
             },
             bestBeforeDate:
-              stock.getExpiryInfo().getBestBeforeDate()?.toISOString().split('T')[0] || null,
-            useByDate: stock.getExpiryInfo().getUseByDate()?.toISOString().split('T')[0] || null,
-            purchaseDate: stock.getPurchaseDate().toISOString().split('T')[0],
-            price: stock.getPrice()?.getValue() || null,
+              ingredient.getExpiryInfo().getBestBeforeDate()?.toISOString().split('T')[0] || null,
+            useByDate:
+              ingredient.getExpiryInfo().getUseByDate()?.toISOString().split('T')[0] || null,
+            purchaseDate: ingredient.getPurchaseDate().toISOString().split('T')[0],
+            price: ingredient.getPrice()?.getValue() || null,
             isInStock: true,
           }
         : null,

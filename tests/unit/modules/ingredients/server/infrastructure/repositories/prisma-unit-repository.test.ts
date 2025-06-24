@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { PrismaClient, UnitType } from '@/generated/prisma'
@@ -36,9 +37,11 @@ describe('PrismaUnitRepository', () => {
     it('should return active units as entities', async () => {
       // アクティブな単位をデータベースから取得し、エンティティに変換することを確認
       // Arrange
+      const unitId1 = createId()
+      const unitId2 = createId()
       const mockDbUnits = [
         {
-          id: 'unit1',
+          id: unitId1,
           name: 'グラム',
           symbol: 'g',
           type: 'WEIGHT' as UnitType,
@@ -49,7 +52,7 @@ describe('PrismaUnitRepository', () => {
           updatedAt: new Date(),
         },
         {
-          id: 'unit2',
+          id: unitId2,
           name: 'キログラム',
           symbol: 'kg',
           type: 'WEIGHT' as UnitType,
@@ -68,13 +71,13 @@ describe('PrismaUnitRepository', () => {
       // Assert
       expect(result).toHaveLength(2)
       expect(result[0]).toBeInstanceOf(Unit)
-      expect(result[0].id.getValue()).toBe('unit1')
+      expect(result[0].id.getValue()).toBe(unitId1)
       expect(result[0].name.getValue()).toBe('グラム')
       expect(result[0].symbol.getValue()).toBe('g')
       expect(result[0].displayOrder.getValue()).toBe(1)
 
       expect(result[1]).toBeInstanceOf(Unit)
-      expect(result[1].id.getValue()).toBe('unit2')
+      expect(result[1].id.getValue()).toBe(unitId2)
       expect(result[1].name.getValue()).toBe('キログラム')
       expect(result[1].symbol.getValue()).toBe('kg')
       expect(result[1].displayOrder.getValue()).toBe(2)
@@ -103,8 +106,9 @@ describe('PrismaUnitRepository', () => {
     it('should return unit entity when found', async () => {
       // IDで単位を検索し、見つかった場合はエンティティを返すことを確認
       // Arrange
+      const unitId = createId()
       const mockDbUnit = {
-        id: 'unit1',
+        id: unitId,
         name: 'グラム',
         symbol: 'g',
         type: 'WEIGHT' as UnitType,
@@ -117,17 +121,17 @@ describe('PrismaUnitRepository', () => {
       vi.mocked(prisma.unit.findUnique).mockResolvedValue(mockDbUnit)
 
       // Act
-      const result = await repository.findById(new UnitId('unit1'))
+      const result = await repository.findById(new UnitId(unitId))
 
       // Assert
       expect(result).toBeInstanceOf(Unit)
-      expect(result?.id.getValue()).toBe('unit1')
+      expect(result?.id.getValue()).toBe(unitId)
       expect(result?.name.getValue()).toBe('グラム')
       expect(result?.symbol.getValue()).toBe('g')
       expect(result?.displayOrder.getValue()).toBe(1)
 
       expect(prisma.unit.findUnique).toHaveBeenCalledWith({
-        where: { id: 'unit1' },
+        where: { id: unitId },
       })
     })
 
@@ -137,7 +141,8 @@ describe('PrismaUnitRepository', () => {
       vi.mocked(prisma.unit.findUnique).mockResolvedValue(null)
 
       // Act
-      const result = await repository.findById(new UnitId('non-existent-id'))
+      const nonExistentId = createId()
+      const result = await repository.findById(new UnitId(nonExistentId))
 
       // Assert
       expect(result).toBeNull()

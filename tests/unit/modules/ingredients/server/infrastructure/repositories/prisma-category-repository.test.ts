@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { PrismaClient } from '@/generated/prisma'
@@ -36,9 +37,11 @@ describe('PrismaCategoryRepository', () => {
     it('should return active categories as entities', async () => {
       // アクティブなカテゴリーをデータベースから取得し、エンティティに変換することを確認
       // Arrange
+      const categoryId1 = createId()
+      const categoryId2 = createId()
       const mockDbCategories = [
         {
-          id: 'cat1',
+          id: categoryId1,
           name: '野菜',
           displayOrder: 1,
           isActive: true,
@@ -47,7 +50,7 @@ describe('PrismaCategoryRepository', () => {
           updatedAt: new Date(),
         },
         {
-          id: 'cat2',
+          id: categoryId2,
           name: '肉類',
           displayOrder: 2,
           isActive: true,
@@ -64,12 +67,12 @@ describe('PrismaCategoryRepository', () => {
       // Assert
       expect(result).toHaveLength(2)
       expect(result[0]).toBeInstanceOf(Category)
-      expect(result[0].id.getValue()).toBe('cat1')
+      expect(result[0].id.getValue()).toBe(categoryId1)
       expect(result[0].name.getValue()).toBe('野菜')
       expect(result[0].displayOrder.getValue()).toBe(1)
 
       expect(result[1]).toBeInstanceOf(Category)
-      expect(result[1].id.getValue()).toBe('cat2')
+      expect(result[1].id.getValue()).toBe(categoryId2)
       expect(result[1].name.getValue()).toBe('肉類')
       expect(result[1].displayOrder.getValue()).toBe(2)
 
@@ -97,8 +100,9 @@ describe('PrismaCategoryRepository', () => {
     it('should return category entity when found', async () => {
       // IDでカテゴリーを検索し、見つかった場合はエンティティを返すことを確認
       // Arrange
+      const categoryId = createId()
       const mockDbCategory = {
-        id: 'cat1',
+        id: categoryId,
         name: '野菜',
         displayOrder: 1,
         isActive: true,
@@ -109,16 +113,16 @@ describe('PrismaCategoryRepository', () => {
       vi.mocked(prisma.category.findUnique).mockResolvedValue(mockDbCategory)
 
       // Act
-      const result = await repository.findById(new CategoryId('cat1'))
+      const result = await repository.findById(new CategoryId(categoryId))
 
       // Assert
       expect(result).toBeInstanceOf(Category)
-      expect(result?.id.getValue()).toBe('cat1')
+      expect(result?.id.getValue()).toBe(categoryId)
       expect(result?.name.getValue()).toBe('野菜')
       expect(result?.displayOrder.getValue()).toBe(1)
 
       expect(prisma.category.findUnique).toHaveBeenCalledWith({
-        where: { id: 'cat1' },
+        where: { id: categoryId },
       })
     })
 
@@ -128,7 +132,8 @@ describe('PrismaCategoryRepository', () => {
       vi.mocked(prisma.category.findUnique).mockResolvedValue(null)
 
       // Act
-      const result = await repository.findById(new CategoryId('non-existent-id'))
+      const nonExistentId = createId()
+      const result = await repository.findById(new CategoryId(nonExistentId))
 
       // Assert
       expect(result).toBeNull()

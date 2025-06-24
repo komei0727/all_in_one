@@ -4,10 +4,14 @@ import { ValueObject } from './value-object.base'
 import { ValidationException } from '../exceptions/validation.exception'
 
 /**
- * 食材ID値オブジェクト
- * CUID形式の識別子を表現する
+ * ユーザーID値オブジェクト
+ * CUID形式の識別子を使用
  */
-export class IngredientId extends ValueObject<string> {
+export class UserId extends ValueObject<string> {
+  constructor(value: string) {
+    super(value)
+  }
+
   /**
    * ID形式のバリデーション
    * @param value ID文字列
@@ -16,23 +20,23 @@ export class IngredientId extends ValueObject<string> {
   protected validate(value: string): void {
     // 空文字チェック
     if (!value || value.trim() === '') {
-      throw new ValidationException('食材IDは必須です')
+      throw new ValidationException('ユーザーIDは必須です')
     }
 
     // ID形式: 8文字以上の英数字とハイフンを許可
     const idRegex = /^[a-zA-Z0-9\-_]{8,}$/
     if (!idRegex.test(value)) {
       throw new ValidationException(
-        '食材IDは8文字以上の英数字、ハイフン、アンダースコアで構成される必要があります'
+        'ユーザーIDは8文字以上の英数字、ハイフン、アンダースコアで構成される必要があります'
       )
     }
   }
 
   /**
-   * 新しい食材IDを生成
-   * @returns 新しい食材ID
+   * 新しいユーザーIDを生成
+   * @returns 新しいユーザーID
    */
-  static generate(): IngredientId {
-    return new IngredientId(createId())
+  static generate(): UserId {
+    return new UserId(createId())
   }
 }

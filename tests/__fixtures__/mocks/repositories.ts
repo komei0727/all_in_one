@@ -10,7 +10,8 @@ import type { UnitRepository } from '@/modules/ingredients/server/domain/reposit
 export const createMockIngredientRepository = (): IngredientRepository => ({
   save: vi.fn(),
   findById: vi.fn(),
-  findByName: vi.fn(),
+  findByUserId: vi.fn(),
+  findByUserIdAndName: vi.fn(),
   findAll: vi.fn(),
   delete: vi.fn(),
 })

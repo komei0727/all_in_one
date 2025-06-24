@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
@@ -35,9 +36,12 @@ describe('CreateIngredientHandler', () => {
 
   describe('execute', () => {
     it('食材を正常に作成できる', async () => {
-      // Arrange
-      // ビルダーを使用してテストデータを作成
-      const command = new CreateIngredientCommandBuilder().withFullData().build()
+      // Arrange - ユーザーIDを含む統合された食材作成コマンドを作成
+      const testUserId = createId()
+      const command = new CreateIngredientCommandBuilder()
+        .withUserId(testUserId)
+        .withFullData()
+        .build()
 
       const mockCategory = createTestCategory()
       const mockUnit = createTestUnit()
@@ -49,12 +53,13 @@ describe('CreateIngredientHandler', () => {
       // Act
       const result = await handler.execute(command)
 
-      // Assert
+      // Assert - 統合されたIngredientエンティティのプロパティを確認
       expect(result).toBeInstanceOf(Ingredient)
       expect(result.getName().getValue()).toBe(command.name)
       expect(result.getCategoryId().getValue()).toBe(command.categoryId)
-      expect(result.getCurrentStock()).not.toBeNull()
-      expect(result.getCurrentStock()?.getQuantity().getValue()).toBe(command.quantity.amount)
+      expect(result.getUserId()).toBe(testUserId)
+      expect(result.getQuantity().getValue()).toBe(command.quantity.amount)
+      expect(result.getUnitId().getValue()).toBe(command.quantity.unitId)
       expect(result.getMemo()?.getValue()).toBe(command.memo)
 
       // リポジトリが呼ばれたことを確認
@@ -68,15 +73,17 @@ describe('CreateIngredientHandler', () => {
         expect.objectContaining({
           getName: expect.any(Function),
           getCategoryId: expect.any(Function),
+          getUserId: expect.any(Function),
         })
       )
     })
 
     it('カテゴリーが存在しない場合エラーをスローする', async () => {
-      // Arrange
-      // 無効なカテゴリーIDでコマンドを作成
+      // Arrange - ユーザーIDを含む無効なカテゴリーIDでコマンドを作成
+      const testUserId = createId()
       const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('invalid-category-id')
+        .withUserId(testUserId)
+        .withCategoryId(createId()) // 無効なカテゴリーID
         .build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(null)
@@ -87,10 +94,11 @@ describe('CreateIngredientHandler', () => {
     })
 
     it('単位が存在しない場合エラーをスローする', async () => {
-      // Arrange
-      // 無効な単位IDでコマンドを作成
+      // Arrange - ユーザーIDを含む無効な単位IDでコマンドを作成
+      const testUserId = createId()
       const command = new CreateIngredientCommandBuilder()
-        .withQuantity(3, 'invalid-unit-id')
+        .withUserId(testUserId)
+        .withQuantity(3, createId()) // 無効な単位ID
         .build()
 
       const mockCategory = createTestCategory()
@@ -104,9 +112,9 @@ describe('CreateIngredientHandler', () => {
     })
 
     it('必須項目のみで食材を作成できる', async () => {
-      // Arrange
-      // 必須項目のみでコマンドを作成
-      const command = new CreateIngredientCommandBuilder().build()
+      // Arrange - ユーザーIDを含む必須項目のみでコマンドを作成
+      const testUserId = createId()
+      const command = new CreateIngredientCommandBuilder().withUserId(testUserId).build()
 
       const mockCategory = createTestCategory()
       const mockUnit = createTestUnit()
@@ -118,12 +126,13 @@ describe('CreateIngredientHandler', () => {
       // Act
       const result = await handler.execute(command)
 
-      // Assert
+      // Assert - 統合されたIngredientエンティティのオプション項目を確認
       expect(result).toBeInstanceOf(Ingredient)
+      expect(result.getUserId()).toBe(testUserId)
       expect(result.getMemo()).toBeNull()
-      expect(result.getCurrentStock()?.getPrice()).toBeNull()
-      expect(result.getCurrentStock()?.getExpiryInfo().getBestBeforeDate()).toBeNull()
-      expect(result.getCurrentStock()?.getExpiryInfo().getUseByDate()).toBeNull()
+      expect(result.getPrice()).toBeNull()
+      expect(result.getExpiryInfo().getBestBeforeDate()).toBeNull()
+      expect(result.getExpiryInfo().getUseByDate()).toBeNull()
     })
   })
 })

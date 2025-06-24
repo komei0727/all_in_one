@@ -88,6 +88,20 @@ export class ExpiryInfoBuilder extends BaseBuilder<ExpiryInfoProps, ExpiryInfo> 
   }
 
   /**
+   * 過去の賞味期限を設定（デフォルトは1日前）
+   */
+  withPastBestBeforeDate(daysAgo: number = 1): this {
+    return this.withBestBeforeDaysFromNow(-daysAgo)
+  }
+
+  /**
+   * 過去の消費期限を設定（デフォルトは1日前）
+   */
+  withPastUseByDate(daysAgo: number = 1): this {
+    return this.withUseByDaysFromNow(-daysAgo)
+  }
+
+  /**
    * 有効な期限情報を設定（消費期限は賞味期限より前）
    */
   withValidDates(bestBeforeDays: number = 10, useByDays: number = 5): this {

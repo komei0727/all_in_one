@@ -5,6 +5,7 @@ import { BaseBuilder } from '../base.builder'
 import { testDataHelpers, faker } from '../faker.config'
 
 interface CreateIngredientCommandProps {
+  userId: string // 食材の所有者
   name: string
   categoryId: string
   quantity: {
@@ -35,6 +36,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
     super()
     // デフォルト値を設定
     this.props = {
+      userId: testDataHelpers.cuid(), // デフォルトのユーザーID
       name: testDataHelpers.ingredientName(),
       categoryId: testDataHelpers.cuid(),
       quantity: {
@@ -49,6 +51,13 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
       price: undefined,
       memo: undefined,
     }
+  }
+
+  /**
+   * ユーザーIDを設定
+   */
+  withUserId(userId: string): this {
+    return this.with('userId', userId)
   }
 
   /**

@@ -1,45 +1,70 @@
 import { BusinessRuleException } from '../exceptions/business-rule.exception'
-import { IngredientId, IngredientName, CategoryId, Memo, Quantity } from '../value-objects'
-import { IngredientStock } from './ingredient-stock.entity'
+import {
+  IngredientId,
+  IngredientName,
+  CategoryId,
+  Memo,
+  Quantity,
+  Price,
+  UnitId,
+  StorageLocation,
+  ExpiryInfo,
+} from '../value-objects'
 
 /**
  * 食材エンティティ
- * 食材の基本情報と在庫情報を管理する集約ルート
+ * 食材の基本情報と在庫情報を管理する集約ルート（在庫情報統合版）
  */
 export class Ingredient {
   private readonly id: IngredientId
+  private readonly userId: string // 所有者のユーザーID
   private name: IngredientName
   private categoryId: CategoryId
   private memo: Memo | null
-  private currentStock: IngredientStock | null
+  // 在庫情報（統合）
+  private price: Price | null
+  private purchaseDate: Date
+  private quantity: Quantity
+  private unitId: UnitId
+  private threshold: Quantity | null
+  private storageLocation: StorageLocation
+  private expiryInfo: ExpiryInfo
   private readonly createdAt: Date
   private updatedAt: Date
   private deletedAt: Date | null
-  private createdBy: string | null
-  private updatedBy: string | null
 
   constructor(params: {
     id: IngredientId
+    userId: string
     name: IngredientName
     categoryId: CategoryId
     memo?: Memo | null
-    currentStock?: IngredientStock | null
+    price?: Price | null
+    purchaseDate: Date
+    quantity: Quantity
+    unitId: UnitId
+    threshold?: Quantity | null
+    storageLocation: StorageLocation
+    expiryInfo: ExpiryInfo
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
-    createdBy?: string | null
-    updatedBy?: string | null
   }) {
     this.id = params.id
+    this.userId = params.userId
     this.name = params.name
     this.categoryId = params.categoryId
     this.memo = params.memo ?? null
-    this.currentStock = params.currentStock ?? null
+    this.price = params.price ?? null
+    this.purchaseDate = params.purchaseDate
+    this.quantity = params.quantity
+    this.unitId = params.unitId
+    this.threshold = params.threshold ?? null
+    this.storageLocation = params.storageLocation
+    this.expiryInfo = params.expiryInfo
     this.createdAt = params.createdAt ?? new Date()
     this.updatedAt = params.updatedAt ?? new Date()
     this.deletedAt = params.deletedAt ?? null
-    this.createdBy = params.createdBy ?? null
-    this.updatedBy = params.updatedBy ?? null
   }
 
   /**
@@ -47,6 +72,13 @@ export class Ingredient {
    */
   getId(): IngredientId {
     return this.id
+  }
+
+  /**
+   * ユーザーIDを取得
+   */
+  getUserId(): string {
+    return this.userId
   }
 
   /**
@@ -71,10 +103,52 @@ export class Ingredient {
   }
 
   /**
-   * 現在の在庫を取得
+   * 価格を取得
    */
-  getCurrentStock(): IngredientStock | null {
-    return this.currentStock
+  getPrice(): Price | null {
+    return this.price
+  }
+
+  /**
+   * 購入日を取得
+   */
+  getPurchaseDate(): Date {
+    return this.purchaseDate
+  }
+
+  /**
+   * 数量を取得
+   */
+  getQuantity(): Quantity {
+    return this.quantity
+  }
+
+  /**
+   * 単位IDを取得
+   */
+  getUnitId(): UnitId {
+    return this.unitId
+  }
+
+  /**
+   * 在庫閾値を取得
+   */
+  getThreshold(): Quantity | null {
+    return this.threshold
+  }
+
+  /**
+   * 保存場所を取得
+   */
+  getStorageLocation(): StorageLocation {
+    return this.storageLocation
+  }
+
+  /**
+   * 賞味期限情報を取得
+   */
+  getExpiryInfo(): ExpiryInfo {
+    return this.expiryInfo
   }
 
   /**
@@ -99,20 +173,6 @@ export class Ingredient {
   }
 
   /**
-   * 作成者を取得
-   */
-  getCreatedBy(): string | null {
-    return this.createdBy
-  }
-
-  /**
-   * 更新者を取得
-   */
-  getUpdatedBy(): string | null {
-    return this.updatedBy
-  }
-
-  /**
    * 削除済みかどうか
    */
   isDeleted(): boolean {
@@ -123,117 +183,142 @@ export class Ingredient {
    * 在庫があるかどうか
    */
   isInStock(): boolean {
-    return this.currentStock !== null
-  }
-
-  /**
-   * 在庫を設定
-   * @param stock 新しい在庫情報
-   * @param userId 更新者ID
-   */
-  setStock(stock: IngredientStock, userId?: string): void {
-    this.currentStock = stock
-    this.updateTimestamp(userId)
-  }
-
-  /**
-   * 在庫を削除
-   * @param userId 更新者ID
-   */
-  removeStock(userId?: string): void {
-    this.currentStock = null
-    this.updateTimestamp(userId)
+    return this.quantity.getValue() > 0
   }
 
   /**
    * 在庫を消費
-   * @param quantity 消費する数量
-   * @param userId 更新者ID
-   * @throws {DomainException} 在庫がない場合
-   * @throws {DomainException} 在庫が不足している場合
+   * @param consumeQuantity 消費する数量
+   * @throws {BusinessRuleException} 在庫が不足している場合
    */
-  consume(quantity: Quantity, userId?: string): void {
-    if (!this.currentStock) {
-      throw new BusinessRuleException('在庫がありません')
-    }
-
-    try {
-      this.currentStock.consume(quantity, userId)
-      this.updateTimestamp(userId)
-    } catch (error) {
+  consume(consumeQuantity: Quantity): void {
+    if (this.quantity.getValue() < consumeQuantity.getValue()) {
       throw new BusinessRuleException('在庫が不足しています')
     }
+
+    this.quantity = new Quantity(this.quantity.getValue() - consumeQuantity.getValue())
+    this.updateTimestamp()
+  }
+
+  /**
+   * 在庫を補充
+   * @param addQuantity 補充する数量
+   */
+  replenish(addQuantity: Quantity): void {
+    this.quantity = new Quantity(this.quantity.getValue() + addQuantity.getValue())
+    this.updateTimestamp()
+  }
+
+  /**
+   * 在庫を調整
+   * @param newQuantity 新しい数量
+   */
+  adjustQuantity(newQuantity: Quantity): void {
+    this.quantity = newQuantity
+    this.updateTimestamp()
   }
 
   /**
    * 名前を更新
    * @param newName 新しい名前
-   * @param userId 更新者ID
    */
-  updateName(newName: IngredientName, userId?: string): void {
+  updateName(newName: IngredientName): void {
     if (this.isDeleted()) {
       throw new BusinessRuleException('削除済みの食材は更新できません')
     }
     this.name = newName
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
   }
 
   /**
    * カテゴリーを更新
    * @param newCategoryId 新しいカテゴリーID
-   * @param userId 更新者ID
    */
-  updateCategory(newCategoryId: CategoryId, userId?: string): void {
+  updateCategory(newCategoryId: CategoryId): void {
     if (this.isDeleted()) {
       throw new BusinessRuleException('削除済みの食材は更新できません')
     }
     this.categoryId = newCategoryId
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
   }
 
   /**
    * メモを更新
    * @param newMemo 新しいメモ
-   * @param userId 更新者ID
    */
-  updateMemo(newMemo: Memo | null, userId?: string): void {
+  updateMemo(newMemo: Memo | null): void {
     if (this.isDeleted()) {
       throw new BusinessRuleException('削除済みの食材は更新できません')
     }
     this.memo = newMemo
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
+  }
+
+  /**
+   * 価格を更新
+   * @param newPrice 新しい価格
+   */
+  updatePrice(newPrice: Price | null): void {
+    if (this.isDeleted()) {
+      throw new BusinessRuleException('削除済みの食材は更新できません')
+    }
+    this.price = newPrice
+    this.updateTimestamp()
+  }
+
+  /**
+   * 保存場所を更新
+   * @param newStorageLocation 新しい保存場所
+   */
+  updateStorageLocation(newStorageLocation: StorageLocation): void {
+    if (this.isDeleted()) {
+      throw new BusinessRuleException('削除済みの食材は更新できません')
+    }
+    this.storageLocation = newStorageLocation
+    this.updateTimestamp()
+  }
+
+  /**
+   * 賞味期限情報を更新
+   * @param newExpiryInfo 新しい賞味期限情報
+   */
+  updateExpiryInfo(newExpiryInfo: ExpiryInfo): void {
+    if (this.isDeleted()) {
+      throw new BusinessRuleException('削除済みの食材は更新できません')
+    }
+    this.expiryInfo = newExpiryInfo
+    this.updateTimestamp()
   }
 
   /**
    * 期限切れかどうか
    */
   isExpired(): boolean {
-    if (!this.currentStock) {
-      return false
-    }
-    return this.currentStock.isExpired()
+    return this.expiryInfo.isExpired()
+  }
+
+  /**
+   * 賞味期限切れかどうか
+   */
+  isBestBeforeExpired(): boolean {
+    return this.expiryInfo.isBestBeforeExpired()
   }
 
   /**
    * 論理削除
-   * @param userId 削除するユーザーID
    */
-  delete(userId?: string): void {
+  delete(): void {
     if (this.isDeleted()) {
       throw new BusinessRuleException('すでに削除されています')
     }
     this.deletedAt = new Date()
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
   }
 
   /**
    * 更新日時を更新
-   * @param userId 更新者ID
    */
-  private updateTimestamp(userId?: string): void {
+  private updateTimestamp(): void {
     this.updatedAt = new Date()
-    if (userId) {
-      this.updatedBy = userId
-    }
   }
 }

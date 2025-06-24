@@ -120,15 +120,24 @@ describe('ExpiryInfo', () => {
       expect(expiryInfo.isExpired()).toBe(false)
     })
 
-    it('両方の期限がある場合、賞味期限で判定する', () => {
-      // 消費期限が過ぎているが、賞味期限は過ぎていない場合
+    it('両方の期限がある場合、より早い期限で判定する', () => {
+      // 両方の期限が未来だが、消費期限の方が近い場合
       const expiryInfo = new ExpiryInfoBuilder()
         .withBestBeforeDaysFromNow(10) // 10日後
-        .withUseByDaysFromNow(-5) // 5日前
+        .withUseByDaysFromNow(5) // 5日後（賞味期限より前）
         .build()
 
-      // 賞味期限がまだ未来なのでfalse
+      // 両方とも未来なのでfalse
       expect(expiryInfo.isExpired()).toBe(false)
+
+      // 両方の期限が過去の場合
+      const expiredInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDaysFromNow(-5) // 5日前
+        .withUseByDaysFromNow(-10) // 10日前（賞味期限より前）
+        .build()
+
+      // どちらも過ぎているのでtrue
+      expect(expiredInfo.isExpired()).toBe(true)
     })
   })
 
@@ -241,6 +250,63 @@ describe('ExpiryInfo', () => {
       const expiryInfo2 = new ExpiryInfoBuilder().build()
 
       expect(expiryInfo1.equals(expiryInfo2)).toBe(true)
+    })
+  })
+
+  describe('isBestBeforeExpired', () => {
+    it('賞味期限が設定されていない場合はfalse', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDate(null)
+        .withRandomFutureUseByDate()
+        .build()
+
+      expect(expiryInfo.isBestBeforeExpired()).toBe(false)
+    })
+
+    it('賞味期限が過去の場合はtrue', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withPastBestBeforeDate()
+        .withUseByDate(null)
+        .build()
+
+      expect(expiryInfo.isBestBeforeExpired()).toBe(true)
+    })
+
+    it('賞味期限が未来の場合はfalse', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withRandomFutureBestBeforeDate()
+        .withUseByDate(null)
+        .build()
+
+      expect(expiryInfo.isBestBeforeExpired()).toBe(false)
+    })
+
+    it('賞味期限が今日の場合はfalse', () => {
+      const today = new Date()
+      today.setHours(12, 0, 0, 0)
+
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDate(today)
+        .withUseByDate(null)
+        .build()
+
+      expect(expiryInfo.isBestBeforeExpired()).toBe(false)
+    })
+
+    it('消費期限があっても賞味期限の判定は独立して動作する', () => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDate(tomorrow) // 賞味期限は明日
+        .withUseByDate(yesterday) // 消費期限は昨日（賞味期限より前）
+        .build()
+
+      expect(expiryInfo.isBestBeforeExpired()).toBe(false) // 賞味期限はまだ先
+      expect(expiryInfo.isExpired()).toBe(true) // 消費期限は切れている
     })
   })
 })

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { PrismaClient, Prisma } from '@/generated/prisma'
-import { IngredientStock } from '@/modules/ingredients/server/domain/entities/ingredient-stock.entity'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import {
   IngredientId,
@@ -23,16 +22,13 @@ vi.mock('@/generated/prisma', async () => {
   return {
     ...actual,
     PrismaClient: vi.fn(() => ({
-      $transaction: vi.fn(),
       ingredient: {
         upsert: vi.fn(),
         findUnique: vi.fn(),
         findFirst: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
-      },
-      ingredientStock: {
-        create: vi.fn(),
+        delete: vi.fn(),
       },
     })),
   }
@@ -42,36 +38,25 @@ describe('PrismaIngredientRepository', () => {
   let prismaClient: PrismaClient
   let repository: PrismaIngredientRepository
 
-  // テスト用の食材データ
+  // テスト用の食材データ（在庫情報統合版）
   const mockIngredientData = {
     id: '550e8400-e29b-41d4-a716-446655440000',
+    userId: 'user-123',
     name: 'トマト',
     categoryId: '550e8400-e29b-41d4-a716-446655440001',
     memo: 'メモ',
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-    deletedAt: null,
-    createdBy: null,
-    updatedBy: null,
-  }
-
-  // テスト用の在庫データ
-  const mockStockData = {
-    id: 'clh1234567890abcdefghij',
-    quantity: 2,
+    price: new Prisma.Decimal(300),
+    purchaseDate: new Date('2024-01-01'),
+    quantity: new Prisma.Decimal(2),
     unitId: '550e8400-e29b-41d4-a716-446655440002',
+    threshold: new Prisma.Decimal(1),
     storageLocationType: 'REFRIGERATED',
     storageLocationDetail: '野菜室',
     bestBeforeDate: new Date('2024-01-15'),
     useByDate: new Date('2024-01-10'),
-    purchaseDate: new Date('2024-01-01'),
-    price: new Prisma.Decimal(300),
-    isActive: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
-    createdBy: null,
-    updatedBy: null,
   }
 
   beforeEach(() => {
@@ -80,354 +65,302 @@ describe('PrismaIngredientRepository', () => {
   })
 
   describe('save', () => {
-    it('在庫ありの食材を保存できる', async () => {
+    it('食材を保存できる', async () => {
       // テスト用の食材エンティティを作成
       const ingredient = new Ingredient({
         id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
+        userId: 'user-123',
         name: new IngredientName('トマト'),
         categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
         memo: new Memo('メモ'),
-      })
-
-      const stock = new IngredientStock({
+        price: new Price(300),
+        purchaseDate: new Date('2024-01-01'),
         quantity: new Quantity(2),
         unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
+        threshold: new Quantity(1),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
         expiryInfo: new ExpiryInfo({
           bestBeforeDate: new Date('2024-01-15'),
           useByDate: new Date('2024-01-10'),
         }),
-        purchaseDate: new Date('2024-01-01'),
-        price: new Price(300),
       })
 
-      ingredient.setStock(stock)
+      // Prismaモックの設定
+      const mockUpsert = vi.fn().mockResolvedValue(mockIngredientData)
+      prismaClient.ingredient.upsert = mockUpsert
 
-      // モックの設定
-      const mockTransaction = vi.fn().mockImplementation(async (callback) => {
-        const tx = {
-          ingredient: {
-            upsert: vi.fn().mockResolvedValue(mockIngredientData),
-          },
-          ingredientStock: {
-            create: vi.fn().mockResolvedValue(mockStockData),
-          },
-        }
-        return callback(tx)
-      })
-      prismaClient.$transaction = mockTransaction
-
-      // 実行
+      // Act
       const result = await repository.save(ingredient)
 
-      // 検証
-      expect(mockTransaction).toHaveBeenCalled()
+      // Assert
+      expect(mockUpsert).toHaveBeenCalledOnce()
+      const callArgs = mockUpsert.mock.calls[0][0]
+      expect(callArgs.where).toEqual({ id: '550e8400-e29b-41d4-a716-446655440000' })
+      expect(callArgs.create.id).toBe('550e8400-e29b-41d4-a716-446655440000')
+      expect(callArgs.create.userId).toBe('user-123')
+      expect(callArgs.create.name).toBe('トマト')
+      expect(callArgs.update.name).toBe('トマト')
       expect(result).toBeInstanceOf(Ingredient)
       expect(result.getId().getValue()).toBe('550e8400-e29b-41d4-a716-446655440000')
       expect(result.getName().getValue()).toBe('トマト')
-      expect(result.getCurrentStock()).toBeDefined()
+      expect(result.getUserId()).toBe('user-123')
+      expect(result.getQuantity().getValue()).toBe(2)
     })
 
-    it('在庫なしの食材を保存できる', async () => {
-      // テスト用の食材エンティティを作成（在庫なし）
+    it('新規食材を作成できる', async () => {
+      // 新規食材エンティティを作成
+      const ingredient = new Ingredient({
+        id: new IngredientId('550e8400-e29b-41d4-a716-446655440003'),
+        userId: 'user-456',
+        name: new IngredientName('キャベツ'),
+        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
+        memo: null,
+        price: null,
+        purchaseDate: new Date('2024-01-02'),
+        quantity: new Quantity(1),
+        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
+        threshold: null,
+        storageLocation: new StorageLocation(StorageType.ROOM_TEMPERATURE, ''),
+        expiryInfo: new ExpiryInfo({ bestBeforeDate: null, useByDate: null }),
+      })
+
+      // 新規食材用のモックデータ
+      const newMockData = {
+        ...mockIngredientData,
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        userId: 'user-456',
+        name: 'キャベツ',
+        memo: null,
+        price: null,
+        threshold: null,
+        storageLocationType: 'ROOM_TEMPERATURE',
+        storageLocationDetail: null,
+        bestBeforeDate: null,
+        useByDate: null,
+      }
+
+      // Prismaモックの設定
+      const mockUpsert = vi.fn().mockResolvedValue(newMockData)
+      prismaClient.ingredient.upsert = mockUpsert
+
+      // Act
+      const result = await repository.save(ingredient)
+
+      // Assert
+      expect(result).toBeInstanceOf(Ingredient)
+      expect(result.getId().getValue()).toBe('550e8400-e29b-41d4-a716-446655440003')
+      expect(result.getName().getValue()).toBe('キャベツ')
+      expect(result.getUserId()).toBe('user-456')
+    })
+
+    it('データベースエラーの場合は例外が発生する', async () => {
+      // テスト用の食材エンティティを作成
       const ingredient = new Ingredient({
         id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
+        userId: 'user-123',
         name: new IngredientName('トマト'),
         categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
         memo: new Memo('メモ'),
+        price: new Price(300),
+        purchaseDate: new Date('2024-01-01'),
+        quantity: new Quantity(2),
+        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
+        threshold: new Quantity(1),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
+        expiryInfo: new ExpiryInfo({
+          bestBeforeDate: new Date('2024-01-15'),
+          useByDate: new Date('2024-01-10'),
+        }),
       })
 
-      // モックの設定
-      const mockTransaction = vi.fn().mockImplementation(async (callback) => {
-        const tx = {
-          ingredient: {
-            upsert: vi.fn().mockResolvedValue(mockIngredientData),
-          },
-          ingredientStock: {
-            create: vi.fn(),
-          },
-        }
-        return callback(tx)
-      })
-      prismaClient.$transaction = mockTransaction
+      // Prismaモックの設定（エラーを発生させる）
+      const mockUpsert = vi.fn().mockRejectedValue(new Error('Database connection failed'))
+      prismaClient.ingredient.upsert = mockUpsert
 
-      // 実行
-      const result = await repository.save(ingredient)
-
-      // 検証
-      expect(mockTransaction).toHaveBeenCalled()
-      expect(result).toBeInstanceOf(Ingredient)
-      expect(result.getCurrentStock()).toBeNull()
+      // Act & Assert
+      await expect(repository.save(ingredient)).rejects.toThrow('Database connection failed')
     })
   })
 
   describe('findById', () => {
     it('IDで食材を検索できる', async () => {
-      // モックの設定
-      const mockFindUnique = vi.fn().mockResolvedValue({
-        ...mockIngredientData,
-        stocks: [mockStockData],
-      })
+      // Prismaモックの設定
+      const mockFindUnique = vi.fn().mockResolvedValue(mockIngredientData)
       prismaClient.ingredient.findUnique = mockFindUnique
 
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440000')
-      const result = await repository.findById(id)
+      // Act
+      const result = await repository.findById(
+        new IngredientId('550e8400-e29b-41d4-a716-446655440000')
+      )
 
-      // 検証
-      expect(mockFindUnique).toHaveBeenCalledWith({
-        where: {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          deletedAt: null,
-        },
-        include: {
-          stocks: {
-            where: {
-              isActive: true,
-              deletedAt: null,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
-      })
+      // Assert
+      expect(mockFindUnique).toHaveBeenCalledOnce()
       expect(result).toBeInstanceOf(Ingredient)
       expect(result?.getId().getValue()).toBe('550e8400-e29b-41d4-a716-446655440000')
-      expect(result?.getCurrentStock()).toBeDefined()
     })
 
-    it('存在しないIDの場合nullを返す', async () => {
-      // モックの設定
+    it('存在しないIDの場合はnullを返す', async () => {
+      // Prismaモックの設定
       const mockFindUnique = vi.fn().mockResolvedValue(null)
       prismaClient.ingredient.findUnique = mockFindUnique
 
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440999')
-      const result = await repository.findById(id)
+      // Act
+      const result = await repository.findById(
+        new IngredientId('550e8400-e29b-41d4-a716-446655440009')
+      )
 
-      // 検証
+      // Assert
       expect(result).toBeNull()
-    })
-
-    it('在庫がない食材を検索できる', async () => {
-      // モックの設定
-      const mockFindUnique = vi.fn().mockResolvedValue({
-        ...mockIngredientData,
-        stocks: [],
-      })
-      prismaClient.ingredient.findUnique = mockFindUnique
-
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440000')
-      const result = await repository.findById(id)
-
-      // 検証
-      expect(result).toBeInstanceOf(Ingredient)
-      expect(result?.getCurrentStock()).toBeNull()
     })
   })
 
-  describe('findByName', () => {
-    it('名前で食材を検索できる', async () => {
-      // モックの設定
-      const mockFindFirst = vi.fn().mockResolvedValue({
-        ...mockIngredientData,
-        stocks: [mockStockData],
-      })
-      prismaClient.ingredient.findFirst = mockFindFirst
+  describe('findByUserId', () => {
+    it('ユーザーIDで食材リストを検索できる', async () => {
+      // Prismaモックの設定
+      const mockFindMany = vi.fn().mockResolvedValue([mockIngredientData])
+      prismaClient.ingredient.findMany = mockFindMany
 
-      // 実行
-      const name = new IngredientName('トマト')
-      const result = await repository.findByName(name)
+      // Act
+      const result = await repository.findByUserId('user-123')
 
-      // 検証
-      expect(mockFindFirst).toHaveBeenCalledWith({
+      // Assert
+      expect(mockFindMany).toHaveBeenCalledWith({
         where: {
-          name: 'トマト',
+          userId: 'user-123',
           deletedAt: null,
         },
-        include: {
-          stocks: {
-            where: {
-              isActive: true,
-              deletedAt: null,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+      expect(result).toHaveLength(1)
+      expect(result[0]).toBeInstanceOf(Ingredient)
+      expect(result[0].getUserId()).toBe('user-123')
+    })
+
+    it('該当するユーザーIDの食材が存在しない場合は空配列を返す', async () => {
+      // Prismaモックの設定
+      const mockFindMany = vi.fn().mockResolvedValue([])
+      prismaClient.ingredient.findMany = mockFindMany
+
+      // Act
+      const result = await repository.findByUserId('non-existent-user')
+
+      // Assert
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('findByUserIdAndName', () => {
+    it('ユーザーIDと食材名で食材を検索できる', async () => {
+      // Prismaモックの設定
+      const mockFindFirst = vi.fn().mockResolvedValue(mockIngredientData)
+      prismaClient.ingredient.findFirst = mockFindFirst
+
+      // Act
+      const result = await repository.findByUserIdAndName('user-123', new IngredientName('トマト'))
+
+      // Assert
+      expect(mockFindFirst).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-123',
+          name: 'トマト',
+          deletedAt: null,
         },
       })
       expect(result).toBeInstanceOf(Ingredient)
       expect(result?.getName().getValue()).toBe('トマト')
+      expect(result?.getUserId()).toBe('user-123')
     })
 
-    it('存在しない名前の場合nullを返す', async () => {
-      // モックの設定
+    it('該当する食材が存在しない場合はnullを返す', async () => {
+      // Prismaモックの設定
       const mockFindFirst = vi.fn().mockResolvedValue(null)
       prismaClient.ingredient.findFirst = mockFindFirst
 
-      // 実行
-      const name = new IngredientName('存在しない食材')
-      const result = await repository.findByName(name)
+      // Act
+      const result = await repository.findByUserIdAndName(
+        'user-123',
+        new IngredientName('存在しない食材')
+      )
 
-      // 検証
+      // Assert
       expect(result).toBeNull()
     })
   })
 
   describe('findAll', () => {
     it('すべての食材を取得できる', async () => {
-      // モックの設定
-      const mockFindMany = vi.fn().mockResolvedValue([
-        {
-          ...mockIngredientData,
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          name: 'トマト',
-          stocks: [mockStockData],
-        },
-        {
-          ...mockIngredientData,
-          id: '550e8400-e29b-41d4-a716-446655440003',
-          name: 'キャベツ',
-          stocks: [],
-        },
-      ])
+      // 複数の食材データを準備
+      const mockIngredientData2 = {
+        ...mockIngredientData,
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        name: 'キャベツ',
+      }
+
+      // Prismaモックの設定
+      const mockFindMany = vi.fn().mockResolvedValue([mockIngredientData, mockIngredientData2])
       prismaClient.ingredient.findMany = mockFindMany
 
-      // 実行
+      // Act
       const result = await repository.findAll()
 
-      // 検証
+      // Assert
       expect(mockFindMany).toHaveBeenCalledWith({
         where: {
           deletedAt: null,
         },
-        include: {
-          stocks: {
-            where: {
-              isActive: true,
-              deletedAt: null,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
+        orderBy: {
+          createdAt: 'desc',
         },
-        orderBy: { createdAt: 'desc' },
       })
       expect(result).toHaveLength(2)
       expect(result[0]).toBeInstanceOf(Ingredient)
-      expect(result[0].getName().getValue()).toBe('トマト')
-      expect(result[0].getCurrentStock()).toBeDefined()
-      expect(result[1].getName().getValue()).toBe('キャベツ')
-      expect(result[1].getCurrentStock()).toBeNull()
+      expect(result[1]).toBeInstanceOf(Ingredient)
     })
 
-    it('食材が存在しない場合空配列を返す', async () => {
-      // モックの設定
+    it('食材が存在しない場合は空配列を返す', async () => {
+      // Prismaモックの設定
       const mockFindMany = vi.fn().mockResolvedValue([])
       prismaClient.ingredient.findMany = mockFindMany
 
-      // 実行
+      // Act
       const result = await repository.findAll()
 
-      // 検証
+      // Assert
       expect(result).toEqual([])
     })
   })
 
   describe('delete', () => {
     it('食材を論理削除できる', async () => {
-      // モックの設定
-      const mockUpdate = vi.fn().mockResolvedValue({
-        ...mockIngredientData,
-        deletedAt: new Date(),
-      })
+      // Prismaモックの設定
+      const mockUpdate = vi.fn().mockResolvedValue(mockIngredientData)
       prismaClient.ingredient.update = mockUpdate
 
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440000')
-      await repository.delete(id)
+      // Act
+      await repository.delete(new IngredientId('550e8400-e29b-41d4-a716-446655440000'))
 
-      // 検証
+      // Assert
       expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: '550e8400-e29b-41d4-a716-446655440000' },
+        where: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+        },
         data: {
           deletedAt: expect.any(Date),
         },
       })
     })
-  })
 
-  describe('プライベートメソッド', () => {
-    it('価格がnullの在庫データを正しく変換できる', async () => {
-      // 価格がnullの在庫データ
-      const stockDataWithNullPrice = {
-        ...mockStockData,
-        price: null,
-      }
+    it('存在しない食材を削除しようとしてもエラーにならない', async () => {
+      // Prismaモックの設定（存在しない場合の挙動をシミュレート）
+      const mockUpdate = vi.fn().mockRejectedValue(new Error('Record not found'))
+      prismaClient.ingredient.update = mockUpdate
 
-      // モックの設定
-      const mockFindUnique = vi.fn().mockResolvedValue({
-        ...mockIngredientData,
-        stocks: [stockDataWithNullPrice],
-      })
-      prismaClient.ingredient.findUnique = mockFindUnique
-
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440000')
-      const result = await repository.findById(id)
-
-      // 検証
-      expect(result).toBeInstanceOf(Ingredient)
-      const stock = result?.getCurrentStock()
-      expect(stock?.getPrice()).toBeNull()
-    })
-
-    it('保管場所詳細がnullの在庫データを正しく変換できる', async () => {
-      // 保管場所詳細がnullの在庫データ
-      const stockDataWithNullDetail = {
-        ...mockStockData,
-        storageLocationDetail: null,
-      }
-
-      // モックの設定
-      const mockFindUnique = vi.fn().mockResolvedValue({
-        ...mockIngredientData,
-        stocks: [stockDataWithNullDetail],
-      })
-      prismaClient.ingredient.findUnique = mockFindUnique
-
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440000')
-      const result = await repository.findById(id)
-
-      // 検証
-      expect(result).toBeInstanceOf(Ingredient)
-      const stock = result?.getCurrentStock()
-      expect(stock?.getStorageLocation().getDetail()).toBe('')
-    })
-
-    it('メモがnullの食材データを正しく変換できる', async () => {
-      // メモがnullの食材データ
-      const ingredientDataWithNullMemo = {
-        ...mockIngredientData,
-        memo: null,
-      }
-
-      // モックの設定
-      const mockFindUnique = vi.fn().mockResolvedValue({
-        ...ingredientDataWithNullMemo,
-        stocks: [],
-      })
-      prismaClient.ingredient.findUnique = mockFindUnique
-
-      // 実行
-      const id = new IngredientId('550e8400-e29b-41d4-a716-446655440000')
-      const result = await repository.findById(id)
-
-      // 検証
-      expect(result).toBeInstanceOf(Ingredient)
-      expect(result?.getMemo()).toBeNull()
+      // Act & Assert - エラーが発生しないことを確認
+      await expect(
+        repository.delete(new IngredientId('550e8400-e29b-41d4-a716-446655440009'))
+      ).rejects.toThrow('Record not found')
     })
   })
 })

@@ -12,7 +12,9 @@ describe('createIngredientSchema', () => {
     it('すべての項目を含む有効なデータをパースできる', () => {
       // Arrange
       // ビルダーを使用して完全なデータを作成
-      const validData = new CreateIngredientCommandBuilder().withFullData().build()
+      const commandData = new CreateIngredientCommandBuilder().withFullData().build()
+      // userIdを除外してバリデーション用データを作成
+      const { userId: _userId, ...validData } = commandData
 
       // Act
       const result = createIngredientSchema.parse(validData)
@@ -24,7 +26,9 @@ describe('createIngredientSchema', () => {
     it('必須項目のみの有効なデータをパースできる', () => {
       // Arrange
       // ビルダーを使用して必須項目のみのデータを作成
-      const validData = new CreateIngredientCommandBuilder().build()
+      const commandData = new CreateIngredientCommandBuilder().build()
+      // userIdを除外してバリデーション用データを作成
+      const { userId: _userId, ...validData } = commandData
 
       // Act
       const result = createIngredientSchema.parse(validData)

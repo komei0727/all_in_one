@@ -37,6 +37,132 @@ enum OperationType {
   ADJUST    // 調整
 }
 
+// User status enum
+enum UserStatus {
+  ACTIVE     // アクティブ
+  INACTIVE   // 非アクティブ
+  SUSPENDED  // 停止中
+}
+
+// ==================== USER AUTHENTICATION TABLES ====================
+
+// User model - represents authenticated users
+model User {
+  id                   String                     @id @default(cuid())
+  email                String                     @unique
+  emailVerified        Boolean                    @default(false)
+  displayName          String
+  firstName            String?
+  lastName             String?
+  avatarUrl            String?
+  preferredLanguage    String                     @default("ja")
+  timezone             String                     @default("Asia/Tokyo")
+  status               UserStatus                 @default(ACTIVE)
+  lastLoginAt          DateTime?
+  failedLoginAttempts  Int                        @default(0)
+  lockedUntil          DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  deletedAt            DateTime?
+
+  // Relations
+  credentials          UserCredentials?
+  sessions             AuthSession[]
+  passwordResetTokens  PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  ingredients          Ingredient[]
+  stockHistories       IngredientStockHistory[]
+  domainEvents         DomainEvent[]
+
+  @@index([email])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([email, deletedAt])
+  @@map("users")
+}
+
+// User credentials model - stores password hashes
+model UserCredentials {
+  id                    String       @id @default(cuid())
+  userId                String       @unique
+  passwordHash          String
+  passwordChangedAt     DateTime     @default(now())
+  requirePasswordChange Boolean      @default(false)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Relations
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("user_credentials")
+}
+
+// Auth session model - manages active sessions
+model AuthSession {
+  id             String       @id @default(cuid())
+  userId         String
+  sessionToken   String       @unique
+  ipAddress      String
+  userAgent      String?
+  deviceInfo     Json?
+  expiresAt      DateTime
+  lastActivity   DateTime     @default(now())
+  revokedAt      DateTime?
+  revokedReason  String?
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([sessionToken])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("auth_sessions")
+}
+
+// Password reset token model
+model PasswordResetToken {
+  id             String       @id @default(cuid())
+  userId         String
+  token          String       @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  ipAddress      String
+  userAgent      String?
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@map("password_reset_tokens")
+}
+
+// Email verification token model
+model EmailVerificationToken {
+  id             String       @id @default(cuid())
+  userId         String
+  email          String
+  token          String       @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@map("email_verification_tokens")
+}
+
 // ==================== MASTER TABLES ====================
 
 // Category model - represents ingredient categories
@@ -70,7 +196,7 @@ model Unit {
   updatedAt    DateTime     @updatedAt
   
   // Relations
-  stocks       IngredientStock[]
+  ingredients  Ingredient[]
 
   @@index([type])
   @@index([displayOrder])
@@ -82,59 +208,40 @@ model Unit {
 
 // Ingredient model - main model for food ingredients
 model Ingredient {
-  id               String           @id @default(cuid())
-  name             String
-  categoryId       String
-  memo             String?          // メモ
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  deletedAt        DateTime?        // 論理削除
-  createdBy        String?          // 作成者
-  updatedBy        String?          // 更新者
-
-  // Relations
-  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  stocks           IngredientStock[]
-  stockHistories   IngredientStockHistory[]
-
-  @@unique([name, categoryId, deletedAt])
-  @@index([categoryId])
-  @@index([deletedAt])
-  @@index([name, deletedAt])
-  @@map("ingredients")
-}
-
-// Ingredient stock model - tracks current stock levels
-model IngredientStock {
   id                    String           @id @default(cuid())
-  ingredientId          String
-  quantity              Float            // 現在の在庫数量
-  unitId                String
+  userId                String           // 所有者のユーザーID
+  name                  String
+  categoryId            String
+  memo                  String?          // メモ
+  price                 Decimal?         @db.Decimal(10, 2)  // 価格
+  purchaseDate          DateTime         // 購入日
+  quantity              Decimal          @db.Decimal(10, 2)  // 在庫数量
+  unitId                String           // 単位ID
+  threshold             Decimal?         @db.Decimal(10, 2)  // 在庫閾値
   storageLocationType   StorageLocation  // 保管場所タイプ
   storageLocationDetail String?          // 保管場所の詳細
   bestBeforeDate        DateTime?        // 賞味期限
   useByDate             DateTime?        // 消費期限
-  purchaseDate          DateTime         // 購入日
-  price                 Decimal?         @db.Decimal(10, 2)  // 価格（小数点対応）
-  isActive              Boolean          @default(true)  // アクティブな在庫かどうか
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   deletedAt             DateTime?        // 論理削除
-  createdBy             String?          // 作成者
-  updatedBy             String?          // 更新者
 
   // Relations
-  ingredient            Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  unit                  Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  unit             Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  stockHistories   IngredientStockHistory[]
 
-  @@index([ingredientId, isActive])
-  @@index([purchaseDate])
-  @@index([bestBeforeDate])
-  @@index([useByDate])
+  @@unique([userId, name, bestBeforeDate, useByDate, storageLocationType, storageLocationDetail, deletedAt])
+  @@index([userId])
+  @@index([categoryId])
   @@index([deletedAt])
-  @@index([bestBeforeDate, useByDate, isActive]) // 期限チェック用複合インデックス
-  @@map("ingredient_stocks")
+  @@index([userId, name, deletedAt])
+  @@index([bestBeforeDate, useByDate])
+  @@index([storageLocationType])
+  @@map("ingredients")
 }
+
 
 // ==================== HISTORY TABLES ====================
 
@@ -152,6 +259,7 @@ model IngredientStockHistory {
 
   // Relations
   ingredient       Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  operatedByUser   User             @relation(fields: [operatedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([ingredientId, operatedAt])
   @@index([operationType, operatedAt])
@@ -173,8 +281,12 @@ model DomainEvent {
   correlationId    String?          // 相関ID
   createdAt        DateTime         @default(now())
 
+  // Relations
+  user             User             @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
   @@index([aggregateId, aggregateType, occurredAt])
   @@index([eventType, occurredAt])
   @@index([correlationId])
+  @@index([userId])
   @@map("domain_events")
 }

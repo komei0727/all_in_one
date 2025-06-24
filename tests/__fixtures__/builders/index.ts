@@ -24,10 +24,6 @@ export {
 
 // エンティティビルダー
 export { IngredientBuilder, createTestIngredient } from './entities/ingredient.builder'
-export {
-  IngredientStockBuilder,
-  createTestIngredientStock,
-} from './entities/ingredient-stock.builder'
 export { CategoryBuilder, createTestCategory } from './entities/category.builder'
 export { UnitBuilder, createTestUnit } from './entities/unit.builder'
 

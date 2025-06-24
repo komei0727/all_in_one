@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
-import { PrismaClient, StorageLocation, UnitType, Prisma } from '@/generated/prisma'
+import { createHash } from 'crypto'
+
+import { PrismaClient, StorageLocation, UnitType, UserStatus, Prisma } from '@/generated/prisma'
 
 const prisma = new PrismaClient()
 
@@ -8,11 +10,15 @@ async function main() {
 
   // Delete existing data (順序に注意)
   await prisma.ingredientStockHistory.deleteMany()
-  await prisma.ingredientStock.deleteMany()
   await prisma.ingredient.deleteMany()
   await prisma.unit.deleteMany()
   await prisma.category.deleteMany()
   await prisma.domainEvent.deleteMany()
+  await prisma.emailVerificationToken.deleteMany()
+  await prisma.passwordResetToken.deleteMany()
+  await prisma.authSession.deleteMany()
+  await prisma.userCredentials.deleteMany()
+  await prisma.user.deleteMany()
 
   // Create categories
   const categories = await Promise.all([
@@ -110,6 +116,29 @@ async function main() {
 
   console.log(`Created ${units.length} units`)
 
+  // Create test user
+  const passwordHash = createHash('sha256').update('password123').digest('hex')
+  const testUser = await prisma.user.create({
+    data: {
+      email: 'test@example.com',
+      emailVerified: true,
+      displayName: 'テストユーザー',
+      firstName: '太郎',
+      lastName: '山田',
+      status: UserStatus.ACTIVE,
+      credentials: {
+        create: {
+          passwordHash,
+        },
+      },
+    },
+    include: {
+      credentials: true,
+    },
+  })
+
+  console.log(`Created test user: ${testUser.email}`)
+
   // Create sample ingredients
   const vegetableCategory = categories.find((c) => c.name === '野菜')!
   const meatFishCategory = categories.find((c) => c.name === '肉・魚')!
@@ -133,85 +162,70 @@ async function main() {
   const ingredients = await Promise.all([
     prisma.ingredient.create({
       data: {
+        userId: testUser.id,
         name: 'トマト',
         categoryId: vegetableCategory.id,
         memo: '有機栽培',
-        stocks: {
-          create: {
-            quantity: 3,
-            purchaseDate: now,
-            price: new Prisma.Decimal(300),
-            unitId: pieceUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: nextWeek,
-          },
-        },
+        quantity: new Prisma.Decimal(3),
+        purchaseDate: now,
+        price: new Prisma.Decimal(300),
+        unitId: pieceUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: nextWeek,
       },
     }),
     prisma.ingredient.create({
       data: {
+        userId: testUser.id,
         name: '鶏もも肉',
         categoryId: meatFishCategory.id,
-        stocks: {
-          create: {
-            quantity: 500,
-            purchaseDate: now,
-            price: new Prisma.Decimal(450),
-            unitId: gramUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: tomorrow,
-            bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-          },
-        },
+        quantity: new Prisma.Decimal(500),
+        purchaseDate: now,
+        price: new Prisma.Decimal(450),
+        unitId: gramUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: tomorrow,
+        bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.ingredient.create({
       data: {
+        userId: testUser.id,
         name: '牛乳',
         categoryId: dairyCategory.id,
-        stocks: {
-          create: {
-            quantity: 1,
-            purchaseDate: now,
-            price: new Prisma.Decimal(250),
-            unitId: literUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-          },
-        },
+        quantity: new Prisma.Decimal(1),
+        purchaseDate: now,
+        price: new Prisma.Decimal(250),
+        unitId: literUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.ingredient.create({
       data: {
+        userId: testUser.id,
         name: '卵',
         categoryId: dairyCategory.id,
         memo: 'Lサイズ',
-        stocks: {
-          create: {
-            quantity: 10,
-            purchaseDate: now,
-            price: new Prisma.Decimal(280),
-            unitId: packUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-          },
-        },
+        quantity: new Prisma.Decimal(10),
+        purchaseDate: now,
+        price: new Prisma.Decimal(280),
+        unitId: packUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.ingredient.create({
       data: {
+        userId: testUser.id,
         name: '醤油',
         categoryId: seasoningCategory.id,
-        stocks: {
-          create: {
-            quantity: 1,
-            purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-            price: new Prisma.Decimal(350),
-            unitId: bottleUnit.id,
-            storageLocationType: StorageLocation.ROOM_TEMPERATURE,
-            useByDate: nextMonth,
-          },
-        },
+        quantity: new Prisma.Decimal(1),
+        purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        price: new Prisma.Decimal(350),
+        unitId: bottleUnit.id,
+        storageLocationType: StorageLocation.ROOM_TEMPERATURE,
+        useByDate: nextMonth,
       },
     }),
   ])

@@ -98,11 +98,10 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       // データベースに保存されていることを確認
       const dbIngredient = await prisma.ingredient.findUnique({
         where: { id: data.ingredient.id },
-        include: { stocks: true },
       })
       expect(dbIngredient).toBeDefined()
       expect(dbIngredient?.name).toBe(command.name)
-      expect(dbIngredient?.stocks).toHaveLength(1)
+      expect(dbIngredient?.quantity).toBe(command.quantity.amount)
     })
 
     it('最小限の必須フィールドで食材を作成できる', async () => {

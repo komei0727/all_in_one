@@ -21,11 +21,19 @@ export interface IngredientRepository {
   findById(id: IngredientId): Promise<Ingredient | null>
 
   /**
-   * 名前で食材を検索
+   * ユーザーIDで食材を検索
+   * @param userId ユーザーID
+   * @returns 食材のリスト
+   */
+  findByUserId(userId: string): Promise<Ingredient[]>
+
+  /**
+   * 名前で食材を検索（ユーザー別）
+   * @param userId ユーザーID
    * @param name 食材名
    * @returns 食材（見つからない場合はnull）
    */
-  findByName(name: IngredientName): Promise<Ingredient | null>
+  findByUserIdAndName(userId: string, name: IngredientName): Promise<Ingredient | null>
 
   /**
    * すべての食材を取得

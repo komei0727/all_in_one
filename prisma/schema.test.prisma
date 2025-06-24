@@ -47,7 +47,7 @@ model Unit {
   updatedAt    DateTime     @updatedAt
   
   // Relations
-  stocks       IngredientStock[]
+  ingredients  Ingredient[]
 
   @@index([type])
   @@index([displayOrder])
@@ -59,59 +59,39 @@ model Unit {
 
 // Ingredient model - main model for food ingredients
 model Ingredient {
-  id               String           @id @default(cuid())
-  name             String
-  categoryId       String
-  memo             String?          // メモ
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  deletedAt        DateTime?        // 論理削除
-  createdBy        String?          // 作成者
-  updatedBy        String?          // 更新者
-
-  // Relations
-  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  stocks           IngredientStock[]
-  stockHistories   IngredientStockHistory[]
-
-  @@unique([name, categoryId, deletedAt])
-  @@index([categoryId])
-  @@index([deletedAt])
-  @@index([name, deletedAt])
-  @@map("ingredients")
-}
-
-// Ingredient stock model - tracks current stock levels
-model IngredientStock {
   id                    String           @id @default(cuid())
-  ingredientId          String
-  quantity              Float            // 現在の在庫数量
-  unitId                String
-  storageLocationType   String           // SQLite: Use String instead of enum
+  userId                String           // 所有者のユーザーID
+  name                  String
+  categoryId            String
+  memo                  String?          // メモ
+  price                 Decimal?         // 価格
+  purchaseDate          DateTime         // 購入日
+  quantity              Float            // 在庫数量
+  unitId                String           // 単位ID
+  threshold             Float?           // 在庫閾値
+  storageLocationType   String           // 保管場所タイプ (SQLite: String)
   storageLocationDetail String?          // 保管場所の詳細
   bestBeforeDate        DateTime?        // 賞味期限
   useByDate             DateTime?        // 消費期限
-  purchaseDate          DateTime         // 購入日
-  price                 Decimal?         // SQLite supports Decimal
-  isActive              Boolean          @default(true)  // アクティブな在庫かどうか
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   deletedAt             DateTime?        // 論理削除
-  createdBy             String?          // 作成者
-  updatedBy             String?          // 更新者
 
   // Relations
-  ingredient            Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  unit                  Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  unit             Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  stockHistories   IngredientStockHistory[]
 
-  @@index([ingredientId, isActive])
-  @@index([purchaseDate])
-  @@index([bestBeforeDate])
-  @@index([useByDate])
+  @@unique([userId, name, bestBeforeDate, useByDate, storageLocationType, storageLocationDetail, deletedAt])
+  @@index([userId])
+  @@index([categoryId])
   @@index([deletedAt])
-  @@index([bestBeforeDate, useByDate, isActive]) // 期限チェック用複合インデックス
-  @@map("ingredient_stocks")
+  @@index([userId, name, deletedAt])
+  @@index([bestBeforeDate, useByDate])
+  @@index([storageLocationType])
+  @@map("ingredients")
 }
+
 
 // ==================== HISTORY TABLES ====================
 

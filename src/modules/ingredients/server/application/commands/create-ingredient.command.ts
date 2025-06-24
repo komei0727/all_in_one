@@ -5,6 +5,7 @@ import { StorageType } from '../../domain/value-objects'
  * 食材の新規登録に必要な情報を保持する
  */
 export class CreateIngredientCommand {
+  readonly userId: string // 食材の所有者
   readonly name: string
   readonly categoryId: string
   readonly quantity: {
@@ -24,6 +25,7 @@ export class CreateIngredientCommand {
   readonly memo?: string
 
   constructor(params: {
+    userId: string
     name: string
     categoryId: string
     quantity: {
@@ -42,6 +44,7 @@ export class CreateIngredientCommand {
     price?: number
     memo?: string
   }) {
+    this.userId = params.userId
     this.name = params.name
     this.categoryId = params.categoryId
     this.quantity = params.quantity

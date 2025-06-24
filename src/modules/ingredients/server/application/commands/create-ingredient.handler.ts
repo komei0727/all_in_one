@@ -1,5 +1,4 @@
 import { CreateIngredientCommand } from './create-ingredient.command'
-import { IngredientStock } from '../../domain/entities/ingredient-stock.entity'
 import { Ingredient } from '../../domain/entities/ingredient.entity'
 import {
   CategoryNotFoundException,
@@ -60,29 +59,24 @@ export class CreateIngredientHandler {
       useByDate: command.expiryInfo?.useByDate ? new Date(command.expiryInfo.useByDate) : null,
     })
 
-    // 在庫情報の作成
-    const stock = new IngredientStock({
+    // 統合されたIngredientエンティティの作成（全プロパティを含む）
+    const ingredient = new Ingredient({
+      id: IngredientId.generate(),
+      userId: command.userId, // ユーザーIDを設定
+      name: new IngredientName(command.name),
+      categoryId,
+      memo: command.memo ? new Memo(command.memo) : null,
+      price: command.price !== undefined ? new Price(command.price) : null,
+      purchaseDate: new Date(command.purchaseDate),
       quantity: new Quantity(command.quantity.amount),
       unitId,
+      threshold: null, // デフォルトは閾値なし
       storageLocation: new StorageLocation(
         command.storageLocation.type,
         command.storageLocation.detail
       ),
       expiryInfo,
-      purchaseDate: new Date(command.purchaseDate),
-      price: command.price !== undefined ? new Price(command.price) : null,
     })
-
-    // 食材エンティティの作成
-    const ingredient = new Ingredient({
-      id: IngredientId.generate(),
-      name: new IngredientName(command.name),
-      categoryId,
-      memo: command.memo ? new Memo(command.memo) : null,
-    })
-
-    // 在庫を設定
-    ingredient.setStock(stock)
 
     // 永続化
     const savedIngredient = await this.ingredientRepository.save(ingredient)

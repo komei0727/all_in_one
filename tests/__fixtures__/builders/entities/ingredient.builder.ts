@@ -1,23 +1,35 @@
-import { IngredientStock } from '@/modules/ingredients/server/domain/entities/ingredient-stock.entity'
+import { createId } from '@paralleldrive/cuid2'
+
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import {
   IngredientId,
   IngredientName,
   CategoryId,
   Memo,
+  Price,
+  Quantity,
+  UnitId,
+  StorageLocation,
   StorageType,
+  ExpiryInfo,
 } from '@/modules/ingredients/server/domain/value-objects'
 
 import { BaseBuilder } from '../base.builder'
 import { testDataHelpers, faker } from '../faker.config'
-import { IngredientStockBuilder } from './ingredient-stock.builder'
 
 interface IngredientProps {
   id: IngredientId
+  userId: string
   name: IngredientName
   categoryId: CategoryId
   memo: Memo | null
-  currentStock: IngredientStock | null
+  price: Price | null
+  purchaseDate: Date
+  quantity: Quantity
+  unitId: UnitId
+  threshold: Quantity | null
+  storageLocation: StorageLocation
+  expiryInfo: ExpiryInfo
 }
 
 /**
@@ -27,12 +39,26 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
   constructor() {
     super()
     // デフォルト値を設定
+    const now = new Date()
+    const futureDate = new Date()
+    futureDate.setDate(now.getDate() + 7)
+
     this.props = {
       id: IngredientId.generate(),
+      userId: createId(),
       name: new IngredientName(testDataHelpers.ingredientName()),
-      categoryId: new CategoryId(testDataHelpers.cuid()),
+      categoryId: new CategoryId(createId()),
       memo: null,
-      currentStock: null,
+      price: new Price(faker.number.int({ min: 100, max: 1000 })),
+      purchaseDate: now,
+      quantity: new Quantity(faker.number.int({ min: 1, max: 10 })),
+      unitId: new UnitId(createId()),
+      threshold: new Quantity(1),
+      storageLocation: new StorageLocation(StorageType.REFRIGERATED, '冷蔵室'),
+      expiryInfo: new ExpiryInfo({
+        bestBeforeDate: futureDate,
+        useByDate: null,
+      }),
     }
   }
 
@@ -49,6 +75,13 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
    */
   withGeneratedId(): this {
     return this.with('id', IngredientId.generate())
+  }
+
+  /**
+   * ユーザーIDを設定
+   */
+  withUserId(userId: string): this {
+    return this.with('userId', userId)
   }
 
   /**
@@ -97,36 +130,161 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
   }
 
   /**
-   * 在庫を設定
+   * 価格を設定
    */
-  withStock(stock: IngredientStock | null): this {
-    return this.with('currentStock', stock)
+  withPrice(price: number | Price | null): this {
+    const priceVo = typeof price === 'number' ? new Price(price) : price
+    return this.with('price', priceVo)
   }
 
   /**
-   * デフォルトの在庫を設定
+   * 購入日を設定
    */
-  withDefaultStock(): this {
-    const stock = new IngredientStockBuilder().build()
-    return this.with('currentStock', stock)
+  withPurchaseDate(date: Date): this {
+    return this.with('purchaseDate', date)
   }
 
   /**
-   * 期限切れの在庫を設定
+   * 在庫数量を設定
    */
-  withExpiredStock(): this {
-    const stock = new IngredientStockBuilder()
-      .withPastBestBeforeDate() // 賞味期限を過去に設定
-      .withUseByDate(null) // 消費期限はなし
-      .build()
-    return this.with('currentStock', stock)
+  withQuantity(quantity: number | Quantity): this {
+    const quantityVo = typeof quantity === 'number' ? new Quantity(quantity) : quantity
+    return this.with('quantity', quantityVo)
   }
 
   /**
-   * 在庫なしの状態を設定
+   * 単位IDを設定
    */
-  withoutStock(): this {
-    return this.with('currentStock', null)
+  withUnitId(unitId: string | UnitId): this {
+    const id = typeof unitId === 'string' ? new UnitId(unitId) : unitId
+    return this.with('unitId', id)
+  }
+
+  /**
+   * 閾値を設定
+   */
+  withThreshold(threshold: number | Quantity | null): this {
+    const thresholdVo = typeof threshold === 'number' ? new Quantity(threshold) : threshold
+    return this.with('threshold', thresholdVo)
+  }
+
+  /**
+   * 保存場所を設定
+   */
+  withStorageLocation(storageLocation: StorageLocation): this {
+    return this.with('storageLocation', storageLocation)
+  }
+
+  /**
+   * 保存場所を設定（タイプと詳細指定）
+   */
+  withStorageLocationDetails(type: StorageType, detail?: string): this {
+    return this.with('storageLocation', new StorageLocation(type, detail))
+  }
+
+  /**
+   * 期限情報を設定
+   */
+  withExpiryInfo(expiryInfo: ExpiryInfo): this {
+    return this.with('expiryInfo', expiryInfo)
+  }
+
+  /**
+   * 期限切れの食材を設定
+   */
+  withExpiredFood(): this {
+    const pastDate = new Date()
+    pastDate.setDate(pastDate.getDate() - 1)
+
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: pastDate,
+        useByDate: null,
+      })
+    )
+  }
+
+  /**
+   * 期限なしの食材を設定
+   */
+  withoutExpiry(): this {
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: null,
+        useByDate: null,
+      })
+    )
+  }
+
+  /**
+   * 今日購入した食材を設定
+   */
+  withPurchasedToday(): this {
+    return this.with('purchaseDate', new Date())
+  }
+
+  /**
+   * 価格なしの食材を設定
+   */
+  withoutPrice(): this {
+    return this.with('price', null)
+  }
+
+  /**
+   * 指定日数後の賞味期限を設定
+   */
+  withFutureBestBeforeDate(days: number): this {
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + days)
+
+    const currentExpiry = this.props.expiryInfo as ExpiryInfo
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: futureDate,
+        useByDate: currentExpiry?.getUseByDate() || null,
+      })
+    )
+  }
+
+  /**
+   * 指定日数後の消費期限を設定
+   */
+  withFutureUseByDate(days: number): this {
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + days)
+
+    const currentExpiry = this.props.expiryInfo as ExpiryInfo
+    return this.with(
+      'expiryInfo',
+      new ExpiryInfo({
+        bestBeforeDate: currentExpiry?.getBestBeforeDate() || null,
+        useByDate: futureDate,
+      })
+    )
+  }
+
+  /**
+   * 冷蔵保存の食材を設定
+   */
+  withRefrigeratedStorage(detail?: string): this {
+    return this.withStorageLocationDetails(StorageType.REFRIGERATED, detail)
+  }
+
+  /**
+   * 冷凍保存の食材を設定
+   */
+  withFrozenStorage(detail?: string): this {
+    return this.withStorageLocationDetails(StorageType.FROZEN, detail)
+  }
+
+  /**
+   * 常温保存の食材を設定
+   */
+  withRoomTemperatureStorage(detail?: string): this {
+    return this.withStorageLocationDetails(StorageType.ROOM_TEMPERATURE, detail)
   }
 
   build(): Ingredient {
@@ -140,25 +298,28 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
 export const createTestIngredient = (
   overrides?: Partial<{
     id: string
+    userId: string
     name: string
     categoryId: string
     memo?: string
-    stock?: {
-      quantity: number
-      unitId: string
-      storageType: string
-      storageDetail?: string
-      bestBeforeDate?: string
-      expiryDate?: string
-      purchaseDate: string
-      price?: number
-    }
+    price?: number
+    purchaseDate: string
+    quantity: number
+    unitId: string
+    threshold?: number
+    storageType: string
+    storageDetail?: string
+    bestBeforeDate?: string
+    useByDate?: string
   }>
 ): Ingredient => {
   const builder = new IngredientBuilder()
 
   if (overrides?.id) {
     builder.withId(overrides.id)
+  }
+  if (overrides?.userId) {
+    builder.withUserId(overrides.userId)
   }
   if (overrides?.name) {
     builder.withName(overrides.name)
@@ -169,33 +330,34 @@ export const createTestIngredient = (
   if (overrides?.memo) {
     builder.withMemo(overrides.memo)
   }
-  if (overrides?.stock) {
-    const stockBuilder = new IngredientStockBuilder()
-    if (overrides.stock.quantity !== undefined) {
-      stockBuilder.withQuantity(overrides.stock.quantity)
-    }
-    if (overrides.stock.unitId) {
-      stockBuilder.withUnitId(overrides.stock.unitId)
-    }
-    if (overrides.stock.storageType) {
-      stockBuilder.withStorageType(overrides.stock.storageType as StorageType)
-    }
-    if (overrides.stock.storageDetail) {
-      stockBuilder.withStorageDetail(overrides.stock.storageDetail)
-    }
-    if (overrides.stock.bestBeforeDate) {
-      stockBuilder.withBestBeforeDate(new Date(overrides.stock.bestBeforeDate))
-    }
-    if (overrides.stock.expiryDate) {
-      stockBuilder.withExpiryDate(new Date(overrides.stock.expiryDate))
-    }
-    if (overrides.stock.purchaseDate) {
-      stockBuilder.withPurchaseDate(new Date(overrides.stock.purchaseDate))
-    }
-    if (overrides.stock.price !== undefined) {
-      stockBuilder.withPrice(overrides.stock.price)
-    }
-    builder.withStock(stockBuilder.build())
+  if (overrides?.price !== undefined) {
+    builder.withPrice(overrides.price)
+  }
+  if (overrides?.purchaseDate) {
+    builder.withPurchaseDate(new Date(overrides.purchaseDate))
+  }
+  if (overrides?.quantity !== undefined) {
+    builder.withQuantity(overrides.quantity)
+  }
+  if (overrides?.unitId) {
+    builder.withUnitId(overrides.unitId)
+  }
+  if (overrides?.threshold !== undefined) {
+    builder.withThreshold(overrides.threshold)
+  }
+  if (overrides?.storageType) {
+    builder.withStorageLocationDetails(
+      overrides.storageType as StorageType,
+      overrides.storageDetail
+    )
+  }
+  if (overrides?.bestBeforeDate || overrides?.useByDate) {
+    builder.withExpiryInfo(
+      new ExpiryInfo({
+        bestBeforeDate: overrides.bestBeforeDate ? new Date(overrides.bestBeforeDate) : null,
+        useByDate: overrides.useByDate ? new Date(overrides.useByDate) : null,
+      })
+    )
   }
 
   return builder.build()

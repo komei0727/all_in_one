@@ -83,26 +83,24 @@ describe('CreateIngredientHandler Integration Tests', () => {
         expect(result.getMemo()).toBeNull()
       }
 
-      // 在庫情報も正しく設定されている
-      const stock = result.getCurrentStock()
-      expect(stock).toBeDefined()
-      expect(stock?.getQuantity().getValue()).toBe(command.quantity.amount)
-      expect(stock?.getUnitId().getValue()).toBe(command.quantity.unitId)
-      expect(stock?.getStorageLocation().getType()).toBe(command.storageLocation.type)
+      // 在庫情報も正しく設定されている（統合されたエンティティ）
+      expect(result.getQuantity().getValue()).toBe(command.quantity.amount)
+      expect(result.getUnitId().getValue()).toBe(command.quantity.unitId)
+      expect(result.getStorageLocation().getType()).toBe(command.storageLocation.type)
       if (command.storageLocation.detail) {
-        expect(stock?.getStorageLocation().getDetail()).toBe(command.storageLocation.detail)
+        expect(result.getStorageLocation().getDetail()).toBe(command.storageLocation.detail)
       } else {
-        expect(stock?.getStorageLocation().getDetail()).toBe('')
+        // StorageLocationは未定義の場合は空文字列を返す
+        expect(result.getStorageLocation().getDetail()).toBe('')
       }
 
       // データベースに実際に保存されていることを確認
       const dbIngredient = await prisma.ingredient.findUnique({
         where: { id: result.getId().getValue() },
-        include: { stocks: true },
       })
       expect(dbIngredient).toBeDefined()
       expect(dbIngredient?.name).toBe(command.name)
-      expect(dbIngredient?.stocks).toHaveLength(1)
+      expect(dbIngredient?.quantity).toBe(command.quantity.amount)
     })
 
     it('メモなしで食材を作成できる', async () => {
@@ -148,7 +146,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result = await handler.execute(command)
 
       // Then: 価格がnullで作成される
-      expect(result.getCurrentStock()?.getPrice()).toBeNull()
+      expect(result.getPrice()).toBeNull()
     })
 
     it('賞味期限・消費期限なしで食材を作成できる', async () => {
@@ -165,9 +163,8 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result = await handler.execute(command)
 
       // Then: 期限がnullで作成される
-      const stock = result.getCurrentStock()
-      expect(stock?.getExpiryInfo().getBestBeforeDate()).toBeNull()
-      expect(stock?.getExpiryInfo().getUseByDate()).toBeNull()
+      expect(result.getExpiryInfo().getBestBeforeDate()).toBeNull()
+      expect(result.getExpiryInfo().getUseByDate()).toBeNull()
     })
 
     it('全ての保管場所タイプで食材を作成できる', async () => {
@@ -191,7 +188,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         const result = await handler.execute(command)
 
         // Then: 正しい保管場所タイプで作成される
-        expect(result.getCurrentStock()?.getStorageLocation().getType()).toBe(storageType)
+        expect(result.getStorageLocation().getType()).toBe(storageType)
       }
     })
 
@@ -245,7 +242,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         const result = await handler.execute(command)
 
         // Then: 正しい単位で作成される
-        expect(result.getCurrentStock()?.getUnitId().getValue()).toBe(unitId)
+        expect(result.getUnitId().getValue()).toBe(unitId)
       }
     })
   })
@@ -297,24 +294,22 @@ describe('CreateIngredientHandler Integration Tests', () => {
   })
 
   describe('トランザクション処理', () => {
-    it('食材と在庫が同一トランザクションで保存される', async () => {
+    it('食材情報が正しく保存される', async () => {
       // Given: 有効なコマンド
       const command = createTestCommand()
 
       // When: ハンドラーを実行
       const result = await handler.execute(command)
 
-      // Then: 食材と在庫が両方存在する
+      // Then: 食材が存在し、在庫情報も含まれている
       const dbIngredient = await prisma.ingredient.findUnique({
         where: { id: result.getId().getValue() },
       })
-      const dbStock = await prisma.ingredientStock.findFirst({
-        where: { ingredientId: result.getId().getValue() },
-      })
 
       expect(dbIngredient).toBeDefined()
-      expect(dbStock).toBeDefined()
-      expect(dbStock?.ingredientId).toBe(dbIngredient?.id)
+      expect(dbIngredient?.quantity).toBe(command.quantity.amount)
+      expect(dbIngredient?.unitId).toBe(command.quantity.unitId)
+      expect(dbIngredient?.storageLocationType).toBe(command.storageLocation.type)
     })
   })
 
@@ -378,8 +373,8 @@ describe('CreateIngredientHandler Integration Tests', () => {
       // When: ハンドラーを実行
       const result = await handler.execute(command)
 
-      // Then: 価格の精度が保持される
-      expect(result.getCurrentStock()?.getPrice()?.getValue()).toBe(precisePrice)
+      // Then: 価格の精度が保持される（統合されたエンティティ）
+      expect(result.getPrice()?.getValue()).toBe(precisePrice)
     })
   })
 })

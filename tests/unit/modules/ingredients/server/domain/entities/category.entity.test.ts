@@ -20,7 +20,7 @@ describe('Category', () => {
 
     it('指定したIDでカテゴリーを作成できる', () => {
       // 指定したIDでカテゴリーを作成
-      const id = 'cat1'
+      const id = 'category-12345678'
       const category = new CategoryBuilder().withId(id).build()
 
       // Assert
@@ -48,7 +48,7 @@ describe('Category', () => {
     it('displayOrderが指定されない場合はデフォルト値を使用する', () => {
       // Arrange & Act
       const category = new Category({
-        id: 'cat1',
+        id: 'cat12345678', // 8文字以上のID
         name: '野菜',
         // displayOrderを指定しない
       })
@@ -62,7 +62,7 @@ describe('Category', () => {
     it('オブジェクトに変換できる', () => {
       // Arrange
       const category = new CategoryBuilder()
-        .withId('cat1')
+        .withId('cat12345678') // 8文字以上のID
         .withName('野菜')
         .withDisplayOrder(5)
         .build()
@@ -72,7 +72,7 @@ describe('Category', () => {
 
       // Assert
       expect(json).toEqual({
-        id: 'cat1',
+        id: 'cat12345678',
         name: '野菜',
         displayOrder: 5,
       })

@@ -1,7 +1,2 @@
 // すべてのエンティティファクトリーを新しいビルダーから再エクスポート
-export {
-  createTestIngredient,
-  createTestIngredientStock,
-  createTestCategory,
-  createTestUnit,
-} from '../builders'
+export { createTestIngredient, createTestCategory, createTestUnit } from '../builders'

@@ -45,9 +45,6 @@ export async function resetDatabase(): Promise<void> {
     prisma.ingredientStockHistory.deleteMany(),
     prisma.domainEvent.deleteMany(),
 
-    // 在庫テーブル
-    prisma.ingredientStock.deleteMany(),
-
     // メインテーブル
     prisma.ingredient.deleteMany(),
 

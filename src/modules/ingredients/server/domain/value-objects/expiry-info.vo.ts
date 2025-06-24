@@ -45,29 +45,47 @@ export class ExpiryInfo extends ValueObject<{
   }
 
   /**
-   * 期限切れかどうかを判定
+   * 期限切れかどうかを判定（消費期限を基準）
    * @returns 期限切れの場合true
    */
   isExpired(): boolean {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // 賞味期限を優先的にチェック
-    if (this.value.bestBeforeDate) {
-      const bestBefore = new Date(this.value.bestBeforeDate)
-      bestBefore.setHours(0, 0, 0, 0)
-      return bestBefore < today
-    }
-
-    // 賞味期限がない場合は消費期限をチェック
+    // 消費期限を優先的にチェック
     if (this.value.useByDate) {
       const useBy = new Date(this.value.useByDate)
       useBy.setHours(0, 0, 0, 0)
       return useBy < today
     }
 
+    // 消費期限がない場合は賞味期限をチェック
+    if (this.value.bestBeforeDate) {
+      const bestBefore = new Date(this.value.bestBeforeDate)
+      bestBefore.setHours(0, 0, 0, 0)
+      return bestBefore < today
+    }
+
     // どちらもない場合は期限切れではない
     return false
+  }
+
+  /**
+   * 賞味期限切れかどうかを判定
+   * @returns 賞味期限切れの場合true
+   */
+  isBestBeforeExpired(): boolean {
+    if (!this.value.bestBeforeDate) {
+      return false
+    }
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const bestBefore = new Date(this.value.bestBeforeDate)
+    bestBefore.setHours(0, 0, 0, 0)
+
+    return bestBefore < today
   }
 
   /**

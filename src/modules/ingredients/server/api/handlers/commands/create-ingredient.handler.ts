@@ -34,8 +34,10 @@ export class CreateIngredientApiHandler {
       // リクエストのバリデーション
       const validatedRequest = createIngredientSchema.parse(request)
 
-      // コマンドの作成
+      // コマンドの作成（現在はハードコードされたユーザーIDを使用、将来的には認証機能から取得）
+      // TODO: 認証機能実装後は、リクエストからユーザーIDを取得
       const command = new CreateIngredientCommand({
+        userId: 'cmcay7j66000ev01fzbahrrsf', // 一時的にハードコード（シードデータのユーザーID）
         name: validatedRequest.name,
         categoryId: validatedRequest.categoryId,
         quantity: {
@@ -55,15 +57,13 @@ export class CreateIngredientApiHandler {
       // コマンドハンドラーの実行
       const ingredient = await this.commandHandler.execute(command)
 
-      // 関連エンティティの取得
+      // 関連エンティティの取得（統合されたIngredientエンティティ対応）
       const category = await this.categoryRepository.findById(
         CategoryId.create(validatedRequest.categoryId)
       )
-      const unit = ingredient.getCurrentStock()
-        ? await this.unitRepository.findById(
-            UnitId.create(ingredient.getCurrentStock()!.getUnitId().getValue())
-          )
-        : null
+      const unit = await this.unitRepository.findById(
+        UnitId.create(ingredient.getUnitId().getValue())
+      )
 
       // DTOへの変換
       const dto = IngredientMapper.toDto(ingredient, category || undefined, unit || undefined)

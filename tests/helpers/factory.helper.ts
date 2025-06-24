@@ -1,4 +1,4 @@
-import type { Category, Unit, Ingredient, IngredientStock } from '../../src/generated/prisma-test'
+import type { Category, Unit, Ingredient } from '../../src/generated/prisma-test'
 
 /**
  * テストデータファクトリー
@@ -37,43 +37,25 @@ export function createTestUnit(overrides?: Partial<Unit>): Unit {
 
 // 食材のファクトリー
 export function createTestIngredient(overrides?: Partial<Ingredient>): Ingredient {
+  const now = new Date()
   return {
     id: 'test-ingredient-id',
+    userId: 'test-user-id',
     name: 'テスト食材',
     categoryId: 'test-category-id',
     memo: 'テスト用のメモ',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    createdBy: 'test-user',
-    updatedBy: 'test-user',
-    ...overrides,
-  }
-}
-
-// 在庫のファクトリー
-export function createTestIngredientStock(overrides?: Partial<IngredientStock>): IngredientStock {
-  const now = new Date()
-  const tomorrow = new Date(now)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-
-  return {
-    id: 'test-stock-id',
-    ingredientId: 'test-ingredient-id',
-    quantity: 100,
-    unitId: 'test-unit-id',
-    storageLocationType: 'REFRIGERATED',
-    storageLocationDetail: '冷蔵庫の野菜室',
-    bestBeforeDate: tomorrow,
-    useByDate: tomorrow,
-    purchaseDate: now,
     price: null,
-    isActive: true,
+    purchaseDate: now,
+    quantity: 1,
+    unitId: 'test-unit-id',
+    threshold: null,
+    storageLocationType: 'REFRIGERATED',
+    storageLocationDetail: '冷蔵庫',
+    bestBeforeDate: null,
+    useByDate: null,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
-    createdBy: 'test-user',
-    updatedBy: 'test-user',
     ...overrides,
   }
 }
@@ -83,48 +65,44 @@ export interface TestDataSet {
   categories: Category[]
   units: Unit[]
   ingredients: Ingredient[]
-  stocks: IngredientStock[]
 }
 
 export function createTestDataSet(): TestDataSet {
   const categories = [
-    createTestCategory({ id: 'cat1', name: '野菜', displayOrder: 1 }),
-    createTestCategory({ id: 'cat2', name: '肉・魚', displayOrder: 2 }),
-    createTestCategory({ id: 'cat3', name: '調味料', displayOrder: 3 }),
+    createTestCategory({ id: 'cat12345678', name: '野菜', displayOrder: 1 }),
+    createTestCategory({ id: 'cat23456789', name: '肉・魚', displayOrder: 2 }),
+    createTestCategory({ id: 'cat34567890', name: '調味料', displayOrder: 3 }),
   ]
 
   const units = [
-    createTestUnit({ id: 'unit1', name: '個', symbol: '個', type: 'COUNT' }),
-    createTestUnit({ id: 'unit2', name: 'グラム', symbol: 'g', type: 'WEIGHT' }),
-    createTestUnit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', type: 'VOLUME' }),
+    createTestUnit({ id: 'unit12345678', name: '個', symbol: '個', type: 'COUNT' }),
+    createTestUnit({ id: 'unit23456789', name: 'グラム', symbol: 'g', type: 'WEIGHT' }),
+    createTestUnit({ id: 'unit34567890', name: 'ミリリットル', symbol: 'ml', type: 'VOLUME' }),
   ]
 
   const ingredients = [
-    createTestIngredient({ id: 'ing1', name: 'トマト', categoryId: 'cat1' }),
-    createTestIngredient({ id: 'ing2', name: '鶏肉', categoryId: 'cat2' }),
-    createTestIngredient({ id: 'ing3', name: '醤油', categoryId: 'cat3' }),
-  ]
-
-  const stocks = [
-    createTestIngredientStock({
-      id: 'stock1',
-      ingredientId: 'ing1',
+    createTestIngredient({
+      id: 'ing12345678',
+      name: 'トマト',
+      categoryId: 'cat12345678',
+      unitId: 'unit12345678',
       quantity: 5,
-      unitId: 'unit1',
     }),
-    createTestIngredientStock({
-      id: 'stock2',
-      ingredientId: 'ing2',
+    createTestIngredient({
+      id: 'ing23456789',
+      name: '鶏肉',
+      categoryId: 'cat23456789',
+      unitId: 'unit23456789',
       quantity: 300,
-      unitId: 'unit2',
     }),
-    createTestIngredientStock({
-      id: 'stock3',
-      ingredientId: 'ing3',
+    createTestIngredient({
+      id: 'ing34567890',
+      name: '醤油',
+      categoryId: 'cat34567890',
+      unitId: 'unit34567890',
       quantity: 500,
-      unitId: 'unit3',
     }),
   ]
 
-  return { categories, units, ingredients, stocks }
+  return { categories, units, ingredients }
 }

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
 import { IngredientMapper } from '@/modules/ingredients/server/application/mappers/ingredient.mapper'
+import { StorageType, ExpiryInfo } from '@/modules/ingredients/server/domain/value-objects'
 
 import {
   CategoryBuilder,
   UnitBuilder,
   IngredientBuilder,
-  IngredientStockBuilder,
 } from '../../../../../../__fixtures__/builders'
 
 describe('IngredientMapper', () => {
@@ -18,25 +18,29 @@ describe('IngredientMapper', () => {
       // 単位を作成
       const unit = new UnitBuilder().asPiece().build()
 
-      // 食材を作成
+      // 食材を作成（統合後のエンティティに対応）
+      // 期限情報を作成
+      const futureDate1 = new Date()
+      futureDate1.setDate(futureDate1.getDate() + 10)
+      const futureDate2 = new Date()
+      futureDate2.setDate(futureDate2.getDate() + 5)
+
       const ingredient = new IngredientBuilder()
         .withName('トマト')
         .withCategoryId(category.getId())
-        .withMemo('新鮮なトマト')
-        .build()
-
-      // 在庫を作成
-      const stock = new IngredientStockBuilder()
         .withQuantity(3)
         .withUnitId(unit.getId())
-        .withRefrigeratedStorage('野菜室')
-        .withFutureBestBeforeDate(10)
-        .withFutureExpiryDate(5)
+        .withStorageLocationDetails(StorageType.REFRIGERATED, '野菜室')
+        .withExpiryInfo(
+          new ExpiryInfo({
+            bestBeforeDate: futureDate1,
+            useByDate: futureDate2,
+          })
+        )
         .withPurchasedToday()
         .withPrice(150)
+        .withMemo('新鮮なトマト')
         .build()
-
-      ingredient.setStock(stock)
 
       // DTOに変換
       const dto = IngredientMapper.toDto(ingredient, category, unit)
@@ -84,74 +88,69 @@ describe('IngredientMapper', () => {
       expect(dto.memo).toBeNull()
     })
 
-    it('在庫なしの食材をDTOに変換できる', () => {
+    it('削除済みの食材をDTOに変換できる', () => {
       // カテゴリーを作成
       const category = new CategoryBuilder().withName('野菜').build()
 
       // 単位を作成
       const unit = new UnitBuilder().asPiece().build()
 
-      // 食材を作成（在庫なし）
+      // 食材を作成して削除
       const ingredient = new IngredientBuilder()
         .withName('トマト')
         .withCategoryId(category.getId())
+        .withQuantity(5)
+        .withUnitId(unit.getId())
         .build()
+      ingredient.delete()
 
-      // DTOに変換（在庫なし）
+      // DTOに変換
       const dto = IngredientMapper.toDto(ingredient, category, unit)
 
-      // 検証
-      expect(dto.currentStock).toBeNull()
+      // 検証 - 削除済みでも在庫情報は表示される
+      expect(dto.currentStock).toBeDefined()
+      expect(dto.currentStock?.quantity).toBe(5)
     })
 
-    it('単位なしで在庫ありの食材をDTOに変換できる', () => {
+    it('単位情報なしで食材をDTOに変換できる', () => {
       // カテゴリーを作成
       const category = new CategoryBuilder().withName('野菜').build()
+
+      // 単位を作成（単位情報は渡さない）
+      const unit = new UnitBuilder().asPiece().build()
 
       // 食材を作成
       const ingredient = new IngredientBuilder()
         .withName('トマト')
         .withCategoryId(category.getId())
-        .build()
-
-      // 在庫を作成
-      const stock = new IngredientStockBuilder()
         .withQuantity(3)
-        .withRefrigeratedStorage()
+        .withUnitId(unit.getId())
+        .withStorageLocationDetails(StorageType.REFRIGERATED)
         .withPurchasedToday()
         .withoutPrice()
-        .withBestBeforeDate(null)
-        .withExpiryDate(null)
         .build()
 
-      ingredient.setStock(stock)
-
-      // DTOに変換（単位なし）
+      // DTOに変換（単位情報なし）
       const dto = IngredientMapper.toDto(ingredient, category)
 
-      // 検証
-      expect(dto.currentStock).toBeNull()
+      // 検証 - 単位情報が渡されない場合はundefined
+      expect(dto.currentStock?.unit).toBeUndefined()
     })
 
-    it('日付や価格がnullの在庫をDTOに変換できる', () => {
+    it('期限情報や価格がnullの食材をDTOに変換できる', () => {
       // 単位を作成
       const unit = new UnitBuilder().asPiece().build()
 
-      // 食材を作成
-      const ingredient = new IngredientBuilder().withName('トマト').build()
-
-      // 在庫を作成（日付と価格がnull）
-      const stock = new IngredientStockBuilder()
+      // 食材を作成（期限情報と価格がnull）
+      const ingredient = new IngredientBuilder()
+        .withName('トマト')
         .withQuantity(3)
         .withUnitId(unit.getId())
-        .withRefrigeratedStorage()
+        .withStorageLocationDetails(StorageType.REFRIGERATED)
         .withPurchasedToday()
-        .withBestBeforeDate(null)
-        .withExpiryDate(null)
         .withoutPrice()
+        .withoutExpiry() // 期限情報をnullに設定
         .build()
-
-      ingredient.setStock(stock)
 
       // DTOに変換
       const dto = IngredientMapper.toDto(ingredient, undefined, unit)
@@ -166,11 +165,19 @@ describe('IngredientMapper', () => {
     })
 
     it('メモなしの食材をDTOに変換できる', () => {
+      // 単位を作成
+      const unit = new UnitBuilder().asPiece().build()
+
       // 食材を作成（メモなし）
-      const ingredient = new IngredientBuilder().withName('トマト').withoutMemo().build()
+      const ingredient = new IngredientBuilder()
+        .withName('トマト')
+        .withQuantity(5)
+        .withUnitId(unit.getId())
+        .withoutMemo()
+        .build()
 
       // DTOに変換
-      const dto = IngredientMapper.toDto(ingredient)
+      const dto = IngredientMapper.toDto(ingredient, undefined, unit)
 
       // 検証
       expect(dto.memo).toBeNull()

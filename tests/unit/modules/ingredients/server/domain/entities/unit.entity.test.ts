@@ -67,14 +67,14 @@ describe('Unit Entity', () => {
       // エンティティがプレーンオブジェクトとしてシリアライズできることを確認
       // これはAPIレスポンスやデータ永続化で使用される
       // Arrange
-      const unit = new UnitBuilder().withId('unit1').asGram().build()
+      const unit = new UnitBuilder().withId('unit12345678').asGram().build()
 
       // Act
       const json = unit.toJSON()
 
       // Assert
       expect(json).toEqual({
-        id: 'unit1',
+        id: 'unit12345678',
         name: 'グラム',
         symbol: 'g',
         displayOrder: 1,
