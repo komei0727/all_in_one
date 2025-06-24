@@ -17,7 +17,8 @@ describe('Quantity', () => {
 
     it('整数値で作成できる', () => {
       // Arrange & Act
-      const integerValue = Math.floor(new QuantityBuilder().build().getValue())
+      // 1から100の間のランダムな整数を生成（0を避ける）
+      const integerValue = Math.floor(Math.random() * 100) + 1
       const quantity = new Quantity(integerValue)
 
       // Assert
