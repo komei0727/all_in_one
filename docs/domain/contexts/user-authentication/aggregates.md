@@ -1,32 +1,51 @@
-# ユーザー認証コンテキスト - 集約設計
+# ユーザー認証コンテキスト - 集約設計（NextAuth版）
 
 ## 概要
 
-このドキュメントでは、ユーザー認証コンテキストの集約（Aggregate）設計を定義します。
-集約境界、集約ルート、不変条件を明確にし、ドメインモデルの整合性を保証します。
+このドキュメントでは、NextAuth.jsとの統合を前提としたユーザー認証コンテキストの集約（Aggregate）設計を定義します。
+NextAuthが認証・セッション・トークン管理を担当するため、ドメイン層はビジネスロジックに特化した簡潔な集約設計となります。
 
-## 集約設計の原則
+## NextAuth統合における集約設計の原則
 
-1. **トランザクション整合性** - 集約内の変更は同一トランザクションで完結
-2. **境界の明確化** - ビジネス上の一貫性境界に基づいて集約を定義
-3. **小さく保つ** - パフォーマンスと保守性のため、集約は必要最小限に
-4. **結果整合性の活用** - 集約間の整合性は結果整合性で実現
+1. **責任分離** - 認証処理はNextAuth、ビジネスロジックはドメイン層
+2. **シンプルさの追求** - NextAuthが管理する領域は集約から除外
+3. **統合境界の明確化** - NextAuthとドメインの境界を明確に定義
+4. **最小限の集約** - 食材管理アプリに必要な最小限の集約のみ定義
 
-## 集約一覧
+## 責任範囲の明確化
 
-| 集約名                         | 集約ルート             | 責務                             |
-| ------------------------------ | ---------------------- | -------------------------------- |
-| ユーザー集約                   | User                   | ユーザー情報とプロフィールの管理 |
-| ユーザー認証情報集約           | UserCredential         | パスワード認証情報の管理         |
-| 認証セッション集約             | AuthSession            | アクティブなセッションの管理     |
-| パスワードリセットトークン集約 | PasswordResetToken     | パスワードリセット要求の管理     |
-| メール確認トークン集約         | EmailVerificationToken | メールアドレス確認要求の管理     |
+### NextAuthが管理（集約設計から除外）
+- 認証情報（パスワード、認証プロバイダー情報）
+- セッション（作成、更新、無効化）
+- トークン（アクセストークン、リフレッシュトークン、検証トークン）
+- ログイン履歴
+
+### ドメインが管理（本設計の対象）
+- ユーザープロフィール
+- ユーザー状態（アクティブ/非アクティブ）
+- ユーザー設定・プリファレンス
+- NextAuthとの統合情報
+
+## 集約一覧（NextAuth統合版）
+
+| 集約名       | 集約ルート | 責務                                     |
+| ------------ | ---------- | ---------------------------------------- |
+| ユーザー集約 | User       | ユーザー情報、プロフィール、状態の管理   |
+
+## 削除された集約（NextAuthに委譲）
+
+以下の集約はNextAuthが標準機能として提供するため削除：
+
+- ~~`ユーザー認証情報集約`~~: NextAuthが認証情報を管理
+- ~~`認証セッション集約`~~: NextAuthがセッションを管理
+- ~~`パスワードリセットトークン集約`~~: NextAuthがトークンを管理
+- ~~`メール確認トークン集約`~~: NextAuthがトークンを管理
 
 ## ユーザー集約（User Aggregate）
 
 ### 概要
 
-ユーザーの基本情報と状態を管理する中核的な集約。認証システムの中心となる。
+NextAuthとの統合を前提としたユーザー集約。認証・セッション・トークン管理をNextAuthに委譲し、アプリケーション固有のビジネスロジックとプロフィール管理に特化しています。
 
 ### 集約ルート
 
@@ -37,426 +56,343 @@
 - **エンティティ**
   - User（集約ルート）
 - **値オブジェクト**
-  - UserId
-  - Email
-  - UserProfile
+  - UserId（ドメイン内の一意識別子）
+  - Email（NextAuthと同期）
+  - UserProfile（プロフィール情報）
+  - UserPreferences（ユーザー設定）
+  - UserStatus（アカウント状態）
 
 ### 集約境界
 
 ```
-┌─────────────────────────────────┐
-│ User Aggregate                  │
-│                                 │
-│ ┌─────────────┐                 │
-│ │    User     │ ← 集約ルート    │
-│ └──────┬──────┘                 │
-│        │                        │
-│ ┌──────┴───────┬────────────┐   │
-│ │    Email     │ UserProfile│   │
-│ └──────────────┴────────────┘   │
-└─────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ User Aggregate                          │
+│                                         │
+│ ┌─────────────┐                         │
+│ │    User     │ ← 集約ルート            │
+│ │ nextAuthId  │ ← NextAuth統合キー      │
+│ └──────┬──────┘                         │
+│        │                                │
+│ ┌──────┴───────┬────────────┬──────────┐│
+│ │    Email     │UserProfile │UserStatus││
+│ └──────────────┴────────────┴──────────┘│
+└─────────────────────────────────────────┘
 ```
+
+### NextAuth統合設計
+
+1. **責任分離**
+   - NextAuth: 認証、セッション、トークン管理
+   - ドメイン: プロフィール、設定、ビジネスロジック
+
+2. **データ同期**
+   - nextAuthIdによる1:1マッピング
+   - emailはNextAuthと常に同期
+   - 認証状態はNextAuthが管理
+
+3. **統合ポイント**
+   ```typescript
+   // NextAuthコールバックでの統合
+   callbacks: {
+     signIn: async ({ user }) => {
+       await userService.createOrSyncUser(user);
+       return true;
+     }
+   }
+   ```
 
 ### 不変条件（Invariants）
 
-1. **メールアドレスの一意性**
-
-   - システム全体でメールアドレスは一意でなければならない
-   - 変更時も一意性を保証
+1. **NextAuthとの一貫性**
+   - nextAuthIdは必須かつ不変
+   - NextAuthユーザーと1:1対応を維持
+   - emailはNextAuthと常に一致
 
 2. **プロフィール必須性**
+   - UserProfileは必ず存在
+   - displayNameは必須（1-50文字）
 
-   - UserProfileは必ず存在し、displayNameは必須
+3. **状態遷移の制約**
+   - ACTIVE → DEACTIVATED（論理削除）
+   - DEACTIVATED → 復活不可
 
-3. **論理削除の不可逆性**
-   - 一度削除されたユーザーは復活できない
-   - deletedAtが設定されたら変更不可
+### ビジネスルール（NextAuth統合版）
 
-### ビジネスルール
-
-- メール未確認のユーザーは機能制限がある
-- プロフィール更新は本人のみ可能
-- メールアドレス変更には再確認が必要
+- 認証状態の確認はNextAuthセッションに委譲
+- プロフィール更新は本人のみ可能（NextAuth認証済み）
+- アカウント無効化後もNextAuthユーザーは残存
+- メール変更はNextAuth側でも同期が必要
 
 ### 集約の操作
 
 ```typescript
-// ユーザー登録
-const user = User.register(email, profile)
-
-// メール確認
-user.verifyEmail()
+// NextAuthユーザーからの作成
+const user = User.createFromNextAuth({
+  nextAuthId: 'clxxxx1234',
+  email: 'user@example.com',
+  profile: UserProfile.createDefault('ユーザー名')
+})
 
 // プロフィール更新
-user.updateProfile(newProfile)
+user.updateProfile({
+  displayName: '新しい名前',
+  timezone: 'Asia/Tokyo',
+  language: 'ja'
+})
+
+// 設定更新
+user.updatePreferences({
+  theme: 'dark',
+  notifications: true
+})
 
 // アカウント無効化
-user.deactivate()
+user.deactivate('USER_REQUEST')
+
+// NextAuthとの同期
+user.syncWithNextAuth(nextAuthUser)
 ```
 
-## ユーザー認証情報集約（UserCredential Aggregate）
+## 削除された集約の詳細（NextAuthに委譲）
 
-### 概要
+以下の集約はNextAuthが標準機能として提供するため、ドメイン層からは削除されました：
 
-ユーザーのパスワード認証情報を安全に管理する集約。セキュリティが最重要。
+### ~~ユーザー認証情報集約（UserCredential Aggregate）~~
 
-### 集約ルート
+**削除理由**: NextAuthがCredentialsProviderまたはEmailProviderで認証情報を管理
 
-**UserCredential** エンティティ
+- パスワードハッシュ化: NextAuthが自動処理
+- 認証検証: NextAuthのsignInメソッドで処理
+- パスワードポリシー: NextAuthのカスタムバリデーションで実装可能
 
-### 集約に含まれるオブジェクト
+### ~~認証セッション集約（AuthSession Aggregate）~~
 
-- **エンティティ**
-  - UserCredential（集約ルート）
-- **値オブジェクト**
-  - UserId（ユーザー集約への参照）
-  - HashedPassword
+**削除理由**: NextAuthがsessionsテーブルでセッション管理
 
-### 集約境界
+- セッション作成: NextAuthが自動生成
+- セッション検証: useSession()フックで処理
+- マルチデバイス対応: NextAuthが標準サポート
+- セッション無効化: signOut()メソッドで処理
 
-```
-┌─────────────────────────────────┐
-│ UserCredential Aggregate        │
-│                                 │
-│ ┌──────────────────┐            │
-│ │ UserCredential   │ ← 集約ルート│
-│ └────────┬─────────┘            │
-│          │                      │
-│ ┌────────┴──────────┐           │
-│ │ HashedPassword   │           │
-│ └──────────────────┘           │
-└─────────────────────────────────┘
-```
+### ~~パスワードリセットトークン集約（PasswordResetToken Aggregate）~~
 
-### 不変条件（Invariants）
+**削除理由**: NextAuthのEmailProviderがマジックリンクで対応
 
-1. **ユーザーとの1:1関係**
+- トークン生成: NextAuthが自動処理
+- 有効期限管理: NextAuthの設定で制御
+- ワンタイム使用: NextAuthが保証
 
-   - UserIdは必須かつ一意
-   - 一人のユーザーに対して一つの認証情報のみ
+### ~~メール確認トークン集約（EmailVerificationToken Aggregate）~~
 
-2. **パスワードの暗号化**
+**削除理由**: NextAuthのverification_tokensテーブルで管理
 
-   - パスワードは必ずハッシュ化されて保存
-   - 平文パスワードは保持しない
+- トークン生成: NextAuthが自動処理
+- メール送信: NextAuthのsendVerificationRequestで処理
+- 確認処理: NextAuthのコールバックで自動処理
 
-3. **変更履歴の追跡**
-   - passwordChangedAtは必ず記録
-   - 変更日時は遡れない
+## 集約間の関係（NextAuth統合版）
 
-### ビジネスルール
+### 単一集約アーキテクチャ
 
-- パスワード変更には現在のパスワード確認が必要
-- パスワードポリシーを満たす必要がある
-- 定期的なパスワード変更を推奨
-
-### 集約の操作
-
-```typescript
-// パスワード検証
-credential.verify(plainPassword)
-
-// パスワード更新
-credential.updatePassword(newHashedPassword)
-
-// 有効期限チェック
-credential.isExpired()
-```
-
-## 認証セッション集約（AuthSession Aggregate）
-
-### 概要
-
-アクティブな認証セッションを管理する集約。複数デバイスからのアクセスに対応。
-
-### 集約ルート
-
-**AuthSession** エンティティ
-
-### 集約に含まれるオブジェクト
-
-- **エンティティ**
-  - AuthSession（集約ルート）
-- **値オブジェクト**
-  - SessionId
-  - UserId（ユーザー集約への参照）
-  - SessionToken
-  - IpAddress
-
-### 集約境界
+NextAuth統合により、認証関連の集約が削除され、シンプルな単一集約アーキテクチャとなりました：
 
 ```
-┌─────────────────────────────────┐
-│ AuthSession Aggregate           │
-│                                 │
-│ ┌─────────────┐                 │
-│ │ AuthSession │ ← 集約ルート    │
-│ └──────┬──────┘                 │
-│        │                        │
-│ ┌──────┴────────┬───────────┐   │
-│ │ SessionToken  │ IpAddress │   │
-│ └───────────────┴───────────┘   │
-└─────────────────────────────────┘
-```
-
-### 不変条件（Invariants）
-
-1. **トークンの一意性**
-
-   - SessionTokenはシステム全体で一意
-   - 暗号学的に安全な生成が必要
-
-2. **有効期限の必須性**
-
-   - expiresAtは必須で、作成時に設定
-   - 有効期限は延長可能だが、最大期限あり
-
-3. **無効化の不可逆性**
-   - revokedAtが設定されたセッションは再有効化不可
-   - 無効化されたトークンは再利用不可
-
-### ビジネスルール
-
-- ユーザーごとに複数のセッション許可（マルチデバイス対応）
-- 同一IPからの重複セッションは制限
-- 長期間使用されないセッションは自動無効化
-
-### 集約の操作
-
-```typescript
-// セッション有効性確認
-session.isValid()
-
-// セッション更新
-session.refresh()
-
-// セッション無効化
-session.revoke()
-```
-
-## パスワードリセットトークン集約（PasswordResetToken Aggregate）
-
-### 概要
-
-パスワードリセット要求を安全に管理する集約。セキュリティと利便性のバランスが重要。
-
-### 集約ルート
-
-**PasswordResetToken** エンティティ
-
-### 集約に含まれるオブジェクト
-
-- **エンティティ**
-  - PasswordResetToken（集約ルート）
-- **値オブジェクト**
-  - UserId（ユーザー集約への参照）
-
-### 集約境界
-
-```
-┌─────────────────────────────────┐
-│ PasswordResetToken Aggregate    │
-│                                 │
-│ ┌─────────────────────┐         │
-│ │ PasswordResetToken  │← 集約ルート│
-│ └─────────────────────┘         │
-└─────────────────────────────────┘
-```
-
-### 不変条件（Invariants）
-
-1. **ワンタイム使用**
-
-   - トークンは一度だけ使用可能
-   - usedAtが設定されたら再使用不可
-
-2. **有効期限の厳格性**
-
-   - 有効期限は1時間以内
-   - 期限切れトークンは無効
-
-3. **ユーザーごとの一意性**
-   - 同一ユーザーの有効なトークンは1つまで
-   - 新規発行時は既存のものを無効化
-
-### ビジネスルール
-
-- トークンは予測不可能な方法で生成
-- 使用時にはユーザーの存在確認が必要
-- 使用後は全セッションを無効化
-
-### 集約の操作
-
-```typescript
-// トークン有効性確認
-token.isValid()
-
-// 使用済みマーク
-token.markAsUsed()
-
-// 有効期限チェック
-token.isExpired()
-```
-
-## メール確認トークン集約（EmailVerificationToken Aggregate）
-
-### 概要
-
-メールアドレス確認要求を管理する集約。ユーザー登録プロセスの重要な一部。
-
-### 集約ルート
-
-**EmailVerificationToken** エンティティ
-
-### 集約に含まれるオブジェクト
-
-- **エンティティ**
-  - EmailVerificationToken（集約ルート）
-- **値オブジェクト**
-  - UserId（ユーザー集約への参照）
-  - Email
-
-### 集約境界
-
-```
-┌─────────────────────────────────┐
-│ EmailVerificationToken Aggregate│
-│                                 │
-│ ┌───────────────────────┐       │
-│ │EmailVerificationToken │← 集約ルート│
-│ └───────┬───────────────┘       │
-│         │                       │
-│    ┌────┴────┐                  │
-│    │  Email  │                  │
-│    └─────────┘                  │
-└─────────────────────────────────┘
-```
-
-### 不変条件（Invariants）
-
-1. **ワンタイム使用**
-
-   - トークンは一度だけ使用可能
-   - usedAtが設定されたら再使用不可
-
-2. **有効期限の設定**
-
-   - 有効期限は24時間
-   - 期限切れトークンは無効
-
-3. **メールアドレスの一致**
-   - トークンのemailとユーザーのemailは一致必須
-   - 確認対象のメールアドレスは変更不可
-
-### ビジネスルール
-
-- ユーザーごとに有効なトークンは1つまで
-- 再送信にはレート制限あり
-- 確認完了後はユーザーのemailVerifiedを更新
-
-### 集約の操作
-
-```typescript
-// トークン有効性確認
-token.isValid()
-
-// 使用済みマーク
-token.markAsUsed()
-
-// 有効期限チェック
-token.isExpired()
-```
-
-## 集約間の関係
-
-### 参照関係
-
-```
-User ← UserCredential (1:1)
-  ↑
-  ├── AuthSession (1:n)
-  ├── PasswordResetToken (1:0..1)
-  └── EmailVerificationToken (1:0..1)
+┌─────────────────┐     ┌─────────────────┐
+│ NextAuth Layer  │     │  Domain Layer   │
+├─────────────────┤     ├─────────────────┤
+│ • User          │<--->│ • User Aggregate│
+│ • Account       │  1:1│   - nextAuthId  │
+│ • Session       │     │   - profile     │
+│ • VerifyToken   │     │   - preferences │
+└─────────────────┘     └─────────────────┘
 ```
 
 ### 整合性保証
 
-1. **即時整合性（同一集約内）**
-
-   - 集約内の変更は同一トランザクションで完結
+1. **即時整合性（User集約内）**
+   - プロフィール更新は単一トランザクション
    - 不変条件は常に満たされる
+   - NextAuthIDの一意性は必須
 
-2. **結果整合性（集約間）**
-   - ユーザー削除時の関連データクリーンアップ
-   - セッション無効化の伝播
-   - ドメインイベントによる非同期処理
+2. **NextAuthとの同期**
+   - emailフィールドは常に同期
+   - NextAuthコールバックでリアルタイム同期
+   - 整合性チェックは定期バッチで実行
 
-## リポジトリとの対応
+## リポジトリとの対応（NextAuth統合版）
 
-各集約に対して1つのリポジトリが対応：
+### ドメイン層のリポジトリ
 
-| 集約                           | リポジトリ                       |
-| ------------------------------ | -------------------------------- |
-| ユーザー集約                   | UserRepository                   |
-| ユーザー認証情報集約           | UserCredentialRepository         |
-| 認証セッション集約             | AuthSessionRepository            |
-| パスワードリセットトークン集約 | PasswordResetTokenRepository     |
-| メール確認トークン集約         | EmailVerificationTokenRepository |
+| 集約         | リポジトリ     | 責務                               |
+| ------------ | -------------- | ---------------------------------- |
+| ユーザー集約 | UserRepository | ドメインユーザーの永続化と検索     |
 
-## 集約設計のベストプラクティス
+### NextAuth管理テーブル（直接アクセス禁止）
 
-### 1. 小さく保つ
+| テーブル            | 管理者          | アクセス方法          |
+| ------------------- | --------------- | --------------------- |
+| users               | Prisma Adapter  | NextAuth API経由      |
+| accounts            | Prisma Adapter  | NextAuth API経由      |
+| sessions            | Prisma Adapter  | useSession()フック    |
+| verification_tokens | Prisma Adapter  | NextAuth内部処理      |
 
-- 各集約は単一の責務に集中
-- パフォーマンスを考慮したサイズ設計
-- 必要以上に大きくしない
+## 集約設計のベストプラクティス（NextAuth統合版）
 
-### 2. IDによる参照
+### 1. 責任の明確な分離
 
-- 集約間は直接参照ではなくIDで参照
-- 遅延読み込みによるパフォーマンス最適化
-- 循環参照の回避
+- **NextAuthの責任**: 認証、セッション、トークン管理
+- **ドメインの責任**: ビジネスロジック、プロフィール管理
+- 重複実装を避け、各層の強みを活かす
+
+### 2. 統合ポイントの最小化
+
+- NextAuthとの統合はコールバックに集約
+- nextAuthIdによる疎結合な連携
+- 同期処理は必要最小限に留める
 
 ### 3. ドメインイベントの活用
 
-- 集約間の連携はイベント駆動
-- 非同期処理による疎結合
-- 監査ログとしても活用
+- NextAuth統合の成功/失敗を記録
+- プロフィール変更の監査ログ
+- 他コンテキストへの通知
 
-### 4. トランザクション境界
+### 4. エラーハンドリング戦略
 
-- 集約ごとに独立したトランザクション
-- 複数集約の更新は結果整合性で対応
-- Sagaパターンの適用検討
+- NextAuth統合エラーはユーザー体験を阻害しない
+- 非同期での復旧処理
+- データ整合性の定期チェック
 
-## パフォーマンス考慮
+## パフォーマンス考慮（NextAuth統合版）
 
 ### 読み込み戦略
 
-1. **集約の完全読み込み**
+1. **User集約の最適化**
+   - プロフィール情報は完全読み込み（小さいデータ）
+   - NextAuthIDによる高速検索（インデックス必須）
+   - 頻繁なアクセスパターンに対応
 
-   - 小さい集約は完全読み込み
-   - User、UserCredentialなど
-
-2. **部分読み込み**
-
-   - 大量データを持つ可能性がある集約
-   - AuthSession（履歴データ）
-
-3. **遅延読み込み**
-   - 関連集約は必要時のみ読み込み
-   - IDによる参照を活用
+2. **NextAuth統合の最適化**
+   - コールバック処理は50ms以内
+   - 重い処理は非同期実行
+   - 統合チェックはバックグラウンド
 
 ### キャッシュ戦略
 
-| 集約               | キャッシュ期間 | 無効化タイミング |
-| ------------------ | -------------- | ---------------- |
-| ユーザー集約       | 5分            | 更新時           |
-| 認証セッション集約 | 30秒           | 作成・無効化時   |
-| トークン系集約     | キャッシュなし | -                |
+| 対象                 | キャッシュ期間 | 無効化タイミング       |
+| -------------------- | -------------- | ---------------------- |
+| ユーザー基本情報     | 10分           | プロフィール更新時     |
+| NextAuthID検索結果   | 5分            | ユーザー作成時         |
+| プロフィール         | 5分            | 更新時即座に無効化     |
+
+### 統合パフォーマンス指標
+
+- NextAuth統合処理: 目標100ms以内
+- プロフィール更新: 目標50ms以内
+- 整合性チェック: 1日1回のバッチ処理
+
+## 実装例（NextAuth統合）
+
+### User集約の実装
+
+```typescript
+// ドメインエンティティ
+export class User {
+  private constructor(
+    private readonly id: UserId,
+    private readonly nextAuthId: string,
+    private email: Email,
+    private profile: UserProfile,
+    private preferences: UserPreferences,
+    private status: UserStatus,
+    private readonly createdAt: Date,
+    private updatedAt: Date,
+    private lastLoginAt?: Date
+  ) {}
+
+  // NextAuthユーザーから作成
+  static createFromNextAuth(params: {
+    nextAuthId: string;
+    email: string;
+    name?: string;
+  }): User {
+    return new User(
+      new UserId(generateUUID()),
+      params.nextAuthId,
+      new Email(params.email),
+      UserProfile.createDefault(params.name),
+      UserPreferences.default(),
+      UserStatus.active(),
+      new Date(),
+      new Date()
+    );
+  }
+
+  // NextAuthとの同期
+  syncWithNextAuth(nextAuthUser: NextAuthUser): void {
+    if (this.email.getValue() !== nextAuthUser.email) {
+      this.email = new Email(nextAuthUser.email);
+      this.updatedAt = new Date();
+    }
+  }
+
+  // プロフィール更新
+  updateProfile(newProfile: UserProfile): void {
+    this.profile = newProfile;
+    this.updatedAt = new Date();
+  }
+
+  // アカウント無効化
+  deactivate(reason: string): void {
+    if (this.status.isDeactivated()) {
+      throw new Error('Already deactivated');
+    }
+    this.status = UserStatus.deactivated();
+    this.updatedAt = new Date();
+  }
+}
+```
+
+### NextAuthコールバック統合
+
+```typescript
+// pages/api/auth/[...nextauth].ts
+export const authOptions: NextAuthOptions = {
+  providers: [
+    EmailProvider({
+      // Email Provider設定
+    })
+  ],
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      try {
+        // ドメインユーザーの作成または同期
+        await userIntegrationService.createOrSyncUser({
+          nextAuthId: user.id,
+          email: user.email!,
+          name: user.name
+        });
+        return true;
+      } catch (error) {
+        // エラーでもログインは継続（UX優先）
+        console.error('User integration failed:', error);
+        return true;
+      }
+    },
+    async session({ session, token }) {
+      // セッションにドメインユーザーIDを追加
+      const domainUser = await userRepository.findByNextAuthId(token.sub!);
+      if (domainUser) {
+        session.userId = domainUser.id.getValue();
+      }
+      return session;
+    }
+  }
+};
+```
 
 ## 更新履歴
 
-| 日付       | 内容     | 作成者 |
-| ---------- | -------- | ------ |
-| 2025-06-24 | 初版作成 | Claude |
+| 日付       | 内容                               | 作成者 |
+| ---------- | ---------------------------------- | ------ |
+| 2025-06-24 | 初版作成                           | Claude |
+| 2025-06-24 | NextAuth統合前提での全面再設計更新 | Claude |

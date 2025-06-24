@@ -1,172 +1,436 @@
-# 認証API
+# 認証API（NextAuth版）
 
 ## 概要
 
-ユーザー認証、セッション管理、パスワード管理を行うAPIです。Supabase Authenticationを基盤として、アプリケーション固有のビジネスロジックを実装しています。
+NextAuth.jsを使用した認証システムのAPIです。NextAuthが提供する標準エンドポイントと、アプリケーション固有のカスタムエンドポイントを組み合わせて実装しています。
 
 ### 認証・認可
 
-- 一部のエンドポイント（ログイン、登録、パスワードリセット要求）は認証不要
-- その他のエンドポイントは認証が必要
-- 認証方式: Bearer Token（Authorization ヘッダー）
+- NextAuth標準エンドポイントは認証不要
+- カスタムエンドポイントはNextAuthセッションが必要
+- 認証方式: NextAuthセッション（Cookieベース）
 
 ## エンドポイント一覧
 
-### 認証
+### NextAuth標準エンドポイント
 
-- `POST /api/v1/auth/register` - 新規ユーザー登録
-- `POST /api/v1/auth/login` - ログイン
-- `POST /api/v1/auth/logout` - ログアウト
-- `GET /api/v1/auth/session` - 現在のセッション確認
-- `POST /api/v1/auth/refresh` - セッションリフレッシュ
+- `GET/POST /api/auth/[...nextauth]` - NextAuth動的ルート
+  - `GET /api/auth/signin` - サインインページ
+  - `POST /api/auth/signin/email` - メールサインイン
+  - `GET /api/auth/signout` - サインアウトページ
+  - `POST /api/auth/signout` - サインアウト処理
+  - `GET /api/auth/session` - セッション取得
+  - `GET /api/auth/csrf` - CSRFトークン取得
+  - `GET /api/auth/callback/email` - Email Providerコールバック
+  - `GET /api/auth/verify-request` - 確認リクエストページ
+  - `GET /api/auth/error` - エラーページ
 
-### メール確認
+### カスタムエンドポイント
 
-- `POST /api/v1/auth/verify-email` - メールアドレス確認
-- `POST /api/v1/auth/resend-verification` - 確認メール再送信
-
-### パスワード管理
-
-- `POST /api/v1/auth/password/reset-request` - パスワードリセット要求
-- `POST /api/v1/auth/password/reset` - パスワードリセット実行
-- `PUT /api/v1/auth/password` - パスワード変更
+- `GET /api/v1/auth/check-integration` - NextAuth統合状態確認
+- `POST /api/v1/auth/sync-user` - ドメインユーザー同期
 
 ---
 
-## 新規ユーザー登録
+## NextAuthを使用した認証フロー
 
 ### 概要
 
-新規ユーザーアカウントを作成します。登録後、メールアドレス確認が必要です。
+NextAuth.jsのEmail Providerを使用したマジックリンク認証を実装しています。パスワードは使用せず、メールアドレスのみで認証を行います。
+
+### 認証フロー
+
+1. ユーザーがメールアドレスを入力
+2. NextAuthがマジックリンクをメール送信
+3. ユーザーがリンクをクリック
+4. NextAuthがセッションを作成
+5. ドメインユーザーが自動作成/同期
+
+### NextAuth設定例
+
+```typescript
+// pages/api/auth/[...nextauth].ts
+import NextAuth from 'next-auth'
+import EmailProvider from 'next-auth/providers/email'
+import { PrismaAdapter } from '@next-auth/prisma-adapter'
+import { prisma } from '@/lib/prisma'
+import { userIntegrationService } from '@/services/userIntegration'
+
+export const authOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    EmailProvider({
+      server: process.env.EMAIL_SERVER,
+      from: process.env.EMAIL_FROM,
+      maxAge: 24 * 60 * 60, // 24時間有効
+    }),
+  ],
+  callbacks: {
+    async signIn({ user, email }) {
+      // ドメインユーザーの作成/同期
+      try {
+        await userIntegrationService.createOrSyncUser({
+          nextAuthId: user.id,
+          email: user.email!,
+        })
+        return true
+      } catch (error) {
+        console.error('User integration failed:', error)
+        // UXを優先してログインは継続
+        return true
+      }
+    },
+    async session({ session, token }) {
+      // セッションにドメインユーザーIDを追加
+      const domainUser = await userRepository.findByNextAuthId(token.sub!)
+      if (domainUser) {
+        session.userId = domainUser.id.getValue()
+      }
+      return session
+    },
+  },
+  pages: {
+    signIn: '/auth/signin',
+    verifyRequest: '/auth/verify-request',
+    error: '/auth/error',
+  },
+}
+
+export default NextAuth(authOptions)
+```
+
+---
+
+## メールサインイン
+
+### 概要
+
+NextAuthのEmail Providerを使用してメールアドレスでサインインします。パスワードは不要で、メールに送信されたマジックリンクで認証します。
 
 ### エンドポイント情報
 
 - **メソッド**: `POST`
-- **パス**: `/api/v1/auth/register`
+- **パス**: `/api/auth/signin/email`
 - **認証**: 不要
-- **レート制限**: 1 IPあたり 5回/時間
+- **レート制限**: 1 メールアドレスあたり 5回/時間
 
 ### リクエスト
 
 #### リクエストボディ
 
 ```typescript
-interface RegisterRequest {
-  email: string // メールアドレス（必須、RFC5322準拠）
-  password: string // パスワード（必須、8文字以上、大小英数字含む）
-  displayName: string // 表示名（必須、1-50文字）
-  firstName?: string // 名（任意、0-50文字）
-  lastName?: string // 姓（任意、0-50文字）
+interface EmailSignInRequest {
+  email: string // メールアドレス（必須）
+  csrfToken: string // CSRFトークン（必須）
 }
 ```
 
-#### バリデーションルール
-
-- `email`: 有効なメールアドレス形式、システム内で一意
-- `password`: 8-128文字、大文字・小文字・数字を含む、一般的な脆弱パスワードは拒否
-- `displayName`: 1-50文字、特殊文字制限あり
-
 ### レスポンス
 
-#### 成功時（201 Created）
+#### 成功時（200 OK）
 
 ```typescript
-interface RegisterResponse {
-  data: {
-    userId: string
-    email: string
-    displayName: string
-    emailVerified: false
-    createdAt: string
-  }
-  meta: {
-    timestamp: string
-    message: 'ユーザー登録が完了しました。メールアドレスの確認をお願いします。'
-  }
+interface EmailSignInResponse {
+  ok: true
+  url: string // リダイレクトURL（/auth/verify-request）
 }
 ```
 
 #### エラーレスポンス
 
-- `400 Bad Request`: バリデーションエラー
-- `409 Conflict`: メールアドレスが既に使用されている
+- `400 Bad Request`: 無効なメールアドレス
 - `429 Too Many Requests`: レート制限超過
 
 ### 実装例
 
-#### cURL
-
-```bash
-curl -X POST https://api.example.com/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "SecurePass123",
-    "displayName": "田中太郎"
-  }'
-```
-
-#### TypeScript (Fetch API)
+#### TypeScript (Next.js)
 
 ```typescript
-const response = await fetch('/api/v1/auth/register', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'SecurePass123',
-    displayName: '田中太郎',
-  }),
-})
+import { getCsrfToken, signIn } from 'next-auth/react'
+
+const handleEmailSignIn = async (email: string) => {
+  const csrfToken = await getCsrfToken()
+  
+  const result = await signIn('email', {
+    email,
+    redirect: false,
+  })
+  
+  if (result?.ok) {
+    // メール確認ページへリダイレクト
+    router.push('/auth/verify-request')
+  }
+}
 ```
 
 ---
 
-## ログイン
+## サインアウト
 
 ### 概要
 
-メールアドレスとパスワードでログインし、認証セッションを作成します。
+NextAuthのセッションを無効化し、サインアウトします。
 
 ### エンドポイント情報
 
 - **メソッド**: `POST`
-- **パス**: `/api/v1/auth/login`
-- **認証**: 不要
-- **レート制限**: 1 IPあたり 10回/分
+- **パス**: `/api/auth/signout`
+- **認証**: 必要（NextAuthセッション）
 
 ### リクエスト
 
 #### リクエストボディ
 
 ```typescript
-interface LoginRequest {
-  email: string // メールアドレス（必須）
-  password: string // パスワード（必須）
+interface SignOutRequest {
+  csrfToken: string // CSRFトークン（必須）
 }
 ```
+
+### レスポンス
+
+NextAuthはサインアウト後にリダイレクトします。
+
+### 実装例
+
+#### TypeScript (Next.js)
+
+```typescript
+import { signOut } from 'next-auth/react'
+
+const handleSignOut = async () => {
+  await signOut({
+    redirect: true,
+    callbackUrl: '/'
+  })
+}
+```
+
+---
+
+## セッション取得
+
+### 概要
+
+現在のNextAuthセッション情報を取得します。クライアントサイドではuseSessionフックの使用を推奨します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/auth/session`
+- **認証**: 不要（Cookieベース）
+
+### レスポンス
+
+#### 認証済み時（200 OK）
+
+```typescript
+interface NextAuthSession {
+  user: {
+    email: string
+    id: string // NextAuthユーザーID
+    userId?: string // ドメインユーザーID（カスタム）
+  }
+  expires: string // セッション有効期限
+}
+```
+
+#### 未認証時（200 OK）
+
+```typescript
+null
+```
+
+### 実装例
+
+#### TypeScript (クライアント)
+
+```typescript
+import { useSession } from 'next-auth/react'
+
+function MyComponent() {
+  const { data: session, status } = useSession()
+  
+  if (status === 'loading') {
+    return <div>読み込み中...</div>
+  }
+  
+  if (status === 'unauthenticated') {
+    return <div>ログインしてください</div>
+  }
+  
+  return <div>ようこそ、{session?.user?.email}</div>
+}
+```
+
+#### TypeScript (サーバー)
+
+```typescript
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/pages/api/auth/[...nextauth]'
+
+export async function getServerSideProps(context) {
+  const session = await getServerSession(context.req, context.res, authOptions)
+  
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/auth/signin',
+        permanent: false,
+      },
+    }
+  }
+  
+  return {
+    props: { session },
+  }
+}
+```
+
+---
+
+## メール認証コールバック
+
+### 概要
+
+NextAuthのEmail Providerが送信したマジックリンクからのコールバックを処理します。このエンドポイントはNextAuthが自動的に処理します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/auth/callback/email`
+- **認証**: 不要
+
+### クエリパラメータ
+
+| パラメータ | 型     | 必須 | 説明                           |
+| ---------- | ------ | ---- | ------------------------------ |
+| token      | string | ○    | メールリンクに含まれるトークン |
+| email      | string | ○    | メールアドレス                 |
+
+### 処理フロー
+
+1. NextAuthがトークンを検証
+2. 有効な場合、セッションを作成
+3. signInコールバックでドメインユーザーを作成/同期
+4. アプリケーションへリダイレクト
+
+---
+
+## NextAuth統合状態確認
+
+### 概要
+
+NextAuthユーザーとドメインユーザーの統合状態を確認します。データ整合性の確認やデバッグに使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/auth/check-integration`
+- **認証**: 必要（NextAuthセッション）
 
 ### レスポンス
 
 #### 成功時（200 OK）
 
 ```typescript
-interface LoginResponse {
+interface IntegrationCheckResponse {
   data: {
-    session: {
-      accessToken: string // アクセストークン
-      refreshToken: string // リフレッシュトークン
-      expiresAt: string // 有効期限（ISO 8601形式）
-    }
-    user: {
+    integrated: boolean // 統合状態
+    nextAuthUser: {
       id: string
       email: string
-      displayName: string
-      emailVerified: boolean
-      lastLoginAt: string
+      emailVerified: Date | null
     }
+    domainUser?: {
+      id: string
+      email: string
+      profile: UserProfile
+      status: string
+      createdAt: Date
+    }
+    issues: string[] // 問題がある場合のリスト
+  }
+  meta: {
+    timestamp: string
+  }
+}
+```
+
+### 実装例
+
+```typescript
+// pages/api/v1/auth/check-integration.ts
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/pages/api/auth/[...nextauth]'
+import { userRepository } from '@/repositories/user'
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).end()
+  }
+
+  const session = await getServerSession(req, res, authOptions)
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const nextAuthUser = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  })
+
+  const domainUser = await userRepository.findByNextAuthId(session.user.id)
+
+  const issues = []
+  if (!domainUser) {
+    issues.push('Domain user not found')
+  } else if (domainUser.email !== nextAuthUser.email) {
+    issues.push('Email mismatch')
+  }
+
+  res.json({
+    data: {
+      integrated: !!domainUser && issues.length === 0,
+      nextAuthUser,
+      domainUser,
+      issues
+    },
+    meta: {
+      timestamp: new Date().toISOString()
+    }
+  })
+}
+```
+
+---
+
+## ドメインユーザー同期
+
+### 概要
+
+NextAuthユーザーとドメインユーザーを手動で同期します。通常は自動で同期されますが、エラー復旧時に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/auth/sync-user`
+- **認証**: 必要（NextAuthセッション）
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface SyncUserResponse {
+  data: {
+    message: 'ユーザー情報を同期しました'
+    domainUser: {
+      id: string
+      email: string
+      profile: UserProfile
+      status: string
+    }
+    syncedFields: string[] // 同期されたフィールド
   }
   meta: {
     timestamp: string
@@ -176,418 +440,108 @@ interface LoginResponse {
 
 #### エラーレスポンス
 
-- `401 Unauthorized`: 認証情報が無効
-- `403 Forbidden`: アカウントが無効化されている
-- `422 Unprocessable Entity`: メールアドレスが未確認
-- `429 Too Many Requests`: ログイン試行回数超過
+- `401 Unauthorized`: 認証エラー
+- `500 Internal Server Error`: 同期処理エラー
 
-### セキュリティ考慮事項
-
-- 連続ログイン失敗時は指数バックオフを適用
-- 5回連続失敗で一時的にアカウントロック（15分間）
-- ログイン成功/失敗はすべて監査ログに記録
-
----
-
-## ログアウト
-
-### 概要
-
-現在のセッションを無効化し、ログアウトします。
-
-### エンドポイント情報
-
-- **メソッド**: `POST`
-- **パス**: `/api/v1/auth/logout`
-- **認証**: 必要
-
-### リクエスト
-
-ヘッダーに認証トークンのみ必要。ボディは不要。
-
-### レスポンス
-
-#### 成功時（200 OK）
+### 実装例
 
 ```typescript
-interface LogoutResponse {
-  data: {
-    message: 'ログアウトしました'
+// pages/api/v1/auth/sync-user.ts
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/pages/api/auth/[...nextauth]'
+import { userIntegrationService } from '@/services/userIntegration'
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).end()
   }
-  meta: {
-    timestamp: string
+
+  const session = await getServerSession(req, res, authOptions)
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
-}
-```
 
----
+  try {
+    const result = await userIntegrationService.syncUser({
+      nextAuthId: session.user.id,
+      email: session.user.email!
+    })
 
-## 現在のセッション確認
-
-### 概要
-
-現在の認証セッションの状態と、認証されているユーザーの情報を取得します。
-
-### エンドポイント情報
-
-- **メソッド**: `GET`
-- **パス**: `/api/v1/auth/session`
-- **認証**: 必要
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface SessionResponse {
-  data: {
-    session: {
-      id: string
-      userId: string
-      expiresAt: string
-      createdAt: string
-      ipAddress: string
-      userAgent: string
-    }
-    user: {
-      id: string
-      email: string
-      displayName: string
-      emailVerified: boolean
-      profile: {
-        firstName?: string
-        lastName?: string
+    res.json({
+      data: {
+        message: 'ユーザー情報を同期しました',
+        domainUser: result.user,
+        syncedFields: result.syncedFields
+      },
+      meta: {
+        timestamp: new Date().toISOString()
       }
-    }
-  }
-  meta: {
-    timestamp: string
+    })
+  } catch (error) {
+    res.status(500).json({
+      error: {
+        code: 'SYNC_FAILED',
+        message: '同期処理に失敗しました'
+      }
+    })
   }
 }
 ```
-
-#### エラーレスポンス
-
-- `401 Unauthorized`: 無効または期限切れのセッション
 
 ---
 
-## メールアドレス確認
+## NextAuthページ説明
 
-### 概要
+### サインインページ
 
-登録時に送信された確認トークンを使用して、メールアドレスを確認します。
+- **パス**: `/auth/signin`
+- **説明**: メールアドレス入力フォームを表示
 
-### エンドポイント情報
+### 確認リクエストページ
 
-- **メソッド**: `POST`
-- **パス**: `/api/v1/auth/verify-email`
-- **認証**: 不要
+- **パス**: `/auth/verify-request`
+- **説明**: マジックリンク送信後の確認画面
 
-### リクエスト
+### エラーページ
 
-#### リクエストボディ
+- **パス**: `/auth/error`
+- **説明**: 認証エラー時の表示
 
-```typescript
-interface VerifyEmailRequest {
-  token: string // メール確認トークン（必須）
-}
-```
-
-### レスポンス
-
-#### 成功時（200 OK）
+### カスタムページの実装例
 
 ```typescript
-interface VerifyEmailResponse {
-  data: {
-    message: 'メールアドレスが確認されました'
-    userId: string
-    email: string
-  }
-  meta: {
-    timestamp: string
+// pages/auth/signin.tsx
+import { getCsrfToken } from 'next-auth/react'
+
+export default function SignIn({ csrfToken }) {
+  return (
+    <form method="post" action="/api/auth/signin/email">
+      <input name="csrfToken" type="hidden" defaultValue={csrfToken} />
+      <label>
+        メールアドレス
+        <input name="email" type="email" required />
+      </label>
+      <button type="submit">マジックリンクを送信</button>
+    </form>
+  )
+}
+
+export async function getServerSideProps(context) {
+  const csrfToken = await getCsrfToken(context)
+  return {
+    props: { csrfToken },
   }
 }
 ```
-
-#### エラーレスポンス
-
-- `400 Bad Request`: 無効なトークン
-- `410 Gone`: 期限切れのトークン
-- `409 Conflict`: 既に確認済み
 
 ---
 
-## 確認メール再送信
-
-### 概要
-
-メールアドレス確認メールを再送信します。
-
-### エンドポイント情報
-
-- **メソッド**: `POST`
-- **パス**: `/api/v1/auth/resend-verification`
-- **認証**: 必要
-- **レート制限**: 1ユーザーあたり 3回/時間
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface ResendVerificationResponse {
-  data: {
-    message: '確認メールを送信しました'
-    email: string
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `409 Conflict`: 既にメールアドレス確認済み
-- `429 Too Many Requests`: 送信制限超過
 
 ---
 
-## パスワードリセット要求
-
-### 概要
-
-パスワードリセット用のトークンを生成し、メールで送信します。
-
-### エンドポイント情報
-
-- **メソッド**: `POST`
-- **パス**: `/api/v1/auth/password/reset-request`
-- **認証**: 不要
-- **レート制限**: 1メールアドレスあたり 3回/時間
-
-### リクエスト
-
-#### リクエストボディ
-
-```typescript
-interface PasswordResetRequestRequest {
-  email: string // メールアドレス（必須）
-}
-```
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-セキュリティのため、メールアドレスの存在有無に関わらず同じレスポンスを返します。
-
-```typescript
-interface PasswordResetRequestResponse {
-  data: {
-    message: 'パスワードリセット用のメールを送信しました（登録されている場合）'
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `429 Too Many Requests`: リクエスト制限超過
 
 ---
 
-## パスワードリセット実行
-
-### 概要
-
-メールで送信されたトークンを使用して、新しいパスワードを設定します。
-
-### エンドポイント情報
-
-- **メソッド**: `POST`
-- **パス**: `/api/v1/auth/password/reset`
-- **認証**: 不要
-
-### リクエスト
-
-#### リクエストボディ
-
-```typescript
-interface PasswordResetRequest {
-  token: string // リセットトークン（必須）
-  newPassword: string // 新しいパスワード（必須、バリデーションルールは登録時と同じ）
-}
-```
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface PasswordResetResponse {
-  data: {
-    message: 'パスワードがリセットされました'
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `400 Bad Request`: 無効なトークンまたはパスワード
-- `410 Gone`: 期限切れのトークン
-
-### セキュリティ考慮事項
-
-- パスワードリセット完了時、全セッションを無効化
-- 確認メールを送信
-
----
-
-## パスワードリセットトークン検証
-
-### 概要
-
-パスワードリセット画面表示前に、トークンの有効性を確認します。
-
-### エンドポイント情報
-
-- **メソッド**: `GET`
-- **パス**: `/api/v1/auth/verify-reset-token`
-- **認証**: 不要
-
-### リクエスト
-
-#### クエリパラメータ
-
-| パラメータ | 型     | 必須 | 説明             |
-| ---------- | ------ | ---- | ---------------- |
-| token      | string | ○    | リセットトークン |
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface VerifyResetTokenResponse {
-  data: {
-    valid: boolean // トークンの有効性
-    email?: string // 有効な場合のみ、マスクされたメールアドレス（例: "u***@example.com"）
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `400 Bad Request`: トークンパラメータが不足
-
----
-
-## メールアドレス重複チェック
-
-### 概要
-
-新規登録時に、メールアドレスが既に使用されているかをチェックします。
-
-### エンドポイント情報
-
-- **メソッド**: `GET`
-- **パス**: `/api/v1/auth/check-email`
-- **認証**: 不要
-- **レート制限**: 1IPあたり 10回/分
-
-### リクエスト
-
-#### クエリパラメータ
-
-| パラメータ | 型     | 必須 | 説明                       |
-| ---------- | ------ | ---- | -------------------------- |
-| email      | string | ○    | チェックするメールアドレス |
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface CheckEmailResponse {
-  data: {
-    available: boolean // true: 使用可能、false: 既に使用中
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `400 Bad Request`: 無効なメールアドレス形式
-- `429 Too Many Requests`: レート制限超過
-
-### セキュリティ考慮事項
-
-- タイミング攻撃を防ぐため、レスポンス時間を一定に保つ
-- 過度な情報開示を防ぐため、最小限の情報のみ返す
-
----
-
-## パスワード変更
-
-### 概要
-
-現在のパスワードを確認した上で、新しいパスワードに変更します。
-
-### エンドポイント情報
-
-- **メソッド**: `PUT`
-- **パス**: `/api/v1/auth/password`
-- **認証**: 必要
-
-### リクエスト
-
-#### リクエストボディ
-
-```typescript
-interface ChangePasswordRequest {
-  currentPassword: string // 現在のパスワード（必須）
-  newPassword: string // 新しいパスワード（必須、バリデーションルールは登録時と同じ）
-}
-```
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface ChangePasswordResponse {
-  data: {
-    message: 'パスワードが変更されました'
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `401 Unauthorized`: 現在のパスワードが無効
-- `400 Bad Request`: 新しいパスワードがバリデーションエラー
-
-### セキュリティ考慮事項
-
-- パスワード変更後、現在のセッション以外を無効化
-- 変更通知メールを送信
 
 ---
 
@@ -631,24 +585,26 @@ interface ErrorResponse {
 
 ## 実装上の注意事項
 
-1. **Supabase Authとの統合**
+1. **NextAuthとの統合**
 
-   - すべての認証操作はSupabase Authを通じて実行
-   - ローカルDBとSupabaseの整合性を保つ
+   - NextAuthの標準機能を最大限活用
+   - カスタマイズは必要最小限に留める
+   - ドメインユーザーとの整合性を保つ
 
 2. **セキュリティ**
 
-   - パスワードは絶対にログに記録しない
-   - センシティブな情報は最小限に
-   - タイミング攻撃対策の実装
+   - NextAuthのセキュリティベストプラクティスに従う
+   - CSRF保護を必ず有効化
+   - セッションCookieはhttpOnly、secure、sameSiteを設定
 
 3. **パフォーマンス**
-   - セッション検証結果は短時間キャッシュ
-   - 認証チェックは非同期で実行
+   - NextAuthセッションはCookieベースで高速
+   - ドメインユーザーの統合は非同期で実行
+   - useSessionフックのキャッシュを活用
 
 ## 更新履歴
 
-| 日付       | 内容                                               | 作成者 |
-| ---------- | -------------------------------------------------- | ------ |
-| 2025-06-24 | 初版作成                                           | Claude |
-| 2025-06-24 | メールアドレス重複チェックAPIとトークン検証API追加 | Claude |
+| 日付       | 内容                               | 作成者 |
+| ---------- | ---------------------------------- | ------ |
+| 2025-06-24 | 初版作成                           | Claude |
+| 2025-06-24 | NextAuth統合前提での全面再設計更新 | Claude |
