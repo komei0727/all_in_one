@@ -15,8 +15,10 @@ interface CreateIngredientCommandProps {
     type: StorageType
     detail?: string
   }
-  bestBeforeDate?: string
-  expiryDate?: string
+  expiryInfo?: {
+    bestBeforeDate?: string | null
+    useByDate?: string | null
+  } | null
   purchaseDate: string
   price?: number
   memo?: string
@@ -99,17 +101,34 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
   }
 
   /**
+   * 期限情報を設定
+   */
+  withExpiryInfo(
+    expiryInfo?: { bestBeforeDate?: string | null; useByDate?: string | null } | null
+  ): this {
+    return this.with('expiryInfo', expiryInfo)
+  }
+
+  /**
    * 賞味期限を設定
    */
-  withBestBeforeDate(date: string): this {
-    return this.with('bestBeforeDate', date)
+  withBestBeforeDate(date: string | null): this {
+    const current = this.props.expiryInfo || {}
+    return this.with('expiryInfo', {
+      ...current,
+      bestBeforeDate: date,
+    })
   }
 
   /**
    * 消費期限を設定
    */
-  withExpiryDate(date: string): this {
-    return this.with('expiryDate', date)
+  withUseByDate(date: string | null): this {
+    const current = this.props.expiryInfo || {}
+    return this.with('expiryInfo', {
+      ...current,
+      useByDate: date,
+    })
   }
 
   /**
@@ -156,7 +175,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
       .withStorageLocation({ type: StorageType.FROZEN })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())
-      .withExpiryDate(testDataHelpers.dateStringFromNow(30))
+      .withUseByDate(testDataHelpers.dateStringFromNow(30))
   }
 
   /**
@@ -178,8 +197,10 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
       .withStorageLocation({ type: StorageType.REFRIGERATED, detail: '野菜室' })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())
-      .withBestBeforeDate(testDataHelpers.dateStringFromNow(7))
-      .withExpiryDate(testDataHelpers.dateStringFromNow(10))
+      .withExpiryInfo({
+        bestBeforeDate: testDataHelpers.dateStringFromNow(7),
+        useByDate: testDataHelpers.dateStringFromNow(4),
+      })
       .withRandomMemo()
   }
 

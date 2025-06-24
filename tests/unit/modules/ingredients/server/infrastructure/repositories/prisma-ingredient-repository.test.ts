@@ -13,6 +13,7 @@ import {
   StorageLocation,
   StorageType,
   Price,
+  ExpiryInfo,
 } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 
@@ -59,10 +60,10 @@ describe('PrismaIngredientRepository', () => {
     id: 'clh1234567890abcdefghij',
     quantity: 2,
     unitId: '550e8400-e29b-41d4-a716-446655440002',
-    storageLocationType: 'REFRIGERATOR',
+    storageLocationType: 'REFRIGERATED',
     storageLocationDetail: '野菜室',
-    bestBeforeDate: new Date('2024-01-10'),
-    expiryDate: new Date('2024-01-15'),
+    bestBeforeDate: new Date('2024-01-15'),
+    expiryDate: new Date('2024-01-10'),
     purchaseDate: new Date('2024-01-01'),
     price: new Prisma.Decimal(300),
     isActive: true,
@@ -92,8 +93,10 @@ describe('PrismaIngredientRepository', () => {
         quantity: new Quantity(2),
         unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
-        bestBeforeDate: new Date('2024-01-10'),
-        expiryDate: new Date('2024-01-15'),
+        expiryInfo: new ExpiryInfo({
+          bestBeforeDate: new Date('2024-01-15'),
+          useByDate: new Date('2024-01-10'),
+        }),
         purchaseDate: new Date('2024-01-01'),
         price: new Price(300),
       })

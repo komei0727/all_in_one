@@ -158,8 +158,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(new Date().toISOString())
-        .withBestBeforeDate(undefined as any)
-        .withExpiryDate(undefined as any)
+        .withExpiryInfo(null)
         .build()
 
       // When: ハンドラーを実行
@@ -167,8 +166,8 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
       // Then: 期限がnullで作成される
       const stock = result.getCurrentStock()
-      expect(stock?.getBestBeforeDate()).toBeNull()
-      expect(stock?.getExpiryDate()).toBeNull()
+      expect(stock?.getExpiryInfo().getBestBeforeDate()).toBeNull()
+      expect(stock?.getExpiryInfo().getUseByDate()).toBeNull()
     })
 
     it('全ての保管場所タイプで食材を作成できる', async () => {

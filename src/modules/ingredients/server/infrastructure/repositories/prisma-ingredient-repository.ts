@@ -14,6 +14,7 @@ import {
   StorageLocation,
   StorageType,
   UnitId,
+  ExpiryInfo,
 } from '../../domain/value-objects'
 
 /**
@@ -60,8 +61,8 @@ export class PrismaIngredientRepository implements IngredientRepository {
             unitId: stock.getUnitId().getValue(),
             storageLocationType: stock.getStorageLocation().getType(),
             storageLocationDetail: stock.getStorageLocation().getDetail() || null,
-            bestBeforeDate: stock.getBestBeforeDate(),
-            expiryDate: stock.getExpiryDate(),
+            bestBeforeDate: stock.getExpiryInfo().getBestBeforeDate(),
+            expiryDate: stock.getExpiryInfo().getUseByDate(),
             purchaseDate: stock.getPurchaseDate(),
             price: stock.getPrice() ? new Prisma.Decimal(stock.getPrice()!.getValue()) : null,
             isActive: true,
@@ -249,8 +250,10 @@ export class PrismaIngredientRepository implements IngredientRepository {
         data.storageLocationType as StorageType,
         data.storageLocationDetail || undefined
       ),
-      bestBeforeDate: data.bestBeforeDate,
-      expiryDate: data.expiryDate,
+      expiryInfo: new ExpiryInfo({
+        bestBeforeDate: data.bestBeforeDate,
+        useByDate: data.expiryDate,
+      }),
       purchaseDate: data.purchaseDate,
       price: data.price !== null ? new Price(data.price.toNumber()) : null,
       isActive: data.isActive,

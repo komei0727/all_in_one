@@ -8,17 +8,19 @@ import {
   StorageType,
 } from '@/modules/ingredients/server/domain/value-objects'
 
-import { IngredientStockBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientStockBuilder, ExpiryInfoBuilder } from '../../../../../../__fixtures__/builders'
 
 describe('IngredientStock', () => {
   describe('constructor', () => {
     it('在庫を作成できる', () => {
       // Arrange
+      // ビルダーを使用してランダムな有効な期限情報を作成
+      const expiryInfo = new ExpiryInfoBuilder().withRandomValidDates().build()
+
       const stock = new IngredientStockBuilder()
         .withQuantity(3)
         .withStorageType(StorageType.REFRIGERATED, '野菜室')
-        .withFutureBestBeforeDate(10) // 10日後
-        .withFutureExpiryDate(15) // 15日後
+        .withExpiryInfo(expiryInfo)
         .withPurchasedDaysAgo(11) // 11日前に購入
         .withPrice(300)
         .build()
@@ -28,25 +30,26 @@ describe('IngredientStock', () => {
       expect(stock.getUnitId()).toBeInstanceOf(UnitId)
       expect(stock.getStorageLocation().getType()).toBe(StorageType.REFRIGERATED)
       expect(stock.getStorageLocation().getDetail()).toBe('野菜室')
-      expect(stock.getBestBeforeDate()).toBeInstanceOf(Date)
-      expect(stock.getExpiryDate()).toBeInstanceOf(Date)
+      expect(stock.getExpiryInfo()).toEqual(expiryInfo)
       expect(stock.getPurchaseDate()).toBeInstanceOf(Date)
       expect(stock.getPrice()?.getValue()).toBe(300)
     })
 
-    it('賞味期限・消費期限・価格なしで在庫を作成できる', () => {
+    it('期限情報・価格なしで在庫を作成できる', () => {
       // Arrange
+      // 期限情報なしの場合
+      const expiryInfo = new ExpiryInfoBuilder().build()
+
       const stock = new IngredientStockBuilder()
         .withQuantity(3)
         .withStorageType(StorageType.ROOM_TEMPERATURE)
-        .withBestBeforeDate(null)
-        .withExpiryDate(null)
+        .withExpiryInfo(expiryInfo)
         .withoutPrice()
         .build()
 
       // Assert
-      expect(stock.getBestBeforeDate()).toBeNull()
-      expect(stock.getExpiryDate()).toBeNull()
+      expect(stock.getExpiryInfo().getBestBeforeDate()).toBeNull()
+      expect(stock.getExpiryInfo().getUseByDate()).toBeNull()
       expect(stock.getPrice()).toBeNull()
     })
   })
@@ -102,10 +105,9 @@ describe('IngredientStock', () => {
   describe('isExpired', () => {
     it('賞味期限切れの場合trueを返す', () => {
       // Arrange
-      const stock = new IngredientStockBuilder()
-        .withPastBestBeforeDate(-365) // 1年前の賞味期限
-        .withPastExpiryDate(-360) // 360日前の消費期限
-        .build()
+      // 期限切れの期限情報を作成
+      const expiryInfo = new ExpiryInfoBuilder().withExpiredDates().build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act & Assert
       expect(stock.isExpired()).toBe(true)
@@ -113,10 +115,9 @@ describe('IngredientStock', () => {
 
     it('賞味期限内の場合falseを返す', () => {
       // Arrange
-      const stock = new IngredientStockBuilder()
-        .withFutureBestBeforeDate(365) // 1年後の賞味期限
-        .withFutureExpiryDate(370) // 370日後の消費期限
-        .build()
+      // ランダムな将来の有効な期限情報を作成
+      const expiryInfo = new ExpiryInfoBuilder().withRandomValidDates().build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act & Assert
       expect(stock.isExpired()).toBe(false)
@@ -124,14 +125,19 @@ describe('IngredientStock', () => {
 
     it('賞味期限がnullの場合、消費期限で判定する', () => {
       // Arrange
-      const expiredStock = new IngredientStockBuilder()
+      // 過去の消費期限のみを持つ期限情報
+      const expiredExpiryInfo = new ExpiryInfoBuilder()
         .withBestBeforeDate(null)
-        .withPastExpiryDate(-365) // 1年前の消費期限
+        .withRandomPastUseByDate()
         .build()
-      const freshStock = new IngredientStockBuilder()
+      const expiredStock = new IngredientStockBuilder().withExpiryInfo(expiredExpiryInfo).build()
+
+      // 将来の消費期限のみを持つ期限情報
+      const freshExpiryInfo = new ExpiryInfoBuilder()
         .withBestBeforeDate(null)
-        .withFutureExpiryDate(365) // 1年後の消費期限
+        .withRandomFutureUseByDate()
         .build()
+      const freshStock = new IngredientStockBuilder().withExpiryInfo(freshExpiryInfo).build()
 
       // Act & Assert
       expect(expiredStock.isExpired()).toBe(true)
@@ -140,10 +146,9 @@ describe('IngredientStock', () => {
 
     it('賞味期限と消費期限が両方nullの場合falseを返す', () => {
       // Arrange
-      const stock = new IngredientStockBuilder()
-        .withBestBeforeDate(null)
-        .withExpiryDate(null)
-        .build()
+      // 期限情報なし
+      const expiryInfo = new ExpiryInfoBuilder().build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act & Assert
       expect(stock.isExpired()).toBe(false)
@@ -153,55 +158,56 @@ describe('IngredientStock', () => {
   describe('getDaysUntilExpiry', () => {
     it('賞味期限までの日数を返す', () => {
       // Arrange
-      const today = new Date()
-      const futureDate = new Date(today)
-      futureDate.setDate(today.getDate() + 10)
-      const stock = new IngredientStockBuilder().withBestBeforeDate(futureDate).build()
+      const days = 10
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDaysFromNow(days)
+        .withUseByDate(null)
+        .build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act
-      const days = stock.getDaysUntilExpiry()
+      const result = stock.getDaysUntilExpiry()
 
       // Assert
-      expect(days).toBe(10)
+      expect(result).toBe(days)
     })
 
     it('賞味期限が過ぎている場合、負の値を返す', () => {
       // Arrange
-      const today = new Date()
-      const pastDate = new Date(today)
-      pastDate.setDate(today.getDate() - 5)
-      const stock = new IngredientStockBuilder().withBestBeforeDate(pastDate).build()
+      const daysAgo = -5
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDaysFromNow(daysAgo)
+        .withUseByDate(null)
+        .build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act
-      const days = stock.getDaysUntilExpiry()
+      const result = stock.getDaysUntilExpiry()
 
       // Assert
-      expect(days).toBe(-5)
+      expect(result).toBe(daysAgo)
     })
 
     it('賞味期限がnullの場合、消費期限までの日数を返す', () => {
       // Arrange
-      const today = new Date()
-      const futureDate = new Date(today)
-      futureDate.setDate(today.getDate() + 15)
-      const stock = new IngredientStockBuilder()
+      const days = 15
+      const expiryInfo = new ExpiryInfoBuilder()
         .withBestBeforeDate(null)
-        .withExpiryDate(futureDate)
+        .withUseByDaysFromNow(days)
         .build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act
-      const days = stock.getDaysUntilExpiry()
+      const result = stock.getDaysUntilExpiry()
 
       // Assert
-      expect(days).toBe(15)
+      expect(result).toBe(days)
     })
 
     it('賞味期限と消費期限が両方nullの場合、nullを返す', () => {
       // Arrange
-      const stock = new IngredientStockBuilder()
-        .withBestBeforeDate(null)
-        .withExpiryDate(null)
-        .build()
+      const expiryInfo = new ExpiryInfoBuilder().build()
+      const stock = new IngredientStockBuilder().withExpiryInfo(expiryInfo).build()
 
       // Act
       const days = stock.getDaysUntilExpiry()
@@ -322,7 +328,7 @@ describe('IngredientStock', () => {
         .withQuantity(3)
         .withStorageType(StorageType.REFRIGERATED, '野菜室')
         .withFutureBestBeforeDate(10)
-        .withFutureExpiryDate(15)
+        .withFutureExpiryDate(5)
         .withPurchasedDaysAgo(11)
         .withPrice(300)
 
@@ -345,7 +351,7 @@ describe('IngredientStock', () => {
         .withQuantity(3)
         .withStorageType(StorageType.REFRIGERATED, '野菜室')
         .withFutureBestBeforeDate(10)
-        .withFutureExpiryDate(15)
+        .withFutureExpiryDate(5)
         .withPurchasedDaysAgo(11)
         .withPrice(300)
 

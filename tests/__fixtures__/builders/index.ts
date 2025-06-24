@@ -19,6 +19,7 @@ export {
   UnitNameBuilder,
   UnitSymbolBuilder,
   DisplayOrderBuilder,
+  ExpiryInfoBuilder,
 } from './value-objects'
 
 // エンティティビルダー

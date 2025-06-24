@@ -117,7 +117,7 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
   withExpiredStock(): this {
     const stock = new IngredientStockBuilder()
       .withPastBestBeforeDate() // 賞味期限を過去に設定
-      .withExpiryDate(null) // 消費期限はなし
+      .withUseByDate(null) // 消費期限はなし
       .build()
     return this.with('currentStock', stock)
   }

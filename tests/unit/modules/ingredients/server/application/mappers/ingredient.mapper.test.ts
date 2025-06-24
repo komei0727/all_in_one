@@ -31,7 +31,7 @@ describe('IngredientMapper', () => {
         .withUnitId(unit.getId())
         .withRefrigeratedStorage('野菜室')
         .withFutureBestBeforeDate(10)
-        .withFutureExpiryDate(15)
+        .withFutureExpiryDate(5)
         .withPurchasedToday()
         .withPrice(150)
         .build()
