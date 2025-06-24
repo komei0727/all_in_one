@@ -8,68 +8,55 @@
 
 ### ingredients（食材）テーブル
 
-食材エンティティを管理するメインテーブル。集約ルートとして機能します。
-
-| カラム名    | 型        | 制約                                    | 説明                                 |
-| ----------- | --------- | --------------------------------------- | ------------------------------------ |
-| id          | TEXT      | PRIMARY KEY                             | CUID形式の一意識別子                 |
-| name        | TEXT      | NOT NULL                                | 食材名                               |
-| category_id | TEXT      | NOT NULL, FOREIGN KEY (CASCADE制約付き) | カテゴリーID                         |
-| memo        | TEXT      | NULL                                    | メモ                                 |
-| created_at  | TIMESTAMP | NOT NULL DEFAULT NOW()                  | 作成日時                             |
-| updated_at  | TIMESTAMP | NOT NULL                                | 更新日時                             |
-| deleted_at  | TIMESTAMP | NULL                                    | 論理削除日時                         |
-| created_by  | TEXT      | NULL                                    | 作成ユーザーID                       |
-| updated_by  | TEXT      | NOT NULL                                | 更新ユーザーID（監査証跡のため必須） |
-
-**ユニーク制約**:
-
-- `[name, category_id, deleted_at]` - 同一カテゴリー内での食材名の重複を防ぐ
-
-**インデックス**:
-
-- `idx_ingredients_category_id` - カテゴリー別検索の高速化
-- `idx_ingredients_deleted_at` - 論理削除フィルタリング
-- `idx_ingredients_name_deleted` - 食材名検索（削除済み除外）
-
-### ingredient_stocks（食材在庫）テーブル
-
-食材の在庫情報を管理するテーブル。食材ごとに複数の在庫を管理可能です。
+食材エンティティを管理するメインテーブル。集約ルートとして機能し、在庫情報も含みます。
 
 | カラム名                | 型            | 制約                                     | 説明                                            |
 | ----------------------- | ------------- | ---------------------------------------- | ----------------------------------------------- |
 | id                      | TEXT          | PRIMARY KEY                              | CUID形式の一意識別子                            |
-| ingredient_id           | TEXT          | NOT NULL, FOREIGN KEY (CASCADE制約付き)  | 食材ID                                          |
-| quantity                | FLOAT         | NOT NULL                                 | 現在の在庫数量                                  |
+| user_id                 | TEXT          | NOT NULL                                 | ユーザーID（所有者）                            |
+| name                    | TEXT          | NOT NULL                                 | 食材名                                          |
+| category_id             | TEXT          | NOT NULL, FOREIGN KEY (RESTRICT制約付き) | カテゴリーID                                    |
+| memo                    | TEXT          | NULL                                     | メモ                                            |
+| price                   | DECIMAL(10,2) | NULL                                     | 価格（小数点対応）                              |
+| purchase_date           | TIMESTAMP     | NOT NULL                                 | 購入日                                          |
+| quantity                | DECIMAL(10,2) | NOT NULL                                 | 在庫数量                                        |
 | unit_id                 | TEXT          | NOT NULL, FOREIGN KEY (RESTRICT制約付き) | 単位ID                                          |
+| threshold               | DECIMAL(10,2) | NULL                                     | 在庫閾値                                        |
 | storage_location_type   | ENUM          | NOT NULL                                 | 保管場所タイプ（REFRIGERATED/FROZEN/ROOM_TEMP） |
 | storage_location_detail | TEXT          | NULL                                     | 保管場所の詳細（例：ドアポケット）              |
 | best_before_date        | TIMESTAMP     | NULL                                     | 賞味期限                                        |
-| expiry_date             | TIMESTAMP     | NULL                                     | 消費期限                                        |
-| purchase_date           | TIMESTAMP     | NOT NULL                                 | 購入日                                          |
-| price                   | DECIMAL(10,2) | NULL                                     | 価格（小数点対応）                              |
-| is_active               | BOOLEAN       | NOT NULL DEFAULT TRUE                    | アクティブな在庫かどうか                        |
+| use_by_date             | TIMESTAMP     | NULL                                     | 消費期限                                        |
 | created_at              | TIMESTAMP     | NOT NULL DEFAULT NOW()                   | 作成日時                                        |
 | updated_at              | TIMESTAMP     | NOT NULL                                 | 更新日時                                        |
 | deleted_at              | TIMESTAMP     | NULL                                     | 論理削除日時                                    |
-| created_by              | TEXT          | NULL                                     | 作成ユーザーID                                  |
-| updated_by              | TEXT          | NOT NULL                                 | 更新ユーザーID（監査証跡のため必須）            |
 
 **制約**:
 
 - `check_expiry_dates` - 消費期限は賞味期限以前でなければならない
   ```sql
-  CHECK (expiry_date IS NULL OR best_before_date IS NULL OR expiry_date <= best_before_date)
+  CHECK (use_by_date IS NULL OR best_before_date IS NULL OR use_by_date <= best_before_date)
   ```
+- `check_quantity` - 在庫数量は0以上
+  ```sql
+  CHECK (quantity >= 0)
+  ```
+
+**ユニーク制約**:
+
+- `[user_id, name, best_before_date, use_by_date, storage_location_type, storage_location_detail, deleted_at]` - 同一ユーザー内での食材・期限・保存場所の組み合わせ重複を防ぐ
 
 **インデックス**:
 
-- `idx_ingredient_stocks_ingredient_id_is_active` - 食材IDとアクティブフラグの複合インデックス
-- `idx_ingredient_stocks_purchase_date` - 購入日によるソート
-- `idx_ingredient_stocks_best_before_date` - 賞味期限によるソート
-- `idx_ingredient_stocks_expiry_date` - 消費期限によるソート
-- `idx_ingredient_stocks_deleted_at` - 論理削除フィルタリング
-- `idx_ingredient_stocks_expiry_composite` - 期限チェック用の複合インデックス（best_before_date, expiry_date, is_active）
+- `idx_ingredients_user_id` - ユーザー別食材検索の高速化
+- `idx_ingredients_category_id` - カテゴリー別検索の高速化
+- `idx_ingredients_deleted_at` - 論理削除フィルタリング
+- `idx_ingredients_user_name_deleted` - ユーザー別食材名検索（削除済み除外）
+- `idx_ingredients_expiry_dates` - 期限によるソート（best_before_date, use_by_date）
+- `idx_ingredients_storage_location` - 保存場所別検索
+
+### （削除）ingredient_stocks（食材在庫）テーブル
+
+**注**: 集約設計に基づき、在庫情報はingredientsテーブルに統合されました。このテーブルは使用しません。
 
 ### ingredient_stock_histories（在庫履歴）テーブル
 
@@ -187,27 +174,31 @@
 Supabase環境では、以下のRLSポリシーを適用：
 
 ```sql
--- 食材は作成者のみ参照・更新可能
+-- 食材は所有者のみ参照・更新可能
 CREATE POLICY "Users can view own ingredients" ON ingredients
-  FOR SELECT USING (created_by = auth.uid() AND deleted_at IS NULL);
+  FOR SELECT USING (user_id = auth.uid() AND deleted_at IS NULL);
 
 CREATE POLICY "Users can update own ingredients" ON ingredients
-  FOR UPDATE USING (created_by = auth.uid() AND deleted_at IS NULL);
+  FOR UPDATE USING (user_id = auth.uid() AND deleted_at IS NULL);
+
+CREATE POLICY "Users can insert own ingredients" ON ingredients
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can delete own ingredients" ON ingredients
+  FOR DELETE USING (user_id = auth.uid());
 
 -- 在庫履歴は参照のみ可能
 CREATE POLICY "Users can view own stock history" ON ingredient_stock_histories
   FOR SELECT USING (
     ingredient_id IN (
-      SELECT id FROM ingredients WHERE created_by = auth.uid()
+      SELECT id FROM ingredients WHERE user_id = auth.uid()
     )
   );
 ```
 
 ## 更新履歴
 
-| 日付       | 内容                                                       | 作成者  |
-| ---------- | ---------------------------------------------------------- | ------- |
-| 2025-01-22 | 初版作成 - DDD設計に基づくテーブル構成                     | @system |
-| 2025-01-22 | 論理削除、イベントストア、在庫履歴テーブルを追加           | @system |
-| 2025-01-22 | 食材と在庫の分離、監査フィールドの追加、外部キー制約の強化 | @system |
-| 2025-01-24 | 期限チェック用複合インデックス、期限整合性制約、監査強化   | @system |
+| 日付       | 内容                                                                                            | 作成者     |
+| ---------- | ----------------------------------------------------------------------------------------------- | ---------- |
+| 2025-06-22 | 初版作成 - DDD設計に基づくテーブル構成                                                          | @komei0727 |
+| 2025-06-24 | 集約設計に合わせて修正：ingredient_stocksをingredientsに統合、user_id追加、CASCADE→RESTRICT変更 | Claude     |

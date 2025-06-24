@@ -15,6 +15,11 @@ screens/
 ├── TEMPLATE.md          # テンプレート（編集禁止）
 ├── README.md           # このファイル
 ├── home.md             # ホーム画面
+├── auth/               # 認証機能
+│   ├── login.md        # ログイン画面
+│   ├── register.md     # 新規登録画面
+│   ├── forgot-password.md # パスワードリセット画面
+│   └── reset-password.md  # パスワード再設定画面
 └── ingredients/        # 食材管理機能
     ├── list.md         # 一覧画面
     ├── create.md       # 登録画面
@@ -94,6 +99,7 @@ interface CreateIngredientRequest {
 // レスポンス型の例
 interface IngredientResponse {
   id: string
+  userId: string // ユーザー認証対応で追加
   name: string
   category: string
   quantity: number
@@ -101,6 +107,19 @@ interface IngredientResponse {
   expiryDate: string
   createdAt: string
   updatedAt: string
+}
+
+// 認証関連の型定義例
+interface UserResponse {
+  id: string
+  email: string
+  displayName: string
+  emailVerified: boolean
+}
+
+interface AuthSession {
+  token: string
+  expiresAt: string // ISO 8601形式
 }
 
 // エラーレスポンスの例

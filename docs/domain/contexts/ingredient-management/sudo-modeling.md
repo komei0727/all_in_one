@@ -12,7 +12,7 @@
 ```mermaid
 graph TB
     subgraph "アクター"
-        USER[ユーザー<br/>- 田中健太<br/>- 佐藤美咲<br/>- 山田・鈴木]
+        USER[認証済みユーザー<br/>- 田中健太<br/>- 佐藤美咲<br/>- 山田・鈴木]
     end
 
     subgraph "食材管理コンテキスト"
@@ -20,6 +20,7 @@ graph TB
     end
 
     subgraph "他のコンテキスト"
+        UA[ユーザー認証<br/>コンテキスト]
         SS[買い物サポート<br/>コンテキスト]
         NT[通知サービス]
         SK[共有カーネル]
@@ -34,6 +35,8 @@ graph TB
     IM -->|在庫情報提供| USER
 
     %% 他コンテキストとの関係
+    UA -->|UserId提供| IM
+    IM -->|認証確認| UA
     IM -->|在庫データ提供| SS
     IM -->|期限通知イベント| NT
     IM -->|基本型使用| SK
@@ -42,6 +45,7 @@ graph TB
     TIMER -->|期限チェック起動| IM
 
     style IM fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px
+    style UA fill:#74c0fc,stroke:#339af0,stroke-width:2px
     style SS fill:#ff8787,stroke:#c92a2a,stroke-width:2px
     style NT fill:#ffe066,stroke:#fab005,stroke-width:2px
     style SK fill:#ffd43b,stroke:#fab005,stroke-width:2px
@@ -49,12 +53,12 @@ graph TB
 
 ## 2. ユースケース図（Use Case Diagram）
 
-食材管理コンテキストの主要なユースケースを示します。
+食材管理コンテキストの主要なユースケースを示します。すべてのユーザー操作は認証が前提となります。
 
 ```mermaid
 graph TB
     subgraph "アクター"
-        USER((ユーザー))
+        USER((認証済みユーザー))
         TIMER((タイマー))
     end
 
@@ -97,7 +101,7 @@ graph TB
 
 ## 3. ドメインモデル図（Domain Model Diagram）
 
-食材管理コンテキストの中核となるドメインモデルを示します。
+食材管理コンテキストの中核となるドメインモデルを示します。UserIdはユーザー認証コンテキストから提供される値オブジェクトです。
 
 ```mermaid
 classDiagram
@@ -112,13 +116,20 @@ classDiagram
         -DeletedAt deletedAt
         +consume(quantity: Quantity): void
         +replenish(quantity: Quantity): void
-        +updateExpiryDates(bestBefore: Date, useBy: Date): void
+        +updateName(name: string): void
+        +updateCategory(categoryId: CategoryId): void
+        +updateMemo(memo: string): void
         +delete(): void
-        +isExpired(): boolean
-        +isExpiringSoon(days: number): boolean
     }
 
-    class Stock {
+    class UserId {
+        <<value object from User Authentication Context>>
+        -value: string
+        +getValue(): string
+        +equals(other: UserId): boolean
+    }
+
+    class IngredientStock {
         -Quantity quantity
         -UnitId unitId
         -Quantity threshold
@@ -130,11 +141,12 @@ classDiagram
     }
 
     class ExpiryInfo {
-        -BestBeforeDate bestBefore
-        -UseByDate useBy
+        -BestBeforeDate bestBeforeDate
+        -UseByDate useByDate
         +getDaysUntilExpiry(): number
         +isExpired(): boolean
         +isExpiringSoon(days: number): boolean
+        +getDisplayDate(): string
     }
 
     class Category {
@@ -174,10 +186,11 @@ classDiagram
     }
 
     %% 関連
-    Ingredient "1" *-- "1" Stock : has
+    Ingredient "1" *-- "1" IngredientStock : has
     Ingredient "1" *-- "1" ExpiryInfo : has
     Ingredient "0..*" --> "1" Category : belongs to
-    Stock "1" --> "1" Unit : measured in
+    Ingredient --> UserId : has
+    IngredientStock "1" --> "1" Unit : measured in
     IngredientRepository ..> Ingredient : manages
     DomainService ..> Ingredient : uses
 ```
@@ -191,11 +204,11 @@ classDiagram
 ```mermaid
 graph LR
     subgraph "田中健太の食材"
-        CHICKEN[chicken:Ingredient<br/>id='ing1'<br/>name='鶏もも肉'<br/>userId='tanaka']
+        CHICKEN[chicken:Ingredient<br/>id='ing1'<br/>name='鶏もも肉'<br/>userId='user_01HX5K3J2BXVMH3Z4K5N6P7Q8R']
         CHICKEN_STOCK[stock:Stock<br/>quantity=2<br/>unitId='pack'<br/>location='冷凍庫']
         CHICKEN_EXPIRY[expiry:ExpiryInfo<br/>bestBefore='2025-01-27'<br/>useBy='2025-01-29']
 
-        TOMATO[tomato:Ingredient<br/>id='ing2'<br/>name='トマト'<br/>userId='tanaka']
+        TOMATO[tomato:Ingredient<br/>id='ing2'<br/>name='トマト'<br/>userId='user_01HX5K3J2BXVMH3Z4K5N6P7Q8R']
         TOMATO_STOCK[stock:Stock<br/>quantity=3<br/>unitId='piece'<br/>location='冷蔵庫']
         TOMATO_EXPIRY[expiry:ExpiryInfo<br/>bestBefore='2025-01-26'<br/>useBy='2025-01-28']
     end
@@ -271,25 +284,41 @@ stateDiagram-v2
 
 ## 5. コンテキスト内の重要な不変条件
 
-1. **在庫の整合性**
+1. **認証の必須性**
+
+   - すべての食材操作は認証済みユーザーのみ実行可能
+   - UserIdは必須かつ不変
+
+2. **アクセス制御**
+
+   - ユーザーは自分のUserIdに紐づく食材のみ操作可能
+   - 他ユーザーの食材へのアクセスは禁止
+
+3. **在庫の整合性**
 
    - 在庫数量は常に0以上
    - 消費時は在庫量を超えられない
 
-2. **期限の整合性**
+4. **期限の整合性**
 
    - 消費期限 ≤ 賞味期限
    - 過去の日付での新規登録は警告
 
-3. **一意性の保証**
+5. **一意性の保証**
 
    - 同一ユーザー内で「名前＋賞味期限＋保存場所」の組み合わせは一意
 
-4. **削除の制約**
+6. **削除の制約**
    - 論理削除のみ（履歴保持）
    - カテゴリー・単位は使用中は削除不可
 
 ## 6. 他コンテキストとの連携
+
+### ユーザー認証コンテキストからの取得
+
+- `UserId`: 認証済みユーザーの識別子
+- 認証状態の確認API
+- セッション検証
 
 ### 買い物サポートコンテキストへの情報提供
 
@@ -305,12 +334,14 @@ stateDiagram-v2
 
 ### 共有カーネルの利用
 
+- `UserId`: ユーザー識別子（ユーザー認証コンテキストと共有）
 - `Quantity`: 数量の値オブジェクト
 - `Money`: 金額の値オブジェクト（将来拡張用）
 - `DateRange`: 期間の値オブジェクト
 
 ## 更新履歴
 
-| 日付       | 内容     | 作成者     |
-| ---------- | -------- | ---------- |
-| 2025-06-24 | 初版作成 | @komei0727 |
+| 日付       | 内容                                       | 作成者     |
+| ---------- | ------------------------------------------ | ---------- |
+| 2025-06-24 | 初版作成                                   | @komei0727 |
+| 2025-06-24 | ユーザー認証コンテキストとの統合に伴う修正 | Claude     |

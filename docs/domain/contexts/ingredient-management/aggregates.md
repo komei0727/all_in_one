@@ -25,13 +25,17 @@
 graph TD
     subgraph "食材集約"
         Ingredient[食材<br/>集約ルート]
+        IngredientStock[食材在庫<br/>値オブジェクト]
         Quantity[数量<br/>値オブジェクト]
         ExpiryInfo[期限情報<br/>値オブジェクト]
-        StorageLocation[保存場所<br/>値オブジェクト]
+        CategoryId[カテゴリーID<br/>値オブジェクト]
+        UserId[ユーザーID<br/>値オブジェクト<br/>（認証コンテキストから）]
 
-        Ingredient --> Quantity
+        Ingredient --> IngredientStock
+        Ingredient --> UserId
+        IngredientStock --> Quantity
         Ingredient --> ExpiryInfo
-        Ingredient --> StorageLocation
+        Ingredient --> CategoryId
     end
 ```
 
@@ -41,6 +45,7 @@ graph TD
 
    - 数量は常に0以上
    - 単位の変更時は数量も適切に変換
+   - 閾値は数量と同じ単位で管理
 
 2. **期限の整合性**
 
@@ -48,8 +53,14 @@ graph TD
    - 消費期限は賞味期限以前でなければならない
 
 3. **削除状態の整合性**
+
    - 削除済みの食材は更新不可
    - 削除は論理削除のみ
+
+4. **ユーザー所有権の整合性**
+   - 食材は必ず一人のユーザーに属する
+   - 同一ユーザー内で同じ名前・期限・保存場所の組み合わせは重複不可
+   - アクセス制御の詳細は[ドメインモデル仕様](./domain-model.md#アクセス制御)を参照
 
 ### トランザクション境界
 
@@ -59,13 +70,14 @@ graph TD
 
 ### ドメインイベント
 
-| イベント          | 発生タイミング | ペイロード             |
-| ----------------- | -------------- | ---------------------- |
-| IngredientCreated | 食材登録時     | 食材ID、名前、初期数量 |
-| StockUpdated      | 数量変更時     | 食材ID、変更前後の数量 |
-| OutOfStock        | 在庫切れ時     | 食材ID、食材名         |
-| ExpiringSoon      | 期限接近時     | 食材ID、食材名、残日数 |
-| IngredientDeleted | 削除時         | 食材ID                 |
+| イベント               | 発生タイミング | ペイロード                         |
+| ---------------------- | -------------- | ---------------------------------- |
+| IngredientCreated      | 食材登録時     | 食材ID、ユーザーID、名前、初期数量 |
+| StockConsumed          | 在庫消費時     | 食材ID、ユーザーID、消費数量       |
+| StockReplenished       | 在庫補充時     | 食材ID、ユーザーID、補充数量       |
+| StockDepleted          | 在庫切れ時     | 食材ID、ユーザーID、食材名         |
+| IngredientExpiringSoon | 期限接近時     | 食材ID、ユーザーID、食材名、残日数 |
+| IngredientDeleted      | 削除時         | 食材ID、ユーザーID                 |
 
 ## カテゴリー集約（Category Aggregate）
 
@@ -103,9 +115,11 @@ graph TD
 ```mermaid
 graph LR
     Ingredient -->|categoryId| Category
-    Ingredient -->|unitId via Quantity| Unit
+    IngredientStock -->|unitId via Quantity| Unit
+    Ingredient -->|has| IngredientStock
 
     style Ingredient fill:#f9f,stroke:#333,stroke-width:2px
+    style IngredientStock fill:#fcc,stroke:#333,stroke-width:2px
     style Category fill:#9ff,stroke:#333,stroke-width:2px
     style Unit fill:#9ff,stroke:#333,stroke-width:2px
 ```
@@ -134,13 +148,14 @@ graph LR
 
 #### ビジネス要件に基づく検索
 
-- `findByCategory(categoryId)` - カテゴリー別取得
-- `findExpiringSoon(days)` - 期限切れ間近の取得
-- `findByStorageLocation(location)` - 保存場所別取得
+- `findByUserId(userId)` - ユーザー別取得
+- `findByCategory(userId, categoryId)` - ユーザー・カテゴリー別取得
+- `findExpiringSoon(userId, days)` - ユーザーの期限切れ間近食材の取得
+- `findByStorageLocation(userId, location)` - ユーザー・保存場所別取得
 
 #### 一意性チェック
 
-- `existsByNameAndExpiryAndLocation(name, expiryInfo, location)` - 重複チェック
+- `existsByUserAndNameAndExpiryAndLocation(userId, name, expiryInfo, location)` - 重複チェック
 
 ### CategoryRepository
 
@@ -205,6 +220,7 @@ graph LR
 
 ## 更新履歴
 
-| 日付       | 内容 | 作成者     |
-| ---------- | ---- | ---------- |
-| 2025-06-24 | 初版 | @komei0727 |
+| 日付       | 内容                                                                               | 作成者     |
+| ---------- | ---------------------------------------------------------------------------------- | ---------- |
+| 2025-06-24 | 初版                                                                               | @komei0727 |
+| 2025-06-24 | ユーザー認証統合に伴う修正（ドメインイベントへのユーザーID追加、アクセス制御強化） | Claude     |
