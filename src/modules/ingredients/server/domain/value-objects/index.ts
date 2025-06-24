@@ -1,4 +1,4 @@
-export { ValueObject } from './value-object.base'
+export { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
 export { CategoryId } from './category-id.vo'
 export { CategoryName } from './category-name.vo'
 export { UnitId } from './unit-id.vo'
