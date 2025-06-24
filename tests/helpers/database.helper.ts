@@ -1,5 +1,6 @@
-import { PrismaClient } from '../../src/generated/prisma-test'
 import { execSync } from 'child_process'
+
+import { PrismaClient } from '../../src/generated/prisma-test'
 
 let prismaClient: PrismaClient | null = null
 
@@ -93,18 +94,18 @@ export async function seedTestData(): Promise<void> {
   // カテゴリーの作成
   await prisma.category.createMany({
     data: [
-      { id: 'cat1', name: '野菜', displayOrder: 1 },
-      { id: 'cat2', name: '肉・魚', displayOrder: 2 },
-      { id: 'cat3', name: '調味料', displayOrder: 3 },
+      { id: 'cat00001', name: '野菜', displayOrder: 1 },
+      { id: 'cat00002', name: '肉・魚', displayOrder: 2 },
+      { id: 'cat00003', name: '調味料', displayOrder: 3 },
     ],
   })
 
   // 単位の作成
   await prisma.unit.createMany({
     data: [
-      { id: 'unit1', name: '個', symbol: '個', type: 'COUNT', displayOrder: 1 },
-      { id: 'unit2', name: 'グラム', symbol: 'g', type: 'WEIGHT', displayOrder: 2 },
-      { id: 'unit3', name: 'ミリリットル', symbol: 'ml', type: 'VOLUME', displayOrder: 3 },
+      { id: 'unit0001', name: '個', symbol: '個', type: 'COUNT', displayOrder: 1 },
+      { id: 'unit0002', name: 'グラム', symbol: 'g', type: 'WEIGHT', displayOrder: 2 },
+      { id: 'unit0003', name: 'ミリリットル', symbol: 'ml', type: 'VOLUME', displayOrder: 3 },
     ],
   })
 }

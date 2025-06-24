@@ -6,55 +6,87 @@ import {
 } from '@/modules/ingredients/server/domain/exceptions'
 import { UnitName } from '@/modules/ingredients/server/domain/value-objects'
 
+import { UnitNameBuilder } from '../../../../../../__fixtures__/builders'
+
 describe('UnitName', () => {
   describe('create', () => {
     // 正常系のテスト
     it('有効な単位名でインスタンスを生成できる', () => {
-      const name = 'グラム'
-      const unitName = UnitName.create(name)
-      expect(unitName.getValue()).toBe(name)
+      // Arrange & Act
+      const unitName = new UnitNameBuilder().build()
+
+      // Assert
+      expect(unitName.getValue()).toBeTruthy()
+      expect(unitName.getValue().length).toBeGreaterThan(0)
+      expect(unitName.getValue().length).toBeLessThanOrEqual(30)
     })
 
     it('前後の空白をトリミングする', () => {
-      const name = '  キログラム  '
-      const unitName = UnitName.create(name)
+      // Arrange
+      const builder = new UnitNameBuilder().withWhitespaceWrappedValue('キログラム')
+
+      // Act
+      const unitName = builder.build()
+
+      // Assert
       expect(unitName.getValue()).toBe('キログラム')
     })
 
     it('最大文字数（30文字）の単位名を許可する', () => {
-      const name = 'あ'.repeat(30)
-      const unitName = UnitName.create(name)
-      expect(unitName.getValue()).toBe(name)
+      // Arrange & Act
+      const unitName = new UnitNameBuilder().withMaxLengthValue().build()
+
+      // Assert
+      expect(unitName.getValue().length).toBe(30)
     })
 
     // 異常系のテスト
     it('空文字の場合はRequiredFieldExceptionをスローする', () => {
-      expect(() => UnitName.create('')).toThrow(RequiredFieldException)
-      expect(() => UnitName.create('')).toThrow('単位名 is required')
+      // Arrange
+      const builder = new UnitNameBuilder().withEmptyValue()
+
+      // Act & Assert
+      expect(() => builder.build()).toThrow(RequiredFieldException)
+      expect(() => builder.build()).toThrow('単位名は必須です')
     })
 
     it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
-      expect(() => UnitName.create('   ')).toThrow(RequiredFieldException)
+      // Arrange
+      const builder = new UnitNameBuilder().withWhitespaceOnlyValue()
+
+      // Act & Assert
+      expect(() => builder.build()).toThrow(RequiredFieldException)
     })
 
     it('30文字を超える場合はInvalidFieldExceptionをスローする', () => {
-      const name = 'あ'.repeat(31)
-      expect(() => UnitName.create(name)).toThrow(InvalidFieldException)
-      expect(() => UnitName.create(name)).toThrow('30文字以内で入力してください')
+      // Arrange
+      const builder = new UnitNameBuilder().withTooLongValue()
+
+      // Act & Assert
+      expect(() => builder.build()).toThrow(InvalidFieldException)
+      expect(() => builder.build()).toThrow('30文字以内で入力してください')
     })
   })
 
   describe('equals', () => {
     it('同じ値の場合はtrueを返す', () => {
-      const name1 = UnitName.create('グラム')
-      const name2 = UnitName.create('グラム')
+      // Arrange
+      const builder = new UnitNameBuilder()
+      const name1 = builder.build()
+      const name2 = UnitName.create(name1.getValue())
+
+      // Act & Assert
       expect(name1.equals(name2)).toBe(true)
     })
 
     it('異なる値の場合はfalseを返す', () => {
-      const name1 = UnitName.create('グラム')
-      const name2 = UnitName.create('キログラム')
-      expect(name1.equals(name2)).toBe(false)
+      // Arrange
+      const name1 = new UnitNameBuilder().build()
+
+      // Act & Assert
+      // ランダム値が偶然同じになる可能性があるため、明示的に異なる値を設定
+      const differentName = UnitName.create(name1.getValue() + 'テスト')
+      expect(name1.equals(differentName)).toBe(false)
     })
   })
 })

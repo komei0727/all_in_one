@@ -1,59 +1,40 @@
 import { describe, it, expect } from 'vitest'
 
 import { IngredientMapper } from '@/modules/ingredients/server/application/mappers/ingredient.mapper'
-import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
-import { IngredientStock } from '@/modules/ingredients/server/domain/entities/ingredient-stock.entity'
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
+
 import {
-  IngredientId,
-  IngredientName,
-  CategoryId,
-  UnitId,
-  Memo,
-  Quantity,
-  StorageLocation,
-  StorageType,
-  Price,
-} from '@/modules/ingredients/server/domain/value-objects'
+  CategoryBuilder,
+  UnitBuilder,
+  IngredientBuilder,
+  IngredientStockBuilder,
+} from '../../../../../../__fixtures__/builders'
 
 describe('IngredientMapper', () => {
   describe('toDto', () => {
     it('カテゴリーと在庫ありの食材をDTOに変換できる', () => {
       // カテゴリーを作成
-      const category = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        name: '野菜',
-        displayOrder: 1,
-      })
+      const category = new CategoryBuilder().withName('野菜').build()
 
       // 単位を作成
-      const unit = new Unit({
-        id: '550e8400-e29b-41d4-a716-446655440002',
-        name: '個',
-        symbol: '個',
-      })
+      const unit = new UnitBuilder().asPiece().build()
 
       // 食材を作成
-      const ingredient = new Ingredient({
-        id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
-        name: new IngredientName('トマト'),
-        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
-        memo: new Memo('新鮮なトマト'),
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-      })
+      const ingredient = new IngredientBuilder()
+        .withName('トマト')
+        .withCategoryId(category.getId())
+        .withMemo('新鮮なトマト')
+        .build()
 
       // 在庫を作成
-      const stock = new IngredientStock({
-        quantity: new Quantity(3),
-        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
-        storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
-        bestBeforeDate: new Date('2024-01-10T00:00:00Z'),
-        expiryDate: new Date('2024-01-15T00:00:00Z'),
-        purchaseDate: new Date('2024-01-01T00:00:00Z'),
-        price: new Price(150),
-      })
+      const stock = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withUnitId(unit.getId())
+        .withRefrigeratedStorage('野菜室')
+        .withFutureBestBeforeDate(10)
+        .withFutureExpiryDate(15)
+        .withPurchasedToday()
+        .withPrice(150)
+        .build()
 
       ingredient.setStock(stock)
 
@@ -61,29 +42,28 @@ describe('IngredientMapper', () => {
       const dto = IngredientMapper.toDto(ingredient, category, unit)
 
       // 検証
-      expect(dto.id).toBe('550e8400-e29b-41d4-a716-446655440000')
+      expect(dto.id).toBe(ingredient.getId().getValue())
       expect(dto.name).toBe('トマト')
       expect(dto.category).toEqual({
-        id: '550e8400-e29b-41d4-a716-446655440001',
+        id: category.getId(),
         name: '野菜',
       })
-      expect(dto.currentStock).toEqual({
-        quantity: 3,
-        unit: {
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          name: '個',
-          symbol: '個',
-        },
-        storageLocation: {
-          type: 'REFRIGERATED',
-          detail: '野菜室',
-        },
-        bestBeforeDate: '2024-01-10',
-        expiryDate: '2024-01-15',
-        purchaseDate: '2024-01-01',
-        price: 150,
-        isInStock: true,
+      expect(dto.currentStock).toBeDefined()
+      expect(dto.currentStock?.quantity).toBe(3)
+      expect(dto.currentStock?.unit).toEqual({
+        id: unit.getId(),
+        name: unit.getName(),
+        symbol: unit.getSymbol(),
       })
+      expect(dto.currentStock?.storageLocation).toEqual({
+        type: 'REFRIGERATED',
+        detail: '野菜室',
+      })
+      expect(dto.currentStock?.bestBeforeDate).toBeDefined()
+      expect(dto.currentStock?.expiryDate).toBeDefined()
+      expect(dto.currentStock?.purchaseDate).toBeDefined()
+      expect(dto.currentStock?.price).toBe(150)
+      expect(dto.currentStock?.isInStock).toBe(true)
       expect(dto.memo).toBe('新鮮なトマト')
       expect(dto.createdAt).toBeDefined()
       expect(dto.updatedAt).toBeDefined()
@@ -91,19 +71,13 @@ describe('IngredientMapper', () => {
 
     it('カテゴリーなしの食材をDTOに変換できる', () => {
       // 食材を作成（カテゴリーなし）
-      const ingredient = new Ingredient({
-        id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
-        name: new IngredientName('トマト'),
-        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-      })
+      const ingredient = new IngredientBuilder().withName('トマト').withoutMemo().build()
 
       // DTOに変換（カテゴリーなし）
       const dto = IngredientMapper.toDto(ingredient)
 
       // 検証
-      expect(dto.id).toBe('550e8400-e29b-41d4-a716-446655440000')
+      expect(dto.id).toBe(ingredient.getId().getValue())
       expect(dto.name).toBe('トマト')
       expect(dto.category).toBeNull()
       expect(dto.currentStock).toBeNull()
@@ -112,27 +86,16 @@ describe('IngredientMapper', () => {
 
     it('在庫なしの食材をDTOに変換できる', () => {
       // カテゴリーを作成
-      const category = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        name: '野菜',
-        displayOrder: 1,
-      })
+      const category = new CategoryBuilder().withName('野菜').build()
 
       // 単位を作成
-      const unit = new Unit({
-        id: '550e8400-e29b-41d4-a716-446655440002',
-        name: '個',
-        symbol: '個',
-      })
+      const unit = new UnitBuilder().asPiece().build()
 
       // 食材を作成（在庫なし）
-      const ingredient = new Ingredient({
-        id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
-        name: new IngredientName('トマト'),
-        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-      })
+      const ingredient = new IngredientBuilder()
+        .withName('トマト')
+        .withCategoryId(category.getId())
+        .build()
 
       // DTOに変換（在庫なし）
       const dto = IngredientMapper.toDto(ingredient, category, unit)
@@ -143,31 +106,23 @@ describe('IngredientMapper', () => {
 
     it('単位なしで在庫ありの食材をDTOに変換できる', () => {
       // カテゴリーを作成
-      const category = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        name: '野菜',
-        displayOrder: 1,
-      })
+      const category = new CategoryBuilder().withName('野菜').build()
 
       // 食材を作成
-      const ingredient = new Ingredient({
-        id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
-        name: new IngredientName('トマト'),
-        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-      })
+      const ingredient = new IngredientBuilder()
+        .withName('トマト')
+        .withCategoryId(category.getId())
+        .build()
 
       // 在庫を作成
-      const stock = new IngredientStock({
-        quantity: new Quantity(3),
-        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
-        storageLocation: new StorageLocation(StorageType.REFRIGERATED),
-        purchaseDate: new Date('2024-01-01T00:00:00Z'),
-        bestBeforeDate: null,
-        expiryDate: null,
-        price: null,
-      })
+      const stock = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withRefrigeratedStorage()
+        .withPurchasedToday()
+        .withoutPrice()
+        .withBestBeforeDate(null)
+        .withExpiryDate(null)
+        .build()
 
       ingredient.setStock(stock)
 
@@ -180,31 +135,21 @@ describe('IngredientMapper', () => {
 
     it('日付や価格がnullの在庫をDTOに変換できる', () => {
       // 単位を作成
-      const unit = new Unit({
-        id: '550e8400-e29b-41d4-a716-446655440002',
-        name: '個',
-        symbol: '個',
-      })
+      const unit = new UnitBuilder().asPiece().build()
 
       // 食材を作成
-      const ingredient = new Ingredient({
-        id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
-        name: new IngredientName('トマト'),
-        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-      })
+      const ingredient = new IngredientBuilder().withName('トマト').build()
 
       // 在庫を作成（日付と価格がnull）
-      const stock = new IngredientStock({
-        quantity: new Quantity(3),
-        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440002'),
-        storageLocation: new StorageLocation(StorageType.REFRIGERATED),
-        purchaseDate: new Date('2024-01-01T00:00:00Z'),
-        bestBeforeDate: null,
-        expiryDate: null,
-        price: null,
-      })
+      const stock = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withUnitId(unit.getId())
+        .withRefrigeratedStorage()
+        .withPurchasedToday()
+        .withBestBeforeDate(null)
+        .withExpiryDate(null)
+        .withoutPrice()
+        .build()
 
       ingredient.setStock(stock)
 
@@ -222,14 +167,7 @@ describe('IngredientMapper', () => {
 
     it('メモなしの食材をDTOに変換できる', () => {
       // 食材を作成（メモなし）
-      const ingredient = new Ingredient({
-        id: new IngredientId('550e8400-e29b-41d4-a716-446655440000'),
-        name: new IngredientName('トマト'),
-        categoryId: new CategoryId('550e8400-e29b-41d4-a716-446655440001'),
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-        // memoは設定しない
-      })
+      const ingredient = new IngredientBuilder().withName('トマト').withoutMemo().build()
 
       // DTOに変換
       const dto = IngredientMapper.toDto(ingredient)

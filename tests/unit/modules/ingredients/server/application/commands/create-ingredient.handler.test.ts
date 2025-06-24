@@ -1,14 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-import { CreateIngredientCommand } from '@/modules/ingredients/server/application/commands/create-ingredient.command'
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
 import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
-import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 
+import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
 import {
   createTestCategory,
   createTestUnit,
@@ -37,23 +36,8 @@ describe('CreateIngredientHandler', () => {
   describe('execute', () => {
     it('食材を正常に作成できる', async () => {
       // Arrange
-      const command = new CreateIngredientCommand({
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: StorageType.REFRIGERATED,
-          detail: '野菜室',
-        },
-        bestBeforeDate: '2024-12-31',
-        expiryDate: '2025-01-05',
-        purchaseDate: '2024-12-20',
-        price: 300,
-        memo: '新鮮なトマト',
-      })
+      // ビルダーを使用してテストデータを作成
+      const command = new CreateIngredientCommandBuilder().withFullData().build()
 
       const mockCategory = createTestCategory()
       const mockUnit = createTestUnit()
@@ -67,11 +51,11 @@ describe('CreateIngredientHandler', () => {
 
       // Assert
       expect(result).toBeInstanceOf(Ingredient)
-      expect(result.getName().getValue()).toBe('トマト')
-      expect(result.getCategoryId().getValue()).toBe('550e8400-e29b-41d4-a716-446655440000')
+      expect(result.getName().getValue()).toBe(command.name)
+      expect(result.getCategoryId().getValue()).toBe(command.categoryId)
       expect(result.getCurrentStock()).not.toBeNull()
-      expect(result.getCurrentStock()?.getQuantity().getValue()).toBe(3)
-      expect(result.getMemo()?.getValue()).toBe('新鮮なトマト')
+      expect(result.getCurrentStock()?.getQuantity().getValue()).toBe(command.quantity.amount)
+      expect(result.getMemo()?.getValue()).toBe(command.memo)
 
       // リポジトリが呼ばれたことを確認
       expect(categoryRepository.findById).toHaveBeenCalledWith(
@@ -90,18 +74,10 @@ describe('CreateIngredientHandler', () => {
 
     it('カテゴリーが存在しない場合エラーをスローする', async () => {
       // Arrange
-      const command = new CreateIngredientCommand({
-        name: 'トマト',
-        categoryId: 'invalid-category-id',
-        quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: StorageType.REFRIGERATED,
-        },
-        purchaseDate: '2024-12-20',
-      })
+      // 無効なカテゴリーIDでコマンドを作成
+      const command = new CreateIngredientCommandBuilder()
+        .withCategoryId('invalid-category-id')
+        .build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(null)
 
@@ -112,18 +88,10 @@ describe('CreateIngredientHandler', () => {
 
     it('単位が存在しない場合エラーをスローする', async () => {
       // Arrange
-      const command = new CreateIngredientCommand({
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3,
-          unitId: 'invalid-unit-id',
-        },
-        storageLocation: {
-          type: StorageType.REFRIGERATED,
-        },
-        purchaseDate: '2024-12-20',
-      })
+      // 無効な単位IDでコマンドを作成
+      const command = new CreateIngredientCommandBuilder()
+        .withQuantity(3, 'invalid-unit-id')
+        .build()
 
       const mockCategory = createTestCategory()
 
@@ -137,18 +105,8 @@ describe('CreateIngredientHandler', () => {
 
     it('必須項目のみで食材を作成できる', async () => {
       // Arrange
-      const command = new CreateIngredientCommand({
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: StorageType.REFRIGERATED,
-        },
-        purchaseDate: '2024-12-20',
-      })
+      // 必須項目のみでコマンドを作成
+      const command = new CreateIngredientCommandBuilder().build()
 
       const mockCategory = createTestCategory()
       const mockUnit = createTestUnit()

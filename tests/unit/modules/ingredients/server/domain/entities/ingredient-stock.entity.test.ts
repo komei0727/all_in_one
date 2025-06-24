@@ -6,84 +6,43 @@ import {
   UnitId,
   StorageLocation,
   StorageType,
-  Price,
 } from '@/modules/ingredients/server/domain/value-objects'
 
-describe('IngredientStock', () => {
-  // テスト用のヘルパー関数
-  const createTestStock = (
-    params?: Partial<{
-      quantity: Quantity
-      unitId: UnitId
-      storageLocation: StorageLocation
-      bestBeforeDate: Date | null
-      expiryDate: Date | null
-      purchaseDate: Date
-      price: Price | null
-    }>
-  ) => {
-    return new IngredientStock({
-      quantity: params?.quantity ?? new Quantity(3),
-      unitId: params?.unitId ?? new UnitId('550e8400-e29b-41d4-a716-446655440001'),
-      storageLocation:
-        params?.storageLocation ?? new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
-      bestBeforeDate:
-        params?.bestBeforeDate !== undefined ? params.bestBeforeDate : new Date('2024-12-31'),
-      expiryDate: params?.expiryDate !== undefined ? params.expiryDate : new Date('2025-01-05'),
-      purchaseDate: params?.purchaseDate ?? new Date('2024-12-20'),
-      price: params?.price !== undefined ? params.price : new Price(300),
-    })
-  }
+import { IngredientStockBuilder } from '../../../../../../__fixtures__/builders'
 
+describe('IngredientStock', () => {
   describe('constructor', () => {
     it('在庫を作成できる', () => {
       // Arrange
-      const quantity = new Quantity(3)
-      const unitId = new UnitId('550e8400-e29b-41d4-a716-446655440001')
-      const storageLocation = new StorageLocation(StorageType.REFRIGERATED, '野菜室')
-      const bestBeforeDate = new Date('2024-12-31')
-      const expiryDate = new Date('2025-01-05')
-      const purchaseDate = new Date('2024-12-20')
-      const price = new Price(300)
-
-      // Act
-      const stock = new IngredientStock({
-        quantity,
-        unitId,
-        storageLocation,
-        bestBeforeDate,
-        expiryDate,
-        purchaseDate,
-        price,
-      })
+      const stock = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withStorageType(StorageType.REFRIGERATED, '野菜室')
+        .withFutureBestBeforeDate(10) // 10日後
+        .withFutureExpiryDate(15) // 15日後
+        .withPurchasedDaysAgo(11) // 11日前に購入
+        .withPrice(300)
+        .build()
 
       // Assert
-      expect(stock.getQuantity()).toEqual(quantity)
-      expect(stock.getUnitId()).toEqual(unitId)
-      expect(stock.getStorageLocation()).toEqual(storageLocation)
-      expect(stock.getBestBeforeDate()).toEqual(bestBeforeDate)
-      expect(stock.getExpiryDate()).toEqual(expiryDate)
-      expect(stock.getPurchaseDate()).toEqual(purchaseDate)
-      expect(stock.getPrice()).toEqual(price)
+      expect(stock.getQuantity().getValue()).toBe(3)
+      expect(stock.getUnitId()).toBeInstanceOf(UnitId)
+      expect(stock.getStorageLocation().getType()).toBe(StorageType.REFRIGERATED)
+      expect(stock.getStorageLocation().getDetail()).toBe('野菜室')
+      expect(stock.getBestBeforeDate()).toBeInstanceOf(Date)
+      expect(stock.getExpiryDate()).toBeInstanceOf(Date)
+      expect(stock.getPurchaseDate()).toBeInstanceOf(Date)
+      expect(stock.getPrice()?.getValue()).toBe(300)
     })
 
     it('賞味期限・消費期限・価格なしで在庫を作成できる', () => {
       // Arrange
-      const quantity = new Quantity(3)
-      const unitId = new UnitId('550e8400-e29b-41d4-a716-446655440001')
-      const storageLocation = new StorageLocation(StorageType.ROOM_TEMPERATURE)
-      const purchaseDate = new Date('2024-12-20')
-
-      // Act
-      const stock = new IngredientStock({
-        quantity,
-        unitId,
-        storageLocation,
-        bestBeforeDate: null,
-        expiryDate: null,
-        purchaseDate,
-        price: null,
-      })
+      const stock = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withStorageType(StorageType.ROOM_TEMPERATURE)
+        .withBestBeforeDate(null)
+        .withExpiryDate(null)
+        .withoutPrice()
+        .build()
 
       // Assert
       expect(stock.getBestBeforeDate()).toBeNull()
@@ -95,7 +54,7 @@ describe('IngredientStock', () => {
   describe('consume', () => {
     it('在庫を消費できる', () => {
       // Arrange
-      const stock = createTestStock({ quantity: new Quantity(5) })
+      const stock = new IngredientStockBuilder().withQuantity(5).build()
 
       // Act
       stock.consume(new Quantity(2))
@@ -106,7 +65,7 @@ describe('IngredientStock', () => {
 
     it('消費量が在庫を超える場合エラーをスローする', () => {
       // Arrange
-      const stock = createTestStock({ quantity: new Quantity(3) })
+      const stock = new IngredientStockBuilder().withQuantity(3).build()
 
       // Act & Assert
       expect(() => stock.consume(new Quantity(5))).toThrow('数量は0より大きい値を入力してください')
@@ -116,7 +75,7 @@ describe('IngredientStock', () => {
   describe('add', () => {
     it('在庫を追加できる', () => {
       // Arrange
-      const stock = createTestStock({ quantity: new Quantity(3) })
+      const stock = new IngredientStockBuilder().withQuantity(3).build()
 
       // Act
       stock.add(new Quantity(2))
@@ -129,7 +88,7 @@ describe('IngredientStock', () => {
   describe('updateStorageLocation', () => {
     it('保管場所を更新できる', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       const newLocation = new StorageLocation(StorageType.FROZEN, '冷凍庫上段')
 
       // Act
@@ -143,10 +102,10 @@ describe('IngredientStock', () => {
   describe('isExpired', () => {
     it('賞味期限切れの場合trueを返す', () => {
       // Arrange
-      const stock = createTestStock({
-        bestBeforeDate: new Date('2020-01-01'),
-        expiryDate: new Date('2020-01-05'),
-      })
+      const stock = new IngredientStockBuilder()
+        .withPastBestBeforeDate(-365) // 1年前の賞味期限
+        .withPastExpiryDate(-360) // 360日前の消費期限
+        .build()
 
       // Act & Assert
       expect(stock.isExpired()).toBe(true)
@@ -154,10 +113,10 @@ describe('IngredientStock', () => {
 
     it('賞味期限内の場合falseを返す', () => {
       // Arrange
-      const stock = createTestStock({
-        bestBeforeDate: new Date('2030-01-01'),
-        expiryDate: new Date('2030-01-05'),
-      })
+      const stock = new IngredientStockBuilder()
+        .withFutureBestBeforeDate(365) // 1年後の賞味期限
+        .withFutureExpiryDate(370) // 370日後の消費期限
+        .build()
 
       // Act & Assert
       expect(stock.isExpired()).toBe(false)
@@ -165,14 +124,14 @@ describe('IngredientStock', () => {
 
     it('賞味期限がnullの場合、消費期限で判定する', () => {
       // Arrange
-      const expiredStock = createTestStock({
-        bestBeforeDate: null,
-        expiryDate: new Date('2020-01-05'),
-      })
-      const freshStock = createTestStock({
-        bestBeforeDate: null,
-        expiryDate: new Date('2030-01-05'),
-      })
+      const expiredStock = new IngredientStockBuilder()
+        .withBestBeforeDate(null)
+        .withPastExpiryDate(-365) // 1年前の消費期限
+        .build()
+      const freshStock = new IngredientStockBuilder()
+        .withBestBeforeDate(null)
+        .withFutureExpiryDate(365) // 1年後の消費期限
+        .build()
 
       // Act & Assert
       expect(expiredStock.isExpired()).toBe(true)
@@ -181,10 +140,10 @@ describe('IngredientStock', () => {
 
     it('賞味期限と消費期限が両方nullの場合falseを返す', () => {
       // Arrange
-      const stock = createTestStock({
-        bestBeforeDate: null,
-        expiryDate: null,
-      })
+      const stock = new IngredientStockBuilder()
+        .withBestBeforeDate(null)
+        .withExpiryDate(null)
+        .build()
 
       // Act & Assert
       expect(stock.isExpired()).toBe(false)
@@ -197,9 +156,7 @@ describe('IngredientStock', () => {
       const today = new Date()
       const futureDate = new Date(today)
       futureDate.setDate(today.getDate() + 10)
-      const stock = createTestStock({
-        bestBeforeDate: futureDate,
-      })
+      const stock = new IngredientStockBuilder().withBestBeforeDate(futureDate).build()
 
       // Act
       const days = stock.getDaysUntilExpiry()
@@ -213,9 +170,7 @@ describe('IngredientStock', () => {
       const today = new Date()
       const pastDate = new Date(today)
       pastDate.setDate(today.getDate() - 5)
-      const stock = createTestStock({
-        bestBeforeDate: pastDate,
-      })
+      const stock = new IngredientStockBuilder().withBestBeforeDate(pastDate).build()
 
       // Act
       const days = stock.getDaysUntilExpiry()
@@ -229,10 +184,10 @@ describe('IngredientStock', () => {
       const today = new Date()
       const futureDate = new Date(today)
       futureDate.setDate(today.getDate() + 15)
-      const stock = createTestStock({
-        bestBeforeDate: null,
-        expiryDate: futureDate,
-      })
+      const stock = new IngredientStockBuilder()
+        .withBestBeforeDate(null)
+        .withExpiryDate(futureDate)
+        .build()
 
       // Act
       const days = stock.getDaysUntilExpiry()
@@ -243,10 +198,10 @@ describe('IngredientStock', () => {
 
     it('賞味期限と消費期限が両方nullの場合、nullを返す', () => {
       // Arrange
-      const stock = createTestStock({
-        bestBeforeDate: null,
-        expiryDate: null,
-      })
+      const stock = new IngredientStockBuilder()
+        .withBestBeforeDate(null)
+        .withExpiryDate(null)
+        .build()
 
       // Act
       const days = stock.getDaysUntilExpiry()
@@ -259,7 +214,7 @@ describe('IngredientStock', () => {
   describe('delete', () => {
     it('在庫を論理削除できる', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
 
       // Act
       stock.delete()
@@ -271,7 +226,7 @@ describe('IngredientStock', () => {
 
     it('削除時にユーザーIDを記録できる', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       const userId = 'user-123'
 
       // Act
@@ -285,7 +240,7 @@ describe('IngredientStock', () => {
 
     it('すでに削除済みの在庫を削除しようとするとエラー', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       stock.delete()
 
       // Act & Assert
@@ -296,7 +251,7 @@ describe('IngredientStock', () => {
   describe('削除済み在庫の操作制限', () => {
     it('削除済み在庫の保管場所を更新しようとするとエラー', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       stock.delete()
       const newLocation = new StorageLocation(StorageType.FROZEN, '冷凍庫')
 
@@ -306,7 +261,7 @@ describe('IngredientStock', () => {
 
     it('削除済み在庫を非アクティブ化しようとするとエラー', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       stock.delete()
 
       // Act & Assert
@@ -315,26 +270,68 @@ describe('IngredientStock', () => {
 
     it('非アクティブな在庫の保管場所を更新しようとするとエラー', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       stock.deactivate()
       const newLocation = new StorageLocation(StorageType.FROZEN, '冷凍庫')
 
       // Act & Assert
       expect(() => stock.updateStorageLocation(newLocation)).toThrow('無効な在庫です')
     })
+
+    it('削除済み在庫を消費しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.delete()
+
+      // Act & Assert
+      expect(() => stock.consume(new Quantity(3))).toThrow('無効な在庫です')
+    })
+
+    it('削除済み在庫に追加しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.delete()
+
+      // Act & Assert
+      expect(() => stock.add(new Quantity(5))).toThrow('無効な在庫です')
+    })
+
+    it('非アクティブな在庫を消費しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.deactivate()
+
+      // Act & Assert
+      expect(() => stock.consume(new Quantity(3))).toThrow('無効な在庫です')
+    })
+
+    it('非アクティブな在庫に追加しようとするとエラー', () => {
+      // Arrange
+      const stock = new IngredientStockBuilder().withQuantity(10).build()
+      stock.deactivate()
+
+      // Act & Assert
+      expect(() => stock.add(new Quantity(5))).toThrow('無効な在庫です')
+    })
   })
 
   describe('作成者・更新者の追跡', () => {
     it('作成時に作成者を記録できる', () => {
-      // Arrange & Act
+      // Arrange
+      const builder = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withStorageType(StorageType.REFRIGERATED, '野菜室')
+        .withFutureBestBeforeDate(10)
+        .withFutureExpiryDate(15)
+        .withPurchasedDaysAgo(11)
+        .withPrice(300)
+
+      // Act - 直接IngredientStockを作成（createdByを指定）
+      const props = (
+        builder as unknown as { props: ConstructorParameters<typeof IngredientStock>[0] }
+      ).props
       const stock = new IngredientStock({
-        quantity: new Quantity(3),
-        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440001'),
-        storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
-        bestBeforeDate: new Date('2024-12-31'),
-        expiryDate: new Date('2025-01-05'),
-        purchaseDate: new Date('2024-12-20'),
-        price: new Price(300),
+        ...props,
         createdBy: 'user-001',
       })
 
@@ -344,14 +341,20 @@ describe('IngredientStock', () => {
 
     it('更新時に更新者を記録できる', () => {
       // Arrange
+      const builder = new IngredientStockBuilder()
+        .withQuantity(3)
+        .withStorageType(StorageType.REFRIGERATED, '野菜室')
+        .withFutureBestBeforeDate(10)
+        .withFutureExpiryDate(15)
+        .withPurchasedDaysAgo(11)
+        .withPrice(300)
+
+      // Act - 直接IngredientStockを作成（updatedByを指定）
+      const props = (
+        builder as unknown as { props: ConstructorParameters<typeof IngredientStock>[0] }
+      ).props
       const stock = new IngredientStock({
-        quantity: new Quantity(3),
-        unitId: new UnitId('550e8400-e29b-41d4-a716-446655440001'),
-        storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
-        bestBeforeDate: new Date('2024-12-31'),
-        expiryDate: new Date('2025-01-05'),
-        purchaseDate: new Date('2024-12-20'),
-        price: new Price(300),
+        ...props,
         updatedBy: 'user-002',
       })
 
@@ -361,7 +364,7 @@ describe('IngredientStock', () => {
 
     it('各操作で更新者を記録できる', () => {
       // Arrange
-      const stock = createTestStock()
+      const stock = new IngredientStockBuilder().build()
       const userId = 'user-003'
 
       // Act & Assert - consume

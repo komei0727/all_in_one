@@ -194,13 +194,95 @@ pnpm test:all
 - `database.helper.ts`: DB接続、リセット、トランザクション管理
 - `factory.helper.ts`: テストデータファクトリー
 
+## テストデータ生成
+
+### Faker.js ✅ 導入完了
+
+本プロジェクトでは[Faker.js](https://fakerjs.dev/)を使用してテストデータを動的に生成します。
+
+**重要な原則**:
+
+- **ハードコードされたテストデータは使用せず、Fakerで生成したランダムデータを使用する**
+- **テストの独立性と再現性を確保する**
+- **現実的なデータでテストを行う**
+
+### 使用方法
+
+#### Test Data Builderパターン
+
+```typescript
+import { IngredientBuilder, CategoryBuilder } from 'tests/__fixtures__/builders'
+
+// 食材エンティティの作成
+const ingredient = new IngredientBuilder()
+  .withRandomName() // Fakerで食材名を生成
+  .withCategoryId('cat1')
+  .withDefaultStock()
+  .build()
+
+// カテゴリーエンティティの作成
+const category = new CategoryBuilder()
+  .withRandomName() // Fakerでカテゴリー名を生成
+  .withRandomDisplayOrder() // Fakerで表示順を生成
+  .build()
+```
+
+#### コマンドビルダー
+
+```typescript
+import { CreateIngredientCommandBuilder } from 'tests/__fixtures__/builders'
+
+const command = new CreateIngredientCommandBuilder()
+  .withRandomName() // Fakerで食材名を生成
+  .withCategoryId('cat1')
+  .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit1')
+  .withRandomStorageLocation() // Fakerで保管場所を生成
+  .build()
+```
+
+#### Faker設定とヘルパー
+
+`tests/__fixtures__/builders/faker.config.ts`で日本語ロケール設定とカスタムヘルパーを提供：
+
+```typescript
+import { faker, testDataHelpers } from 'tests/__fixtures__/builders/faker.config'
+
+// 日本の食材名
+const ingredientName = testDataHelpers.ingredientName()
+
+// カテゴリー名
+const categoryName = testDataHelpers.categoryName()
+
+// 現実的な価格
+const price = testDataHelpers.price() // 10円〜5000円
+
+// 現実的な数量
+const quantity = testDataHelpers.quantity() // 0.1〜100
+```
+
+### テストタイプ別の使用方針
+
+#### 単体テスト
+
+- **ドメイン層**: 値オブジェクトビルダーでランダムな値を生成
+- **アプリケーション層**: エンティティビルダーとモックでテスト
+
+#### 統合テスト
+
+- **実在するID制約に注意**: 'cat1', 'unit1'など既存データとの整合性を保つ
+- **ユニーク制約対応**: `faker.string.alphanumeric(8)`で一意性を確保
+
+#### E2Eテスト
+
+- **APIレベル**: コマンドビルダーでリクエストデータを生成
+- **レスポンス検証**: Fakerで生成した期待値と比較
+
 ## 今後の拡張予定
 
-1. **Faker.jsの導入** (Issue #38)
+1. **パフォーマンステスト**
 
-   - より現実的なテストデータの生成
-   - Test Data Builderパターンの実装
-
-2. **パフォーマンステスト**
    - 大量データでの動作確認
    - レスポンスタイムの測定
+
+2. **Visual Regression Testing**
+   - UIコンポーネントの見た目の変化を検出

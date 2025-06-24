@@ -1,5 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
-
+import type { PrismaClient } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma/client'
 
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'

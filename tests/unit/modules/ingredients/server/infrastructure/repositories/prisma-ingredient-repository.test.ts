@@ -1,6 +1,6 @@
-import { PrismaClient, Prisma } from '@prisma/client'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { PrismaClient, Prisma } from '@/generated/prisma'
 import { IngredientStock } from '@/modules/ingredients/server/domain/entities/ingredient-stock.entity'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import {
@@ -17,8 +17,8 @@ import {
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 
 // Prismaクライアントのモック
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client')
+vi.mock('@/generated/prisma', async () => {
+  const actual = await vi.importActual('@/generated/prisma')
   return {
     ...actual,
     PrismaClient: vi.fn(() => ({

@@ -6,60 +6,110 @@ import {
 } from '@/modules/ingredients/server/domain/exceptions'
 import { UnitSymbol } from '@/modules/ingredients/server/domain/value-objects'
 
+import { UnitSymbolBuilder } from '../../../../../../__fixtures__/builders'
+
 describe('UnitSymbol', () => {
   describe('create', () => {
     // 正常系のテスト
     it('有効な単位記号でインスタンスを生成できる', () => {
-      const symbol = 'g'
-      const unitSymbol = UnitSymbol.create(symbol)
-      expect(unitSymbol.getValue()).toBe(symbol)
+      // Arrange & Act
+      const unitSymbol = new UnitSymbolBuilder().withGram().build()
+
+      // Assert
+      expect(unitSymbol.getValue()).toBe('g')
     })
 
     it('日本語の単位記号を許可する', () => {
-      const symbol = '個'
-      const unitSymbol = UnitSymbol.create(symbol)
-      expect(unitSymbol.getValue()).toBe(symbol)
+      // Arrange & Act
+      const unitSymbol = new UnitSymbolBuilder().withPiece().build()
+
+      // Assert
+      expect(unitSymbol.getValue()).toBe('個')
     })
 
     it('前後の空白をトリミングする', () => {
-      const symbol = '  kg  '
-      const unitSymbol = UnitSymbol.create(symbol)
-      expect(unitSymbol.getValue()).toBe('kg')
+      // Arrange
+      const builder = new UnitSymbolBuilder().withSpaces()
+      const originalValue = builder['props'].value ?? ''
+      const expectedValue = originalValue.trim()
+
+      // Act
+      const unitSymbol = builder.build()
+
+      // Assert
+      expect(unitSymbol.getValue()).toBe(expectedValue)
+      expect(unitSymbol.getValue()).not.toMatch(/^\s|\s$/) // 前後に空白がないことを確認
     })
 
     it('最大文字数（10文字）の単位記号を許可する', () => {
-      const symbol = 'a'.repeat(10)
-      const unitSymbol = UnitSymbol.create(symbol)
-      expect(unitSymbol.getValue()).toBe(symbol)
+      // Arrange & Act
+      const unitSymbol = new UnitSymbolBuilder().withMaxLengthValue().build()
+
+      // Assert
+      expect(unitSymbol.getValue().length).toBe(10)
     })
 
     // 異常系のテスト
     it('空文字の場合はRequiredFieldExceptionをスローする', () => {
-      expect(() => UnitSymbol.create('')).toThrow(RequiredFieldException)
-      expect(() => UnitSymbol.create('')).toThrow('単位記号 is required')
+      // Arrange
+      const builder = new UnitSymbolBuilder().withEmptyValue()
+
+      // Act & Assert
+      expect(() => builder.build()).toThrow(RequiredFieldException)
+      expect(() => builder.build()).toThrow('単位記号は必須です')
     })
 
     it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
-      expect(() => UnitSymbol.create('   ')).toThrow(RequiredFieldException)
+      // Arrange
+      const builder = new UnitSymbolBuilder().withOnlySpaces()
+
+      // Act & Assert
+      expect(() => builder.build()).toThrow(RequiredFieldException)
     })
 
     it('10文字を超える場合はInvalidFieldExceptionをスローする', () => {
-      const symbol = 'a'.repeat(11)
-      expect(() => UnitSymbol.create(symbol)).toThrow(InvalidFieldException)
-      expect(() => UnitSymbol.create(symbol)).toThrow('10文字以内で入力してください')
+      // Arrange
+      const builder = new UnitSymbolBuilder().withTooLongValue()
+
+      // Act & Assert
+      expect(() => builder.build()).toThrow(InvalidFieldException)
+      expect(() => builder.build()).toThrow('10文字以内で入力してください')
+    })
+  })
+
+  describe('create', () => {
+    it('静的ファクトリーメソッドでインスタンスを生成できる', () => {
+      // Arrange & Act
+      const unitSymbol = UnitSymbol.create('g')
+
+      // Assert
+      expect(unitSymbol).toBeInstanceOf(UnitSymbol)
+      expect(unitSymbol.getValue()).toBe('g')
+    })
+
+    it('createメソッドでもバリデーションが実行される', () => {
+      // Act & Assert
+      expect(() => UnitSymbol.create('')).toThrow(RequiredFieldException)
+      expect(() => UnitSymbol.create('12345678901')).toThrow(InvalidFieldException)
     })
   })
 
   describe('equals', () => {
     it('同じ値の場合はtrueを返す', () => {
-      const symbol1 = UnitSymbol.create('g')
-      const symbol2 = UnitSymbol.create('g')
+      // Arrange
+      const symbol1 = new UnitSymbolBuilder().withGram().build()
+      const symbol2 = new UnitSymbolBuilder().withGram().build()
+
+      // Act & Assert
       expect(symbol1.equals(symbol2)).toBe(true)
     })
 
     it('異なる値の場合はfalseを返す', () => {
-      const symbol1 = UnitSymbol.create('g')
-      const symbol2 = UnitSymbol.create('kg')
+      // Arrange
+      const symbol1 = new UnitSymbolBuilder().withGram().build()
+      const symbol2 = new UnitSymbolBuilder().withKilogram().build()
+
+      // Act & Assert
       expect(symbol1.equals(symbol2)).toBe(false)
     })
   })

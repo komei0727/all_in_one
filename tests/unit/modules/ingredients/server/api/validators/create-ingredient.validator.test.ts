@@ -2,27 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { createIngredientSchema } from '@/modules/ingredients/server/api/validators/create-ingredient.validator'
 
+import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
+
 describe('createIngredientSchema', () => {
   describe('正常系', () => {
     it('すべての項目を含む有効なデータをパースできる', () => {
       // Arrange
-      const validData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3.5,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: 'REFRIGERATED',
-          detail: '野菜室',
-        },
-        bestBeforeDate: '2024-12-31',
-        expiryDate: '2025-01-05',
-        purchaseDate: '2024-12-20',
-        price: 300,
-        memo: '新鮮なトマト',
-      }
+      // ビルダーを使用して完全なデータを作成
+      const validData = new CreateIngredientCommandBuilder().withFullData().build()
 
       // Act
       const result = createIngredientSchema.parse(validData)
@@ -33,18 +20,8 @@ describe('createIngredientSchema', () => {
 
     it('必須項目のみの有効なデータをパースできる', () => {
       // Arrange
-      const validData = {
-        name: 'トマト',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: 'ROOM_TEMPERATURE',
-        },
-        purchaseDate: '2024-12-20',
-      }
+      // ビルダーを使用して必須項目のみのデータを作成
+      const validData = new CreateIngredientCommandBuilder().build()
 
       // Act
       const result = createIngredientSchema.parse(validData)
@@ -58,18 +35,8 @@ describe('createIngredientSchema', () => {
       const types = ['REFRIGERATED', 'FROZEN', 'ROOM_TEMPERATURE']
 
       types.forEach((type) => {
-        const validData = {
-          name: 'トマト',
-          categoryId: '550e8400-e29b-41d4-a716-446655440000',
-          quantity: {
-            amount: 1,
-            unitId: '550e8400-e29b-41d4-a716-446655440001',
-          },
-          storageLocation: {
-            type,
-          },
-          purchaseDate: '2024-12-20',
-        }
+        // 各保管場所タイプでコマンドを作成
+        const validData = new CreateIngredientCommandBuilder().withStorageLocation({ type }).build()
 
         // Act & Assert
         expect(() => createIngredientSchema.parse(validData)).not.toThrow()
@@ -80,18 +47,8 @@ describe('createIngredientSchema', () => {
   describe('異常系 - name', () => {
     it('nameが空文字の場合エラー', () => {
       // Arrange
-      const invalidData = {
-        name: '',
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: 'REFRIGERATED',
-        },
-        purchaseDate: '2024-12-20',
-      }
+      // 空の名前でコマンドを作成
+      const invalidData = new CreateIngredientCommandBuilder().withName('').build()
 
       // Act & Assert
       expect(() => createIngredientSchema.parse(invalidData)).toThrow()
@@ -99,18 +56,8 @@ describe('createIngredientSchema', () => {
 
     it('nameが51文字以上の場合エラー', () => {
       // Arrange
-      const invalidData = {
-        name: 'あ'.repeat(51),
-        categoryId: '550e8400-e29b-41d4-a716-446655440000',
-        quantity: {
-          amount: 3,
-          unitId: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        storageLocation: {
-          type: 'REFRIGERATED',
-        },
-        purchaseDate: '2024-12-20',
-      }
+      // 51文字の名前でコマンドを作成
+      const invalidData = new CreateIngredientCommandBuilder().withName('あ'.repeat(51)).build()
 
       // Act & Assert
       expect(() => createIngredientSchema.parse(invalidData)).toThrow()

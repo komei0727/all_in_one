@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
 import { GetCategoriesQuery } from '@/modules/ingredients/server/application/queries/get-categories.query'
-import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
+
+import { CategoryBuilder } from '../../../../../../__fixtures__/builders'
 
 /**
  * GetCategoriesQueryHandler のテスト
@@ -30,10 +31,9 @@ describe('GetCategoriesQueryHandler', () => {
     it('デフォルトのクエリでアクティブなカテゴリーを取得する', async () => {
       // デフォルトクエリ（includeInactive: false）の処理を確認
       // Arrange
-      const mockCategories = [
-        new Category({ id: 'cat1', name: '野菜', displayOrder: 1 }),
-        new Category({ id: 'cat2', name: '肉類', displayOrder: 2 }),
-      ]
+      const category1 = new CategoryBuilder().withDisplayOrder(1).build()
+      const category2 = new CategoryBuilder().withDisplayOrder(2).build()
+      const mockCategories = [category1, category2]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockCategories)
 
       const query = new GetCategoriesQuery()
@@ -44,8 +44,16 @@ describe('GetCategoriesQueryHandler', () => {
       // Assert
       expect(result).toEqual({
         categories: [
-          { id: 'cat1', name: '野菜', displayOrder: 1 },
-          { id: 'cat2', name: '肉類', displayOrder: 2 },
+          {
+            id: category1.getId(),
+            name: category1.getName(),
+            displayOrder: category1.getDisplayOrder(),
+          },
+          {
+            id: category2.getId(),
+            name: category2.getName(),
+            displayOrder: category2.getDisplayOrder(),
+          },
         ],
       })
       expect(mockRepository.findAllActive).toHaveBeenCalledOnce()
@@ -54,11 +62,10 @@ describe('GetCategoriesQueryHandler', () => {
     it('名前順でソートされたアクティブなカテゴリーを取得する', async () => {
       // sortBy: 'name'の場合のソート処理を確認
       // Arrange
-      const mockCategories = [
-        new Category({ id: 'cat1', name: '野菜', displayOrder: 2 }),
-        new Category({ id: 'cat2', name: '肉類', displayOrder: 1 }),
-        new Category({ id: 'cat3', name: '魚介類', displayOrder: 3 }),
-      ]
+      const category1 = new CategoryBuilder().withName('野菜').withDisplayOrder(2).build()
+      const category2 = new CategoryBuilder().withName('肉類').withDisplayOrder(1).build()
+      const category3 = new CategoryBuilder().withName('魚介類').withDisplayOrder(3).build()
+      const mockCategories = [category1, category2, category3]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockCategories)
 
       const query = new GetCategoriesQuery({ sortBy: 'name' })
@@ -67,13 +74,10 @@ describe('GetCategoriesQueryHandler', () => {
       const result = await handler.handle(query)
 
       // Assert
-      expect(result).toEqual({
-        categories: [
-          { id: 'cat3', name: '魚介類', displayOrder: 3 },
-          { id: 'cat2', name: '肉類', displayOrder: 1 },
-          { id: 'cat1', name: '野菜', displayOrder: 2 },
-        ],
-      })
+      // 名前順でソートされることを確認（魚介類 < 肉類 < 野菜）
+      expect(result.categories[0].name).toBe('魚介類')
+      expect(result.categories[1].name).toBe('肉類')
+      expect(result.categories[2].name).toBe('野菜')
     })
   })
 

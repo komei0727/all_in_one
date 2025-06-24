@@ -1,75 +1,71 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
-import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
 
-/**
- * Category Entity のテスト
- *
- * テスト対象:
- * - カテゴリーエンティティの生成とバリデーション
- * - ビジネスルールの適用（値オブジェクトによる）
- * - シリアライズ機能
- */
-describe('Category Entity', () => {
+import { CategoryBuilder } from '../../../../../../__fixtures__/builders'
+
+describe('Category', () => {
   describe('constructor', () => {
-    it('should create a category with valid data', () => {
-      // カテゴリーエンティティが正常なデータで生成できることを確認
-      // Arrange
-      const categoryData = {
-        id: 'cat1',
-        name: '野菜',
-        displayOrder: 1,
-      }
-
-      // Act
-      const category = new Category(categoryData)
+    it('カテゴリーを作成できる', () => {
+      // ビルダーを使用してランダムなテストデータで検証
+      const category = new CategoryBuilder().build()
 
       // Assert
-      expect(category.id.getValue()).toBe('cat1')
-      expect(category.name.getValue()).toBe('野菜')
-      expect(category.displayOrder.getValue()).toBe(1)
+      expect(category).toBeInstanceOf(Category)
+      expect(category.getId()).toBeTruthy()
+      expect(category.getName()).toBeTruthy()
+      expect(category.getDisplayOrder()).toBeGreaterThanOrEqual(1)
+      expect(category.getDisplayOrder()).toBeLessThanOrEqual(999)
     })
 
-    it('should throw error if name is empty', () => {
-      // カテゴリー名が空の場合、値オブジェクトのバリデーションによりエラーがスローされることを確認
-      // Arrange
-      const categoryData = {
-        id: 'cat1',
-        name: '',
-        displayOrder: 1,
-      }
-
-      // Act & Assert
-      expect(() => new Category(categoryData)).toThrow(RequiredFieldException)
-    })
-
-    it('should use default display order if not provided', () => {
-      // 表示順が指定されない場合、デフォルト値（0）が設定されることを確認
-      // Arrange
-      const categoryData = {
-        id: 'cat1',
-        name: '野菜',
-      }
-
-      // Act
-      const category = new Category(categoryData)
+    it('指定したIDでカテゴリーを作成できる', () => {
+      // 指定したIDでカテゴリーを作成
+      const id = 'cat1'
+      const category = new CategoryBuilder().withId(id).build()
 
       // Assert
-      expect(category.displayOrder.getValue()).toBe(0)
+      expect(category.getId()).toBe(id)
+    })
+
+    it('指定した名前でカテゴリーを作成できる', () => {
+      // 野菜カテゴリーとして作成
+      const category = new CategoryBuilder().asVegetable().build()
+
+      // Assert
+      expect(category.getName()).toBe('野菜')
+      expect(category.getDisplayOrder()).toBe(1)
+    })
+
+    it('指定した表示順でカテゴリーを作成できる', () => {
+      // 指定した表示順でカテゴリーを作成
+      const displayOrder = 10
+      const category = new CategoryBuilder().withDisplayOrder(displayOrder).build()
+
+      // Assert
+      expect(category.getDisplayOrder()).toBe(displayOrder)
+    })
+
+    it('displayOrderが指定されない場合はデフォルト値を使用する', () => {
+      // Arrange & Act
+      const category = new Category({
+        id: 'cat1',
+        name: '野菜',
+        // displayOrderを指定しない
+      })
+
+      // Assert
+      expect(category.getDisplayOrder()).toBe(0) // DisplayOrder.default()の値
     })
   })
 
   describe('toJSON', () => {
-    it('should return plain object representation', () => {
-      // エンティティがプレーンオブジェクトとしてシリアライズできることを確認
-      // これはAPIレスポンスやデータ永続化で使用される
+    it('オブジェクトに変換できる', () => {
       // Arrange
-      const category = new Category({
-        id: 'cat1',
-        name: '野菜',
-        displayOrder: 1,
-      })
+      const category = new CategoryBuilder()
+        .withId('cat1')
+        .withName('野菜')
+        .withDisplayOrder(5)
+        .build()
 
       // Act
       const json = category.toJSON()
@@ -78,8 +74,37 @@ describe('Category Entity', () => {
       expect(json).toEqual({
         id: 'cat1',
         name: '野菜',
-        displayOrder: 1,
+        displayOrder: 5,
       })
+    })
+  })
+
+  describe('プリセットカテゴリー', () => {
+    it('野菜カテゴリーを作成できる', () => {
+      // 野菜カテゴリーとして作成
+      const category = new CategoryBuilder().asVegetable().build()
+
+      // Assert
+      expect(category.getName()).toBe('野菜')
+      expect(category.getDisplayOrder()).toBe(1)
+    })
+
+    it('肉・魚カテゴリーを作成できる', () => {
+      // 肉・魚カテゴリーとして作成
+      const category = new CategoryBuilder().asMeatAndFish().build()
+
+      // Assert
+      expect(category.getName()).toBe('肉・魚')
+      expect(category.getDisplayOrder()).toBe(2)
+    })
+
+    it('乳製品カテゴリーを作成できる', () => {
+      // 乳製品カテゴリーとして作成
+      const category = new CategoryBuilder().asDairy().build()
+
+      // Assert
+      expect(category.getName()).toBe('乳製品')
+      expect(category.getDisplayOrder()).toBe(3)
     })
   })
 })

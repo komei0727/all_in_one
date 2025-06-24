@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { StorageLocation, StorageType } from '@/modules/ingredients/server/domain/value-objects'
+import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
+
+import { StorageLocationBuilder } from '../../../../../../__fixtures__/builders'
 
 describe('StorageLocation', () => {
   describe('constructor', () => {
     it('保管場所タイプのみで作成できる', () => {
-      // Arrange
-      const type = StorageType.REFRIGERATED
-
-      // Act
-      const location = new StorageLocation(type)
+      // Arrange & Act
+      const location = new StorageLocationBuilder().build()
 
       // Assert
       expect(location.getType()).toBe(StorageType.REFRIGERATED)
@@ -17,12 +16,8 @@ describe('StorageLocation', () => {
     })
 
     it('保管場所タイプと詳細で作成できる', () => {
-      // Arrange
-      const type = StorageType.REFRIGERATED
-      const detail = '野菜室'
-
-      // Act
-      const location = new StorageLocation(type, detail)
+      // Arrange & Act
+      const location = new StorageLocationBuilder().withVegetableCompartment().build()
 
       // Assert
       expect(location.getType()).toBe(StorageType.REFRIGERATED)
@@ -31,40 +26,43 @@ describe('StorageLocation', () => {
 
     it('詳細の前後の空白は自動的にトリムされる', () => {
       // Arrange
-      const type = StorageType.FROZEN
-      const detailWithSpaces = '  冷凍庫上段  '
+      const builder = new StorageLocationBuilder()
+        .withType(StorageType.FROZEN)
+        .withDetailWithSpaces()
+      const originalDetail = builder['props'].detail!
+      const expectedDetail = originalDetail.trim()
 
       // Act
-      const location = new StorageLocation(type, detailWithSpaces)
+      const location = builder.build()
 
       // Assert
-      expect(location.getDetail()).toBe('冷凍庫上段')
+      expect(location.getDetail()).toBe(expectedDetail)
+      expect(location.getDetail()).not.toMatch(/^\s|\s$/) // 前後に空白がないことを確認
     })
 
     it('詳細が50文字を超える場合エラーをスローする', () => {
       // Arrange
-      const type = StorageType.ROOM_TEMPERATURE
-      const tooLongDetail = 'あ'.repeat(51)
+      const builder = new StorageLocationBuilder().withRoomTemperature().withTooLongDetail()
 
       // Act & Assert
-      expect(() => new StorageLocation(type, tooLongDetail)).toThrow(
-        '保管場所の詳細は50文字以内で入力してください'
-      )
+      expect(() => builder.build()).toThrow('保管場所の詳細は50文字以内で入力してください')
     })
 
     it('すべての保管場所タイプで作成できる', () => {
       // Act & Assert
-      expect(() => new StorageLocation(StorageType.REFRIGERATED)).not.toThrow()
-      expect(() => new StorageLocation(StorageType.FROZEN)).not.toThrow()
-      expect(() => new StorageLocation(StorageType.ROOM_TEMPERATURE)).not.toThrow()
+      expect(() =>
+        new StorageLocationBuilder().withType(StorageType.REFRIGERATED).build()
+      ).not.toThrow()
+      expect(() => new StorageLocationBuilder().withType(StorageType.FROZEN).build()).not.toThrow()
+      expect(() => new StorageLocationBuilder().withRoomTemperature().build()).not.toThrow()
     })
   })
 
   describe('equals', () => {
     it('同じタイプと詳細の場合trueを返す', () => {
       // Arrange
-      const location1 = new StorageLocation(StorageType.REFRIGERATED, '野菜室')
-      const location2 = new StorageLocation(StorageType.REFRIGERATED, '野菜室')
+      const location1 = new StorageLocationBuilder().withVegetableCompartment().build()
+      const location2 = new StorageLocationBuilder().withVegetableCompartment().build()
 
       // Act & Assert
       expect(location1.equals(location2)).toBe(true)
@@ -72,8 +70,8 @@ describe('StorageLocation', () => {
 
     it('タイプが異なる場合falseを返す', () => {
       // Arrange
-      const location1 = new StorageLocation(StorageType.REFRIGERATED, '野菜室')
-      const location2 = new StorageLocation(StorageType.FROZEN, '野菜室')
+      const location1 = new StorageLocationBuilder().withVegetableCompartment().build()
+      const location2 = new StorageLocationBuilder().withFreezer().build()
 
       // Act & Assert
       expect(location1.equals(location2)).toBe(false)
@@ -81,8 +79,11 @@ describe('StorageLocation', () => {
 
     it('詳細が異なる場合falseを返す', () => {
       // Arrange
-      const location1 = new StorageLocation(StorageType.REFRIGERATED, '野菜室')
-      const location2 = new StorageLocation(StorageType.REFRIGERATED, 'チルド室')
+      const location1 = new StorageLocationBuilder().withVegetableCompartment().build()
+      const location2 = new StorageLocationBuilder()
+        .withType(StorageType.REFRIGERATED)
+        .withDetail('チルド室')
+        .build()
 
       // Act & Assert
       expect(location1.equals(location2)).toBe(false)
@@ -92,7 +93,7 @@ describe('StorageLocation', () => {
   describe('toString', () => {
     it('タイプのみの場合、タイプの表示名を返す', () => {
       // Arrange
-      const location = new StorageLocation(StorageType.REFRIGERATED)
+      const location = new StorageLocationBuilder().build()
 
       // Act & Assert
       expect(location.toString()).toBe('冷蔵')
@@ -100,7 +101,7 @@ describe('StorageLocation', () => {
 
     it('詳細がある場合、タイプと詳細を組み合わせて返す', () => {
       // Arrange
-      const location = new StorageLocation(StorageType.REFRIGERATED, '野菜室')
+      const location = new StorageLocationBuilder().withVegetableCompartment().build()
 
       // Act & Assert
       expect(location.toString()).toBe('冷蔵（野菜室）')
@@ -108,9 +109,13 @@ describe('StorageLocation', () => {
 
     it('すべてのタイプで正しい表示名を返す', () => {
       // Act & Assert
-      expect(new StorageLocation(StorageType.REFRIGERATED).toString()).toBe('冷蔵')
-      expect(new StorageLocation(StorageType.FROZEN).toString()).toBe('冷凍')
-      expect(new StorageLocation(StorageType.ROOM_TEMPERATURE).toString()).toBe('常温')
+      expect(
+        new StorageLocationBuilder().withType(StorageType.REFRIGERATED).build().toString()
+      ).toBe('冷蔵')
+      expect(new StorageLocationBuilder().withType(StorageType.FROZEN).build().toString()).toBe(
+        '冷凍'
+      )
+      expect(new StorageLocationBuilder().withRoomTemperature().build().toString()).toBe('常温')
     })
   })
 })
