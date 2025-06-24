@@ -137,7 +137,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       expect(data.ingredient.memo).toBeNull()
       expect(data.ingredient.currentStock.price).toBeNull()
       expect(data.ingredient.currentStock.bestBeforeDate).toBeNull()
-      expect(data.ingredient.currentStock.expiryDate).toBeNull()
+      expect(data.ingredient.currentStock.useByDate).toBeNull()
     })
 
     it('全てのオプションフィールドを含めて食材を作成できる', async () => {
@@ -175,7 +175,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       expect(data.ingredient.memo).toBe(fullCommand.memo)
       expect(data.ingredient.currentStock.price).toBe(fullCommand.price)
       expect(data.ingredient.currentStock.bestBeforeDate).toBeDefined()
-      expect(data.ingredient.currentStock.expiryDate).toBeDefined()
+      expect(data.ingredient.currentStock.useByDate).toBeDefined()
       expect(data.ingredient.currentStock.storageLocation.detail).toBe('冷凍庫の引き出し')
     })
   })

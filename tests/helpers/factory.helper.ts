@@ -65,7 +65,7 @@ export function createTestIngredientStock(overrides?: Partial<IngredientStock>):
     storageLocationType: 'REFRIGERATED',
     storageLocationDetail: '冷蔵庫の野菜室',
     bestBeforeDate: tomorrow,
-    expiryDate: tomorrow,
+    useByDate: tomorrow,
     purchaseDate: now,
     price: null,
     isActive: true,

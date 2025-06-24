@@ -62,7 +62,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
             storageLocationType: stock.getStorageLocation().getType(),
             storageLocationDetail: stock.getStorageLocation().getDetail() || null,
             bestBeforeDate: stock.getExpiryInfo().getBestBeforeDate(),
-            expiryDate: stock.getExpiryInfo().getUseByDate(),
+            useByDate: stock.getExpiryInfo().getUseByDate(),
             purchaseDate: stock.getPurchaseDate(),
             price: stock.getPrice() ? new Prisma.Decimal(stock.getPrice()!.getValue()) : null,
             isActive: true,
@@ -232,7 +232,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     storageLocationType: string
     storageLocationDetail: string | null
     bestBeforeDate: Date | null
-    expiryDate: Date | null
+    useByDate: Date | null
     purchaseDate: Date
     price: Prisma.Decimal | null
     isActive: boolean
@@ -252,7 +252,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       ),
       expiryInfo: new ExpiryInfo({
         bestBeforeDate: data.bestBeforeDate,
-        useByDate: data.expiryDate,
+        useByDate: data.useByDate,
       }),
       purchaseDate: data.purchaseDate,
       price: data.price !== null ? new Price(data.price.toNumber()) : null,

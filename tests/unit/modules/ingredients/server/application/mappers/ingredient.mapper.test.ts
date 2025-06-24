@@ -60,7 +60,7 @@ describe('IngredientMapper', () => {
         detail: '野菜室',
       })
       expect(dto.currentStock?.bestBeforeDate).toBeDefined()
-      expect(dto.currentStock?.expiryDate).toBeDefined()
+      expect(dto.currentStock?.useByDate).toBeDefined()
       expect(dto.currentStock?.purchaseDate).toBeDefined()
       expect(dto.currentStock?.price).toBe(150)
       expect(dto.currentStock?.isInStock).toBe(true)
@@ -160,7 +160,7 @@ describe('IngredientMapper', () => {
       expect(dto.category).toBeNull()
       expect(dto.currentStock).not.toBeNull()
       expect(dto.currentStock?.bestBeforeDate).toBeNull()
-      expect(dto.currentStock?.expiryDate).toBeNull()
+      expect(dto.currentStock?.useByDate).toBeNull()
       expect(dto.currentStock?.price).toBeNull()
       expect(dto.currentStock?.storageLocation.detail).toBeNull()
     })

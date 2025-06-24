@@ -41,7 +41,7 @@ export class IngredientMapper {
             },
             bestBeforeDate:
               stock.getExpiryInfo().getBestBeforeDate()?.toISOString().split('T')[0] || null,
-            expiryDate: stock.getExpiryInfo().getUseByDate()?.toISOString().split('T')[0] || null,
+            useByDate: stock.getExpiryInfo().getUseByDate()?.toISOString().split('T')[0] || null,
             purchaseDate: stock.getPurchaseDate().toISOString().split('T')[0],
             price: stock.getPrice()?.getValue() || null,
             isInStock: true,

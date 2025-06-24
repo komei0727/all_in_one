@@ -63,7 +63,7 @@ describe('PrismaIngredientRepository', () => {
     storageLocationType: 'REFRIGERATED',
     storageLocationDetail: '野菜室',
     bestBeforeDate: new Date('2024-01-15'),
-    expiryDate: new Date('2024-01-10'),
+    useByDate: new Date('2024-01-10'),
     purchaseDate: new Date('2024-01-01'),
     price: new Prisma.Decimal(300),
     isActive: true,

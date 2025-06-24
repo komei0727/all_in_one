@@ -128,7 +128,7 @@ describe('CreateIngredientApiHandler', () => {
             detail: '野菜室',
           },
           bestBeforeDate: '2024-12-31',
-          expiryDate: '2024-12-27',
+          useByDate: '2024-12-27',
           purchaseDate: '2024-12-20',
           price: 300,
           isInStock: true,
