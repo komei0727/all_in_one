@@ -51,6 +51,13 @@ export async function resetDatabase(): Promise<void> {
     // メインテーブル
     prisma.ingredient.deleteMany(),
 
+    // ユーザー関連テーブル（外部キー制約を考慮した順序）
+    prisma.session.deleteMany(),
+    prisma.account.deleteMany(),
+    prisma.domainUser.deleteMany(),
+    prisma.verificationToken.deleteMany(),
+    prisma.user.deleteMany(),
+
     // マスターテーブル
     prisma.category.deleteMany(),
     prisma.unit.deleteMany(),

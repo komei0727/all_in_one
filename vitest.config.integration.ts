@@ -7,8 +7,7 @@ export default defineConfig({
     include: ['tests/integration/**/*.test.ts'],
     environment: 'node', // 統合テストはNode環境で実行
     globals: true,
-    setupFiles: ['./tests/setup/database.setup.ts'],
-    globalSetup: ['./tests/setup/database.setup.ts'],
+    setupFiles: ['./tests/setup/vitest.setup.ts'],
     pool: 'forks', // プロセスを分離してDBの競合を防ぐ
     poolOptions: {
       forks: {
@@ -26,6 +25,7 @@ export default defineConfig({
       '@/lib': path.resolve(__dirname, './src/lib'),
       '@ingredients': path.resolve(__dirname, './src/modules/ingredients'),
       '@shared': path.resolve(__dirname, './src/modules/shared'),
+      '@/generated': path.resolve(__dirname, './src/generated'),
     },
   },
 })
