@@ -54,7 +54,7 @@ export class EmailBuilder extends BaseBuilder<{ value: string }> {
 
   build() {
     return {
-      value: this.props.value!
+      value: this.props.value!,
     }
   }
 }

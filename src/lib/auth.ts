@@ -1,11 +1,12 @@
-import { NextAuthOptions, User as NextAuthUser } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
+import { NextAuthOptions } from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
+
 import { prisma } from '@/lib/prisma'
 
 /**
  * NextAuth設定
- * 
+ *
  * マジックリンク認証を使用し、ドメインユーザーとの連携を行う
  */
 export const authOptions: NextAuthOptions = {
@@ -30,44 +31,44 @@ export const authOptions: NextAuthOptions = {
     verifyRequest: '/auth/verify-request',
   },
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ account }) {
       // マジックリンク認証時の処理
       if (account?.provider === 'email') {
         try {
           // ドメインユーザーとの連携処理はイベントで処理
-          console.log('User signing in:', user.email)
+          // TODO: ログ出力は本番環境では適切なロガーに置き換える
           return true
-        } catch (error) {
-          console.error('Error during sign in:', error)
+        } catch (_error) {
+          // TODO: エラーログは本番環境では適切なロガーに置き換える
           return false
         }
       }
       return true
     },
-    async session({ session, user, token }) {
+    async session({ session, user }) {
       // セッションにドメインユーザー情報を追加
       if (session.user && user) {
         // NextAuthのユーザーIDをセッションに追加
         session.user.id = user.id
-        
+
         // ドメインユーザーの情報を取得して追加（必要に応じて）
         try {
           const domainUser = await prisma.domainUser.findUnique({
-            where: { nextAuthId: user.id }
+            where: { nextAuthId: user.id },
           })
-          
+
           if (domainUser) {
             session.user.domainUserId = domainUser.id
             session.user.status = domainUser.status
             session.user.displayName = domainUser.displayName
           }
-        } catch (error) {
-          console.error('Error fetching domain user:', error)
+        } catch (_error) {
+          // TODO: エラーログは本番環境では適切なロガーに置き換える
         }
       }
       return session
     },
-    async jwt({ token, user, account, profile, trigger, session }) {
+    async jwt({ token, user }) {
       // JWTトークンの処理
       if (user) {
         token.sub = user.id
@@ -78,25 +79,24 @@ export const authOptions: NextAuthOptions = {
   events: {
     async signIn(message) {
       // ユーザーログイン時のイベント処理
-      const { user, account, profile, isNewUser } = message
-      
+      const { user, account } = message
+
       if (user && account?.provider === 'email') {
         try {
           // ドメインユーザーとの連携処理
           // UserIntegrationServiceを使用してドメインユーザーを作成/更新
-          console.log('SignIn event:', { userId: user.id, email: user.email, isNewUser })
-          
+          // TODO: イベントログは本番環境では適切なロガーに置き換える
           // TODO: ここでUserIntegrationServiceを呼び出す
           // const userIntegrationService = new UserIntegrationService(new PrismaUserRepository(prisma))
           // await userIntegrationService.createOrUpdateFromNextAuth(user)
-        } catch (error) {
-          console.error('Error in signIn event:', error)
+        } catch (_error) {
+          // TODO: エラーログは本番環境では適切なロガーに置き換える
         }
       }
     },
-    async createUser(message) {
+    async createUser(_message) {
       // 新規ユーザー作成時のイベント処理
-      console.log('User created:', message.user)
+      // TODO: ユーザー作成ログは本番環境では適切なロガーに置き換える
     },
   },
   session: {

@@ -1,5 +1,6 @@
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+
 import { UserProfile } from '../value-objects/user-profile.vo'
 import { UserStatus } from '../value-objects/user-status.vo'
 
@@ -46,7 +47,7 @@ export class User {
 
   constructor(props: UserProps) {
     this.validate(props)
-    
+
     this._id = props.id
     this._nextAuthId = props.nextAuthId
     this._email = props.email
@@ -65,31 +66,31 @@ export class User {
     if (!props.id) {
       throw new Error('ユーザーIDは必須です')
     }
-    
+
     if (!props.nextAuthId || props.nextAuthId.trim() === '') {
       throw new Error('NextAuth IDは必須です')
     }
-    
+
     if (!props.email) {
       throw new Error('メールアドレスは必須です')
     }
-    
+
     if (!props.profile) {
       throw new Error('プロフィールは必須です')
     }
-    
+
     if (!props.status) {
       throw new Error('ユーザーステータスは必須です')
     }
-    
+
     if (!props.createdAt) {
       throw new Error('作成日時は必須です')
     }
-    
+
     if (!props.updatedAt) {
       throw new Error('更新日時は必須です')
     }
-    
+
     // 日時の整合性チェック
     if (props.createdAt > props.updatedAt) {
       throw new Error('更新日時は作成日時以降である必要があります')
@@ -101,7 +102,7 @@ export class User {
    */
   static createFromNextAuth(nextAuthUser: NextAuthUser): User {
     const now = new Date()
-    
+
     return new User({
       id: new UserId(crypto.randomUUID()),
       nextAuthId: nextAuthUser.id,
@@ -110,7 +111,7 @@ export class User {
       status: UserStatus.createActive(),
       createdAt: now,
       updatedAt: now,
-      lastLoginAt: null
+      lastLoginAt: null,
     })
   }
 
@@ -119,7 +120,7 @@ export class User {
    */
   static createFromNextAuthWithProfile(nextAuthUser: NextAuthUser, profile: UserProfile): User {
     const now = new Date()
-    
+
     return new User({
       id: new UserId(crypto.randomUUID()),
       nextAuthId: nextAuthUser.id,
@@ -128,7 +129,7 @@ export class User {
       status: UserStatus.createActive(),
       createdAt: now,
       updatedAt: now,
-      lastLoginAt: null
+      lastLoginAt: null,
     })
   }
 
@@ -209,7 +210,7 @@ export class User {
     if (this._status.isDeactivated()) {
       throw new Error('既に無効化されたユーザーです')
     }
-    
+
     this._status = this._status.deactivate()
     this._updatedAt = new Date()
   }
@@ -221,11 +222,11 @@ export class User {
     if (!profile) {
       throw new Error('プロフィールは必須です')
     }
-    
+
     if (!this.isActive()) {
       throw new Error('無効化されたユーザーのプロフィールは更新できません')
     }
-    
+
     this._profile = profile
     this._updatedAt = new Date()
   }
@@ -237,7 +238,7 @@ export class User {
     if (!this.canLogin()) {
       throw new Error('無効化されたユーザーはログインできません')
     }
-    
+
     this._lastLoginAt = loginTime || new Date()
   }
 
@@ -248,7 +249,7 @@ export class User {
     if (this._nextAuthId !== nextAuthUser.id) {
       throw new Error('NextAuth IDが一致しません')
     }
-    
+
     // メールアドレスの同期
     if (this._email.getValue() !== nextAuthUser.email) {
       this._email = new Email(nextAuthUser.email)
@@ -264,7 +265,7 @@ export class User {
     if (!(other instanceof User)) {
       return false
     }
-    
+
     return this._id.equals(other._id)
   }
 }

@@ -163,11 +163,13 @@ interface HomeScreenState {
 ### サーバー状態
 
 #### NextAuthセッション
+
 - useSession()フックで管理
 - 自動的にセッション状態を管理
 - 認証状態: 'authenticated' | 'loading' | 'unauthenticated'
 
 #### TanStack Query（ドメインユーザー情報）
+
 - **queryKey**: `['users', 'me']`
 - **キャッシュ戦略**: 5分間キャッシュ
 - **再検証タイミング**: ウィンドウフォーカス時

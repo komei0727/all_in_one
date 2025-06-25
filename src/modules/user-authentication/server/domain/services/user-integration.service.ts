@@ -1,8 +1,9 @@
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+
 import { User, NextAuthUser } from '../entities/user.entity'
-import { UserProfile } from '../value-objects/user-profile.vo'
 import { UserRepository } from '../repositories/user.repository'
+import { UserProfile } from '../value-objects/user-profile.vo'
 
 /**
  * ユーザー統合サービス
@@ -19,19 +20,19 @@ export class UserIntegrationService {
   async createOrUpdateFromNextAuth(nextAuthUser: NextAuthUser): Promise<User> {
     // 既存のドメインユーザーを検索
     const existingUser = await this.userRepository.findByNextAuthId(nextAuthUser.id)
-    
+
     if (existingUser) {
       // 既存ユーザーの場合は同期して返す
       existingUser.syncWithNextAuth(nextAuthUser)
       return await this.userRepository.save(existingUser)
     }
-    
+
     // 新規ユーザーの場合、メールアドレスの重複チェック
     const emailExists = await this.userRepository.existsByEmail(new Email(nextAuthUser.email))
     if (emailExists) {
       throw new Error('メールアドレスが既に使用されています')
     }
-    
+
     // 新規ドメインユーザーを作成
     const newUser = User.createFromNextAuth(nextAuthUser)
     return await this.userRepository.save(newUser)
@@ -44,18 +45,18 @@ export class UserIntegrationService {
    */
   async handleSuccessfulAuthentication(nextAuthId: string): Promise<User> {
     const user = await this.userRepository.findByNextAuthId(nextAuthId)
-    
+
     if (!user) {
       throw new Error('ユーザーが見つかりません')
     }
-    
+
     if (!user.canLogin()) {
       throw new Error('アカウントが無効化されています')
     }
-    
+
     // ログインを記録
     user.recordLogin()
-    
+
     return await this.userRepository.save(user)
   }
 
@@ -67,17 +68,17 @@ export class UserIntegrationService {
    */
   async updateUserProfile(userId: UserId, profile: UserProfile): Promise<User> {
     const user = await this.userRepository.findById(userId)
-    
+
     if (!user) {
       throw new Error('ユーザーが見つかりません')
     }
-    
+
     if (!user.isActive()) {
       throw new Error('無効化されたユーザーのプロフィールは更新できません')
     }
-    
+
     user.updateProfile(profile)
-    
+
     return await this.userRepository.save(user)
   }
 
@@ -88,17 +89,17 @@ export class UserIntegrationService {
    */
   async deactivateUser(userId: UserId): Promise<User> {
     const user = await this.userRepository.findById(userId)
-    
+
     if (!user) {
       throw new Error('ユーザーが見つかりません')
     }
-    
+
     if (!user.isActive()) {
       throw new Error('既に無効化されたユーザーです')
     }
-    
+
     user.deactivate()
-    
+
     return await this.userRepository.save(user)
   }
 

@@ -14,46 +14,47 @@ NextAuth.jsが管理する認証関連テーブル。Prisma Adapterにより自�
 
 外部認証プロバイダーとの連携情報を管理。
 
-| カラム名             | 型        | 制約                   | 説明                                |
-| -------------------- | --------- | ---------------------- | ----------------------------------- |
-| id                   | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                |
-| userId               | TEXT      | NOT NULL               | NextAuthユーザーID（外部キー）      |
-| type                 | TEXT      | NOT NULL               | アカウントタイプ（email, oauth等）  |
-| provider             | TEXT      | NOT NULL               | プロバイダー名（email等）           |
-| providerAccountId    | TEXT      | NOT NULL               | プロバイダー側のアカウントID        |
-| refresh_token        | TEXT      | NULL                   | リフレッシュトークン（OAuth用）     |
-| access_token         | TEXT      | NULL                   | アクセストークン（OAuth用）         |
-| expires_at           | INTEGER   | NULL                   | トークン有効期限（Unix時間）        |
-| token_type           | TEXT      | NULL                   | トークンタイプ                      |
-| scope                | TEXT      | NULL                   | 権限スコープ                        |
-| id_token             | TEXT      | NULL                   | IDトークン（OAuth用）               |
-| session_state        | TEXT      | NULL                   | セッション状態                      |
+| カラム名          | 型      | 制約        | 説明                               |
+| ----------------- | ------- | ----------- | ---------------------------------- |
+| id                | TEXT    | PRIMARY KEY | CUID形式の一意識別子               |
+| userId            | TEXT    | NOT NULL    | NextAuthユーザーID（外部キー）     |
+| type              | TEXT    | NOT NULL    | アカウントタイプ（email, oauth等） |
+| provider          | TEXT    | NOT NULL    | プロバイダー名（email等）          |
+| providerAccountId | TEXT    | NOT NULL    | プロバイダー側のアカウントID       |
+| refresh_token     | TEXT    | NULL        | リフレッシュトークン（OAuth用）    |
+| access_token      | TEXT    | NULL        | アクセストークン（OAuth用）        |
+| expires_at        | INTEGER | NULL        | トークン有効期限（Unix時間）       |
+| token_type        | TEXT    | NULL        | トークンタイプ                     |
+| scope             | TEXT    | NULL        | 権限スコープ                       |
+| id_token          | TEXT    | NULL        | IDトークン（OAuth用）              |
+| session_state     | TEXT    | NULL        | セッション状態                     |
 
 **制約**:
+
 - UNIQUE(provider, providerAccountId)
 
 #### Session（NextAuthセッション）テーブル
 
 アクティブなセッション情報を管理。
 
-| カラム名      | 型        | 制約            | 説明                           |
-| ------------- | --------- | --------------- | ------------------------------ |
-| id            | TEXT      | PRIMARY KEY     | CUID形式の一意識別子           |
-| sessionToken  | TEXT      | NOT NULL UNIQUE | セッショントークン             |
-| userId        | TEXT      | NOT NULL        | NextAuthユーザーID（外部キー） |
-| expires       | TIMESTAMP | NOT NULL        | セッション有効期限             |
+| カラム名     | 型        | 制約            | 説明                           |
+| ------------ | --------- | --------------- | ------------------------------ |
+| id           | TEXT      | PRIMARY KEY     | CUID形式の一意識別子           |
+| sessionToken | TEXT      | NOT NULL UNIQUE | セッショントークン             |
+| userId       | TEXT      | NOT NULL        | NextAuthユーザーID（外部キー） |
+| expires      | TIMESTAMP | NOT NULL        | セッション有効期限             |
 
 #### User（NextAuthユーザー）テーブル
 
 NextAuthが管理する基本的なユーザー情報。
 
-| カラム名      | 型        | 制約                   | 説明                      |
-| ------------- | --------- | ---------------------- | ------------------------- |
-| id            | TEXT      | PRIMARY KEY            | CUID形式の一意識別子      |
-| email         | TEXT      | UNIQUE                 | メールアドレス            |
-| emailVerified | TIMESTAMP | NULL                   | メール確認日時            |
-| name          | TEXT      | NULL                   | 表示名                    |
-| image         | TEXT      | NULL                   | プロフィール画像URL       |
+| カラム名      | 型        | 制約        | 説明                 |
+| ------------- | --------- | ----------- | -------------------- |
+| id            | TEXT      | PRIMARY KEY | CUID形式の一意識別子 |
+| email         | TEXT      | UNIQUE      | メールアドレス       |
+| emailVerified | TIMESTAMP | NULL        | メール確認日時       |
+| name          | TEXT      | NULL        | 表示名               |
+| image         | TEXT      | NULL        | プロフィール画像URL  |
 
 #### VerificationToken（検証トークン）テーブル
 
@@ -66,6 +67,7 @@ NextAuthが管理する基本的なユーザー情報。
 | expires    | TIMESTAMP | NOT NULL | 有効期限           |
 
 **制約**:
+
 - PRIMARY KEY(identifier, token)
 
 ### ドメインテーブル
@@ -74,18 +76,18 @@ NextAuthが管理する基本的なユーザー情報。
 
 ユーザー集約のルートエンティティ。NextAuthユーザーと連携してドメイン固有の情報を管理。
 
-| カラム名           | 型        | 制約                          | 説明                               |
-| ------------------ | --------- | ----------------------------- | ---------------------------------- |
-| id                 | TEXT      | PRIMARY KEY                   | CUID形式の一意識別子               |
-| next_auth_id       | TEXT      | NOT NULL, UNIQUE              | NextAuthユーザーID（外部キー）     |
-| email              | TEXT      | NOT NULL, UNIQUE              | メールアドレス（NextAuthと同期）   |
-| name               | TEXT      | NULL                          | 表示名（NextAuthと同期可能）       |
-| preferred_language | TEXT      | NOT NULL DEFAULT 'ja'         | 優先言語                           |
-| timezone           | TEXT      | NOT NULL DEFAULT 'Asia/Tokyo' | タイムゾーン                       |
-| status             | TEXT      | NOT NULL DEFAULT 'ACTIVE'     | ステータス（ACTIVE/DEACTIVATED）   |
-| last_login_at      | TIMESTAMP | NULL                          | 最終ログイン日時                   |
-| created_at         | TIMESTAMP | NOT NULL DEFAULT NOW()        | 作成日時                           |
-| updated_at         | TIMESTAMP | NOT NULL                      | 更新日時                           |
+| カラム名           | 型        | 制約                          | 説明                             |
+| ------------------ | --------- | ----------------------------- | -------------------------------- |
+| id                 | TEXT      | PRIMARY KEY                   | CUID形式の一意識別子             |
+| next_auth_id       | TEXT      | NOT NULL, UNIQUE              | NextAuthユーザーID（外部キー）   |
+| email              | TEXT      | NOT NULL, UNIQUE              | メールアドレス（NextAuthと同期） |
+| name               | TEXT      | NULL                          | 表示名（NextAuthと同期可能）     |
+| preferred_language | TEXT      | NOT NULL DEFAULT 'ja'         | 優先言語                         |
+| timezone           | TEXT      | NOT NULL DEFAULT 'Asia/Tokyo' | タイムゾーン                     |
+| status             | TEXT      | NOT NULL DEFAULT 'ACTIVE'     | ステータス（ACTIVE/DEACTIVATED） |
+| last_login_at      | TIMESTAMP | NULL                          | 最終ログイン日時                 |
+| created_at         | TIMESTAMP | NOT NULL DEFAULT NOW()        | 作成日時                         |
+| updated_at         | TIMESTAMP | NOT NULL                      | 更新日時                         |
 
 **外部キー制約**:
 
@@ -115,14 +117,14 @@ NextAuthが管理する基本的なユーザー情報。
 
 ### 認証関連イベントタイプ（NextAuth統合版）
 
-| イベントタイプ        | 説明                         | 主要データ                          |
-| --------------------- | ---------------------------- | ----------------------------------- |
-| UserCreatedFromNextAuth | NextAuthユーザーから作成     | userId, nextAuthId, email           |
-| UserLoggedIn          | ログイン成功                 | userId, nextAuthId                  |
-| UserLoggedOut         | ログアウト                   | userId                              |
-| UserProfileUpdated    | プロフィール更新             | userId, changedFields               |
-| UserDeactivated       | ユーザー無効化               | userId, reason                      |
-| UserReactivated       | ユーザー再有効化             | userId                              |
+| イベントタイプ          | 説明                     | 主要データ                |
+| ----------------------- | ------------------------ | ------------------------- |
+| UserCreatedFromNextAuth | NextAuthユーザーから作成 | userId, nextAuthId, email |
+| UserLoggedIn            | ログイン成功             | userId, nextAuthId        |
+| UserLoggedOut           | ログアウト               | userId                    |
+| UserProfileUpdated      | プロフィール更新         | userId, changedFields     |
+| UserDeactivated         | ユーザー無効化           | userId, reason            |
+| UserReactivated         | ユーザー再有効化         | userId                    |
 
 ## パフォーマンス考慮事項
 

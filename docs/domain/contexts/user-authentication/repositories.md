@@ -8,12 +8,14 @@ NextAuthが認証・セッション・トークン管理を担当するため、
 ## 責任範囲の明確化
 
 ### NextAuthが管理（Prisma Adapterで自動管理）
+
 - NextAuthユーザー（users テーブル）
 - NextAuthアカウント（accounts テーブル）
 - NextAuthセッション（sessions テーブル）
 - NextAuth検証トークン（verification_tokens テーブル）
 
 ### ドメインが管理（本リポジトリの対象）
+
 - ドメインユーザー（domain_users テーブル）
 - ユーザープロフィール
 - ユーザー状態・設定
@@ -21,9 +23,9 @@ NextAuthが認証・セッション・トークン管理を担当するため、
 
 ## リポジトリ一覧（NextAuth統合版）
 
-| リポジトリ     | 対象集約/エンティティ | 主要な責務                              |
-| -------------- | --------------------- | --------------------------------------- |
-| UserRepository | ユーザー集約          | ドメインユーザー情報の永続化と検索      |
+| リポジトリ     | 対象集約/エンティティ | 主要な責務                         |
+| -------------- | --------------------- | ---------------------------------- |
+| UserRepository | ユーザー集約          | ドメインユーザー情報の永続化と検索 |
 
 ## 削除されたリポジトリ（NextAuthに委譲）
 
@@ -40,40 +42,40 @@ NextAuthが認証・セッション・トークン管理を担当するため、
 
 ### 基本操作
 
-| メソッド                          | 説明                                 | 備考                           |
-| --------------------------------- | ------------------------------------ | ------------------------------ |
-| save(user: User)                  | ユーザーの保存（作成・更新）         | NextAuthIDの一意性を保証       |
-| findById(id: UserId)              | ドメインIDによるユーザー取得         | 論理削除済みは除外             |
-| findByEmail(email: Email)         | メールアドレスによる取得             | 大文字小文字を区別しない       |
-| findByNextAuthId(nextAuthId: string) | NextAuthIDによる取得              | NextAuth統合の中核メソッド     |
-| delete(id: UserId)                | ユーザーの論理削除                   | status=DEACTIVATEDに更新       |
+| メソッド                             | 説明                         | 備考                       |
+| ------------------------------------ | ---------------------------- | -------------------------- |
+| save(user: User)                     | ユーザーの保存（作成・更新） | NextAuthIDの一意性を保証   |
+| findById(id: UserId)                 | ドメインIDによるユーザー取得 | 論理削除済みは除外         |
+| findByEmail(email: Email)            | メールアドレスによる取得     | 大文字小文字を区別しない   |
+| findByNextAuthId(nextAuthId: string) | NextAuthIDによる取得         | NextAuth統合の中核メソッド |
+| delete(id: UserId)                   | ユーザーの論理削除           | status=DEACTIVATEDに更新   |
 
 ### NextAuth統合検索
 
-| メソッド                               | 説明                               | 使用場面                           |
-| -------------------------------------- | ---------------------------------- | ---------------------------------- |
-| existsByNextAuthId(nextAuthId: string) | NextAuthIDの存在確認               | 統合処理時の重複チェック           |
-| existsByEmail(email: Email)            | メールアドレスの存在確認           | データ整合性チェック               |
-| findOrphanedUsers()                    | NextAuthユーザーが存在しないユーザー | データ整合性の監視・修復           |
-| findUsersWithoutNextAuthId()           | NextAuthID未設定のユーザー         | 移行・統合の監視                   |
+| メソッド                               | 説明                                 | 使用場面                 |
+| -------------------------------------- | ------------------------------------ | ------------------------ |
+| existsByNextAuthId(nextAuthId: string) | NextAuthIDの存在確認                 | 統合処理時の重複チェック |
+| existsByEmail(email: Email)            | メールアドレスの存在確認             | データ整合性チェック     |
+| findOrphanedUsers()                    | NextAuthユーザーが存在しないユーザー | データ整合性の監視・修復 |
+| findUsersWithoutNextAuthId()           | NextAuthID未設定のユーザー           | 移行・統合の監視         |
 
 ### ビジネス要件に基づく検索
 
-| メソッド                              | 説明                           | 使用場面                   |
-| ------------------------------------- | ------------------------------ | -------------------------- |
-| findActiveUsers()                     | アクティブユーザーの取得       | ユーザー一覧表示           |
-| findDeactivatedUsers()                | 無効化されたユーザーの取得     | 管理画面・監査             |
-| findInactiveUsers(days: number)       | 非アクティブユーザーの取得     | アカウント整理             |
-| findByIds(ids: UserId[])              | 複数IDによる一括取得           | バッチ処理                 |
-| searchByProfile(criteria: SearchCriteria) | プロフィール条件での検索   | ユーザー検索機能           |
+| メソッド                                  | 説明                       | 使用場面         |
+| ----------------------------------------- | -------------------------- | ---------------- |
+| findActiveUsers()                         | アクティブユーザーの取得   | ユーザー一覧表示 |
+| findDeactivatedUsers()                    | 無効化されたユーザーの取得 | 管理画面・監査   |
+| findInactiveUsers(days: number)           | 非アクティブユーザーの取得 | アカウント整理   |
+| findByIds(ids: UserId[])                  | 複数IDによる一括取得       | バッチ処理       |
+| searchByProfile(criteria: SearchCriteria) | プロフィール条件での検索   | ユーザー検索機能 |
 
 ### 統計・分析
 
-| メソッド                                      | 説明                     | 使用場面             |
-| --------------------------------------------- | ------------------------ | -------------------- |
-| countByRegistrationDate(from: Date, to: Date) | 期間内の登録者数取得     | 統計・分析           |
-| countByStatus(status: UserStatus)             | 状態別ユーザー数取得     | ダッシュボード表示   |
-| getRegistrationStatistics(period: Period)     | 登録統計の取得           | レポート生成         |
+| メソッド                                      | 説明                 | 使用場面           |
+| --------------------------------------------- | -------------------- | ------------------ |
+| countByRegistrationDate(from: Date, to: Date) | 期間内の登録者数取得 | 統計・分析         |
+| countByStatus(status: UserStatus)             | 状態別ユーザー数取得 | ダッシュボード表示 |
+| getRegistrationStatistics(period: Period)     | 登録統計の取得       | レポート生成       |
 
 ### インターフェース定義
 
@@ -85,20 +87,20 @@ interface UserRepository {
   findByEmail(email: Email): Promise<User | null>
   findByNextAuthId(nextAuthId: string): Promise<User | null>
   delete(id: UserId): Promise<void>
-  
+
   // NextAuth統合検索
   existsByNextAuthId(nextAuthId: string): Promise<boolean>
   existsByEmail(email: Email): Promise<boolean>
   findOrphanedUsers(): Promise<User[]>
   findUsersWithoutNextAuthId(): Promise<User[]>
-  
+
   // ビジネス要件に基づく検索
   findActiveUsers(options?: PagingOptions): Promise<PagedResult<User>>
   findDeactivatedUsers(options?: PagingOptions): Promise<PagedResult<User>>
   findInactiveUsers(days: number, options?: PagingOptions): Promise<PagedResult<User>>
   findByIds(ids: UserId[]): Promise<User[]>
   searchByProfile(criteria: SearchCriteria, options?: PagingOptions): Promise<PagedResult<User>>
-  
+
   // 統計・分析
   countByRegistrationDate(from: Date, to: Date): Promise<number>
   countByStatus(status: UserStatus): Promise<number>
@@ -160,22 +162,22 @@ interface SearchCriteria {
 
 ### インデックス設計
 
-| テーブル       | インデックス                    | 用途                         |
-| -------------- | ------------------------------- | ---------------------------- |
-| domain_users   | next_auth_id (unique)           | NextAuth統合検索             |
-| domain_users   | email (unique)                  | メールアドレス検索           |
-| domain_users   | status, created_at              | 状態別ユーザー検索           |
-| domain_users   | last_login_at                   | 非アクティブユーザー検索     |
-| domain_users   | profile->>'displayName'         | プロフィール検索（JSON）     |
+| テーブル     | インデックス            | 用途                     |
+| ------------ | ----------------------- | ------------------------ |
+| domain_users | next_auth_id (unique)   | NextAuth統合検索         |
+| domain_users | email (unique)          | メールアドレス検索       |
+| domain_users | status, created_at      | 状態別ユーザー検索       |
+| domain_users | last_login_at           | 非アクティブユーザー検索 |
+| domain_users | profile->>'displayName' | プロフィール検索（JSON） |
 
 ### キャッシュ戦略
 
-| 対象                   | キャッシュ期間 | 無効化タイミング          |
-| ---------------------- | -------------- | ------------------------- |
-| ユーザー基本情報       | 10分           | 更新・削除時              |
-| NextAuthID存在確認     | 5分            | ユーザー作成時            |
-| ユーザー統計情報       | 1時間          | ユーザー作成・削除時      |
-| プロフィール検索結果   | 30秒           | プロフィール更新時        |
+| 対象                 | キャッシュ期間 | 無効化タイミング     |
+| -------------------- | -------------- | -------------------- |
+| ユーザー基本情報     | 10分           | 更新・削除時         |
+| NextAuthID存在確認   | 5分            | ユーザー作成時       |
+| ユーザー統計情報     | 1時間          | ユーザー作成・削除時 |
+| プロフィール検索結果 | 30秒           | プロフィール更新時   |
 
 ### 最適化戦略
 
@@ -188,11 +190,13 @@ interface SearchCriteria {
 ### NextAuth統合における注意点
 
 **データ整合性の確保:**
+
 - NextAuthユーザーとドメインユーザーの1:1対応を維持
 - NextAuthIDの一意性制約を必ず設定
 - 孤立データの定期的な検出と修復
 
 **禁止事項:**
+
 - NextAuthテーブルへの直接的な読み書き
 - NextAuthセッション情報の直接管理
 - NextAuthトークンの独自生成
@@ -227,9 +231,9 @@ export class PrismaUserRepository implements UserRepository {
       where: { nextAuthId },
       // 論理削除済みを除外
       // status != 'DEACTIVATED'
-    });
-    
-    return record ? this.toDomainModel(record) : null;
+    })
+
+    return record ? this.toDomainModel(record) : null
   }
 
   async findOrphanedUsers(): Promise<User[]> {
@@ -241,9 +245,9 @@ export class PrismaUserRepository implements UserRepository {
       LEFT JOIN users na ON du.next_auth_id = na.id
       WHERE na.id IS NULL
         AND du.status != 'DEACTIVATED'
-    `;
-    
-    return orphaned.map(this.toDomainModel);
+    `
+
+    return orphaned.map(this.toDomainModel)
   }
 }
 ```

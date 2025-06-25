@@ -43,7 +43,7 @@ export class UserStatusBuilder extends BaseBuilder<{ status: string }> {
 
   build() {
     return {
-      status: this.props.status!
+      status: this.props.status!,
     }
   }
 }

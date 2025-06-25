@@ -17,12 +17,14 @@ NextAuthが認証処理を担当するため、本コンテキストのイベン
 ## 責任範囲の明確化
 
 ### NextAuthが管理するイベント（本コンテキスト対象外）
+
 - ユーザー登録（NextAuth.User作成）
 - ログイン/ログアウト（NextAuth.Session管理）
 - メール認証（NextAuth標準フロー）
 - パスワードリセット（NextAuth標準フロー）
 
 ### ドメインが管理するイベント（本コンテキスト対象）
+
 - NextAuthユーザーからのドメインユーザー作成
 - プロフィール更新
 - アカウント無効化
@@ -32,20 +34,20 @@ NextAuthが認証処理を担当するため、本コンテキストのイベン
 
 ### NextAuth統合イベント
 
-| イベント                  | 発生タイミング                     | 主要データ                                      | 用途                               |
-| ------------------------- | ---------------------------------- | ----------------------------------------------- | ---------------------------------- |
-| UserCreatedFromNextAuth   | NextAuthユーザーからドメイン作成時 | UserId、NextAuthId、Email、プロフィール        | 監査ログ、初期設定、他コンテキスト通知 |
-| UserSyncedWithNextAuth    | 既存ユーザーとNextAuth同期時       | UserId、NextAuthId、同期内容                    | 監査ログ、整合性確認               |
-| NextAuthIntegrationFailed | NextAuth統合処理失敗時             | NextAuthId、エラー詳細、失敗理由                | エラー監視、復旧処理               |
+| イベント                  | 発生タイミング                     | 主要データ                              | 用途                                   |
+| ------------------------- | ---------------------------------- | --------------------------------------- | -------------------------------------- |
+| UserCreatedFromNextAuth   | NextAuthユーザーからドメイン作成時 | UserId、NextAuthId、Email、プロフィール | 監査ログ、初期設定、他コンテキスト通知 |
+| UserSyncedWithNextAuth    | 既存ユーザーとNextAuth同期時       | UserId、NextAuthId、同期内容            | 監査ログ、整合性確認                   |
+| NextAuthIntegrationFailed | NextAuth統合処理失敗時             | NextAuthId、エラー詳細、失敗理由        | エラー監視、復旧処理                   |
 
 ### ドメイン固有イベント
 
-| イベント              | 発生タイミング       | 主要データ                              | 用途                           |
-| --------------------- | -------------------- | --------------------------------------- | ------------------------------ |
-| UserProfileUpdated    | プロフィール更新時   | UserId、変更前後のプロフィール          | 監査ログ、同期、通知           |
-| UserPreferencesChanged| ユーザー設定変更時   | UserId、変更前後の設定                  | 設定同期、パーソナライゼーション |
-| UserDeactivated       | アカウント無効化時   | UserId、無効化理由、実行者              | 監査ログ、データクリーンアップ |
-| UserReactivated       | アカウント再有効化時 | UserId、再有効化理由、実行者            | 監査ログ、復旧処理             |
+| イベント               | 発生タイミング       | 主要データ                     | 用途                             |
+| ---------------------- | -------------------- | ------------------------------ | -------------------------------- |
+| UserProfileUpdated     | プロフィール更新時   | UserId、変更前後のプロフィール | 監査ログ、同期、通知             |
+| UserPreferencesChanged | ユーザー設定変更時   | UserId、変更前後の設定         | 設定同期、パーソナライゼーション |
+| UserDeactivated        | アカウント無効化時   | UserId、無効化理由、実行者     | 監査ログ、データクリーンアップ   |
+| UserReactivated        | アカウント再有効化時 | UserId、再有効化理由、実行者   | 監査ログ、復旧処理               |
 
 ### 削除されたイベント（NextAuthに委譲）
 
@@ -69,16 +71,16 @@ NextAuthが認証処理を担当するため、本コンテキストのイベン
 
 すべてのドメインイベントは以下の共通属性を持ちます：
 
-| 属性         | 型     | 説明                           | 例                                |
-| ------------ | ------ | ------------------------------ | --------------------------------- |
-| eventId      | string | イベントの一意識別子           | "evt_01HX5K3J2BXVMH3Z4K5N6P7Q8R"  |
-| eventType    | string | イベントタイプ                 | "UserCreatedFromNextAuth"         |
-| aggregateId  | string | 集約ルートのID（ドメインUser） | "user_01HX5K3J2BXVMH3Z4K5N6P7Q8R" |
-| occurredAt   | Date   | イベント発生時刻               | "2025-06-24T10:30:00Z"            |
-| userId       | string | 対象ドメインユーザーID         | "user_01HX5K3J2BXVMH3Z4K5N6P7Q8R" |
-| nextAuthId   | string | 関連NextAuthユーザーID         | "clxxxx1234"                      |
-| correlationId| string | 処理追跡ID                     | "corr_01HX5K3J2BXVMH3Z4K5N6P7Q8R" |
-| metadata     | object | 追加のメタデータ               | { "source": "nextauth-callback" } |
+| 属性          | 型     | 説明                           | 例                                |
+| ------------- | ------ | ------------------------------ | --------------------------------- |
+| eventId       | string | イベントの一意識別子           | "evt_01HX5K3J2BXVMH3Z4K5N6P7Q8R"  |
+| eventType     | string | イベントタイプ                 | "UserCreatedFromNextAuth"         |
+| aggregateId   | string | 集約ルートのID（ドメインUser） | "user_01HX5K3J2BXVMH3Z4K5N6P7Q8R" |
+| occurredAt    | Date   | イベント発生時刻               | "2025-06-24T10:30:00Z"            |
+| userId        | string | 対象ドメインユーザーID         | "user_01HX5K3J2BXVMH3Z4K5N6P7Q8R" |
+| nextAuthId    | string | 関連NextAuthユーザーID         | "clxxxx1234"                      |
+| correlationId | string | 処理追跡ID                     | "corr_01HX5K3J2BXVMH3Z4K5N6P7Q8R" |
+| metadata      | object | 追加のメタデータ               | { "source": "nextauth-callback" } |
 
 ## イベント詳細（NextAuth統合版）
 
@@ -90,16 +92,16 @@ NextAuthユーザーから新規ドメインユーザーが作成された際の
 interface UserCreatedFromNextAuth extends DomainEvent {
   eventType: 'UserCreatedFromNextAuth'
   payload: {
-    userId: string           // ドメインユーザーID
-    nextAuthId: string       // NextAuthユーザーID
-    email: string            // メールアドレス
+    userId: string // ドメインユーザーID
+    nextAuthId: string // NextAuthユーザーID
+    email: string // メールアドレス
     profile: {
       displayName: string
       timezone: string
       language: string
     }
     status: 'ACTIVE'
-    isFirstTime: boolean     // 初回登録かどうか
+    isFirstTime: boolean // 初回登録かどうか
   }
   metadata: {
     source: 'nextauth-callback'
@@ -185,8 +187,8 @@ interface UserDeactivated extends DomainEvent {
   payload: {
     userId: string
     reason: 'USER_REQUEST' | 'ADMIN_ACTION' | 'POLICY_VIOLATION' | 'DATA_RETENTION'
-    deactivatedBy: string    // 実行者ID
-    effectiveDate: Date      // 無効化実効日
+    deactivatedBy: string // 実行者ID
+    effectiveDate: Date // 無効化実効日
   }
   metadata: {
     source: 'admin-panel' | 'user-settings' | 'automated'
@@ -228,12 +230,12 @@ interface UserDeactivated extends DomainEvent {
 
 ### 保存期間
 
-| イベントカテゴリ       | 保存期間 | 理由                                 |
-| ---------------------- | -------- | ------------------------------------ |
-| NextAuth統合イベント   | 2年      | 統合処理の監査とデバッグ             |
-| プロフィール変更       | 1年      | ユーザー体験改善とサポート対応       |
-| アカウント無効化       | 7年      | 法的要件とコンプライアンス           |
-| 統合エラー             | 1年      | エラーパターン分析と改善             |
+| イベントカテゴリ     | 保存期間 | 理由                           |
+| -------------------- | -------- | ------------------------------ |
+| NextAuth統合イベント | 2年      | 統合処理の監査とデバッグ       |
+| プロフィール変更     | 1年      | ユーザー体験改善とサポート対応 |
+| アカウント無効化     | 7年      | 法的要件とコンプライアンス     |
+| 統合エラー           | 1年      | エラーパターン分析と改善       |
 
 ### パフォーマンス考慮（NextAuth統合特化）
 
@@ -246,11 +248,13 @@ interface UserDeactivated extends DomainEvent {
 ### 1. NextAuth統合特有の考慮事項
 
 **NextAuthコールバック内での制約:**
+
 - コールバック処理時間の最小化（認証フローを妨げない）
 - イベント発行失敗がログインを阻害しない
 - NextAuth標準エラーハンドリングとの協調
 
 **データ整合性の確保:**
+
 - NextAuthユーザーとドメインユーザーの1:1対応維持
 - 統合失敗時のデータ孤立防止
 - NextAuthIDの一意性保証
@@ -258,11 +262,13 @@ interface UserDeactivated extends DomainEvent {
 ### 2. プライバシーとセキュリティ
 
 **個人情報の最小化:**
+
 - NextAuthが管理する認証情報は記録しない
 - 必要最小限のプロフィール情報のみ記録
 - GDPR等のプライバシー規制遵守
 
 **統合セキュリティ:**
+
 - NextAuthトークンは絶対にイベントに含めない
 - ドメインイベントはNextAuth認証後のみ発行
 - 統合エラー情報の機密性保持
@@ -270,11 +276,13 @@ interface UserDeactivated extends DomainEvent {
 ### 3. エラーハンドリングと復旧
 
 **統合エラーの分類:**
+
 - リトライ可能エラー（一時的な DB 接続エラー等）
 - 永続的エラー（バリデーション失敗等）
 - 致命的エラー（システム障害等）
 
 **復旧戦略:**
+
 - 統合失敗時の手動復旧プロセス
 - データ整合性チェックの定期実行
 - 孤立データの検出と修復
@@ -282,6 +290,7 @@ interface UserDeactivated extends DomainEvent {
 ### 4. 実装パターン
 
 **イベント発行タイミング:**
+
 ```typescript
 // NextAuthコールバック内
 async function signInCallback(user, account, profile) {

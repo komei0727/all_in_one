@@ -28,7 +28,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
     }
 
     // テーマのバリデーション
-    if (!UserPreferences.VALID_THEMES.includes(value.theme as any)) {
+    if (!UserPreferences.VALID_THEMES.includes(value.theme)) {
       throw new Error('無効なテーマが指定されています')
     }
 
@@ -38,7 +38,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
     }
 
     // メール頻度のバリデーション
-    if (!UserPreferences.VALID_EMAIL_FREQUENCIES.includes(value.emailFrequency as any)) {
+    if (!UserPreferences.VALID_EMAIL_FREQUENCIES.includes(value.emailFrequency)) {
       throw new Error('無効なメール頻度が指定されています')
     }
   }
@@ -70,7 +70,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
   withTheme(theme: 'light' | 'dark' | 'auto'): UserPreferences {
     return new UserPreferences({
       ...this.value,
-      theme
+      theme,
     })
   }
 
@@ -80,7 +80,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
   withNotifications(notifications: boolean): UserPreferences {
     return new UserPreferences({
       ...this.value,
-      notifications
+      notifications,
     })
   }
 
@@ -90,7 +90,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
   withEmailFrequency(emailFrequency: 'daily' | 'weekly' | 'monthly' | 'never'): UserPreferences {
     return new UserPreferences({
       ...this.value,
-      emailFrequency
+      emailFrequency,
     })
   }
 
@@ -115,7 +115,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
     return new UserPreferences({
       theme: 'light',
       notifications: true,
-      emailFrequency: 'weekly'
+      emailFrequency: 'weekly',
     })
   }
 }

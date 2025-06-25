@@ -14,16 +14,19 @@ const mockUserApplicationService = {
 const mockGetServerSession = vi.fn()
 
 // モック設定
-vi.mock('@/modules/user-authentication/server/application/services/user-application.service', () => ({
-  UserApplicationService: vi.fn().mockImplementation(() => mockUserApplicationService)
-}))
+vi.mock(
+  '@/modules/user-authentication/server/application/services/user-application.service',
+  () => ({
+    UserApplicationService: vi.fn().mockImplementation(() => mockUserApplicationService),
+  })
+)
 
 vi.mock('next-auth', () => ({
-  getServerSession: () => mockGetServerSession()
+  getServerSession: () => mockGetServerSession(),
 }))
 
 vi.mock('@/lib/auth', () => ({
-  authOptions: {}
+  authOptions: {},
 }))
 
 describe('User Profile API', () => {
@@ -37,8 +40,8 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       const userProfile = {
@@ -52,14 +55,14 @@ describe('User Profile API', () => {
           preferences: {
             theme: 'light',
             notifications: true,
-            emailFrequency: 'weekly'
-          }
+            emailFrequency: 'weekly',
+          },
         },
         status: 'ACTIVE',
         isActive: true,
         lastLoginAt: new Date('2024-01-01T10:00:00Z'),
         createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z')
+        updatedAt: new Date('2024-01-01T10:00:00Z'),
       }
 
       mockGetServerSession.mockResolvedValue(session)
@@ -98,8 +101,8 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       mockGetServerSession.mockResolvedValue(session)
@@ -121,8 +124,8 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       mockGetServerSession.mockResolvedValue(session)
@@ -146,14 +149,14 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       const requestBody = {
         displayName: '更新されたユーザー',
         timezone: 'America/New_York',
-        language: 'en'
+        language: 'en',
       }
 
       const updatedProfile = {
@@ -167,14 +170,14 @@ describe('User Profile API', () => {
           preferences: {
             theme: 'light',
             notifications: true,
-            emailFrequency: 'weekly'
-          }
+            emailFrequency: 'weekly',
+          },
         },
         status: 'ACTIVE',
         isActive: true,
         lastLoginAt: new Date('2024-01-01T10:00:00Z'),
         createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T11:00:00Z')
+        updatedAt: new Date('2024-01-01T11:00:00Z'),
       }
 
       mockGetServerSession.mockResolvedValue(session)
@@ -186,8 +189,8 @@ describe('User Profile API', () => {
         method: 'PUT',
         body: JSON.stringify(requestBody),
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
       const response = await PUT(request)
       const data = await response.json()
@@ -197,7 +200,10 @@ describe('User Profile API', () => {
       expect(data.user.profile.displayName).toBe('更新されたユーザー')
       expect(data.user.profile.language).toBe('en')
       expect(data.message).toBe('プロフィールが更新されました')
-      expect(mockUserApplicationService.updateUserProfile).toHaveBeenCalledWith('user-123', requestBody)
+      expect(mockUserApplicationService.updateUserProfile).toHaveBeenCalledWith(
+        'user-123',
+        requestBody
+      )
     })
 
     it('未認証の場合は401エラーを返す', async () => {
@@ -207,7 +213,7 @@ describe('User Profile API', () => {
       const requestBody = {
         displayName: '更新されたユーザー',
         timezone: 'America/New_York',
-        language: 'en'
+        language: 'en',
       }
 
       // Act（実行）
@@ -215,8 +221,8 @@ describe('User Profile API', () => {
         method: 'PUT',
         body: JSON.stringify(requestBody),
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
       const response = await PUT(request)
       const data = await response.json()
@@ -232,14 +238,14 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       const invalidRequestBody = {
         displayName: '', // 無効な値
         timezone: 'America/New_York',
-        language: 'en'
+        language: 'en',
       }
 
       mockGetServerSession.mockResolvedValue(session)
@@ -251,8 +257,8 @@ describe('User Profile API', () => {
         method: 'PUT',
         body: JSON.stringify(invalidRequestBody),
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
       const response = await PUT(request)
       const data = await response.json()
@@ -268,8 +274,8 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       mockGetServerSession.mockResolvedValue(session)
@@ -279,8 +285,8 @@ describe('User Profile API', () => {
         method: 'PUT',
         body: 'invalid json',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
       const response = await PUT(request)
       const data = await response.json()
@@ -296,27 +302,29 @@ describe('User Profile API', () => {
       const session = {
         user: {
           id: 'next-auth-123',
-          email: 'test@example.com'
-        }
+          email: 'test@example.com',
+        },
       }
 
       const requestBody = {
         displayName: '更新されたユーザー',
         timezone: 'America/New_York',
-        language: 'en'
+        language: 'en',
       }
 
       mockGetServerSession.mockResolvedValue(session)
       mockUserApplicationService.getUserByNextAuthId.mockResolvedValue({ id: 'user-123' })
-      mockUserApplicationService.updateUserProfile.mockRejectedValue(new Error('Database connection failed'))
+      mockUserApplicationService.updateUserProfile.mockRejectedValue(
+        new Error('Database connection failed')
+      )
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile', {
         method: 'PUT',
         body: JSON.stringify(requestBody),
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
       const response = await PUT(request)
       const data = await response.json()

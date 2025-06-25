@@ -35,7 +35,7 @@ export class UserIdBuilder extends BaseBuilder<{ value: string }> {
 
   build() {
     return {
-      value: this.props.value!
+      value: this.props.value!,
     }
   }
 }

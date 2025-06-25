@@ -105,8 +105,8 @@ export default async function handler(req, res) {
   res.json({
     data: domainUser.toJSON(),
     meta: {
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   })
 }
 ```
@@ -119,7 +119,7 @@ import { useSession } from 'next-auth/react'
 
 const useDomainUser = () => {
   const { data: session } = useSession()
-  
+
   return useQuery({
     queryKey: ['domainUser', 'me'],
     queryFn: async () => {
@@ -199,23 +199,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const updatedUser = await userProfileService.updateProfile(
-      domainUser.id,
-      req.body.profile
-    )
-    
+    const updatedUser = await userProfileService.updateProfile(domainUser.id, req.body.profile)
+
     res.json({
       data: updatedUser.toJSON(),
       meta: {
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     })
   } catch (error) {
     res.status(400).json({
       error: {
         code: 'PROFILE_UPDATE_FAILED',
-        message: error.message
-      }
+        message: error.message,
+      },
     })
   }
 }
@@ -400,7 +397,7 @@ interface SyncUserResponse {
 | ---------- | ------ | ---- | ---------- | ----------------------- |
 | page       | number | No   | 1          | ページ番号（1から開始） |
 | limit      | number | No   | 20         | 1ページあたりの件数     |
-| type       | string | No   | all        | アクティビティタイプ       |
+| type       | string | No   | all        | アクティビティタイプ    |
 
 ### レスポンス
 
@@ -431,7 +428,6 @@ interface UserActivityResponse {
 
 ---
 
-
 ---
 
 ## 共通エラーレスポンス
@@ -458,12 +454,12 @@ interface ErrorResponse {
 
 ### ユーザー管理固有のエラーコード
 
-| コード                      | 説明                              |
-| --------------------------- | --------------------------------- |
-| `DOMAIN_USER_NOT_FOUND`     | ドメインユーザーが見つからない   |
-| `INTEGRATION_FAILED`        | NextAuth統合エラー              |
-| `SYNC_FAILED`               | 同期処理エラー                  |
-| `PROFILE_UPDATE_FAILED`     | プロフィール更新失敗             |
+| コード                        | 説明                             |
+| ----------------------------- | -------------------------------- |
+| `DOMAIN_USER_NOT_FOUND`       | ドメインユーザーが見つからない   |
+| `INTEGRATION_FAILED`          | NextAuth統合エラー               |
+| `SYNC_FAILED`                 | 同期処理エラー                   |
+| `PROFILE_UPDATE_FAILED`       | プロフィール更新失敗             |
 | `ACCOUNT_ALREADY_DEACTIVATED` | アカウントは既に無効化されている |
 
 ## 実装上の注意事項

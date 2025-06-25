@@ -31,9 +31,9 @@ interface UserEntityProps {
 export class UserBuilder extends BaseBuilder<UserEntityProps> {
   constructor() {
     super()
-    
+
     const now = new Date()
-    
+
     // デフォルト値を設定（リアルなテストデータ生成）
     this.props = {
       id: new UserIdBuilder().build(),
@@ -42,7 +42,7 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
       status: new UserStatusBuilder().withActive().build(),
       createdAt: faker.date.past({ years: 1 }),
       updatedAt: now,
-      lastLoginAt: faker.date.recent({ days: 30 })
+      lastLoginAt: faker.date.recent({ days: 30 }),
     }
   }
 
@@ -92,18 +92,16 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
    * アクティブユーザーでビルド
    */
   withActiveUser(): this {
-    return this
-      .withStatusBuilder(new UserStatusBuilder().withActive())
-      .withLastLoginAt(faker.date.recent({ days: 7 }))
+    return this.withStatusBuilder(new UserStatusBuilder().withActive()).withLastLoginAt(
+      faker.date.recent({ days: 7 })
+    )
   }
 
   /**
    * 無効化ユーザーでビルド
    */
   withDeactivatedUser(): this {
-    return this
-      .withStatusBuilder(new UserStatusBuilder().withDeactivated())
-      .withLastLoginAt(null)
+    return this.withStatusBuilder(new UserStatusBuilder().withDeactivated()).withLastLoginAt(null)
   }
 
   /**
@@ -111,23 +109,17 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
    */
   withNewUser(): this {
     const now = new Date()
-    return this
-      .withCreatedAt(now)
-      .withUpdatedAt(now)
-      .withLastLoginAt(null)
+    return this.withCreatedAt(now).withUpdatedAt(now).withLastLoginAt(null)
   }
 
   /**
    * テスト用固定ユーザーでビルド
    */
   withTestUser(): this {
-    return this
-      .withId('user_test_001')
+    return this.withId('user_test_001')
       .withEmail('test@example.com')
       .withProfileBuilder(
-        new UserProfileBuilder()
-          .withDisplayName('テスト ユーザー')
-          .withDefaults()
+        new UserProfileBuilder().withDisplayName('テスト ユーザー').withDefaults()
       )
   }
 
@@ -157,8 +149,7 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
    */
   withNextAuthIntegration(nextAuthId: string): this {
     // NextAuthのIDをユーザーIDのプレフィックスとして使用
-    return this
-      .withId(`user_${nextAuthId.slice(-8)}`) // 末尾8文字を使用
+    return this.withId(`user_${nextAuthId.slice(-8)}`) // 末尾8文字を使用
       .withEmailBuilder(new EmailBuilder().withGmail())
   }
 
@@ -170,7 +161,7 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
       status: this.props.status!,
       createdAt: this.props.createdAt!,
       updatedAt: this.props.updatedAt!,
-      lastLoginAt: this.props.lastLoginAt ?? null
+      lastLoginAt: this.props.lastLoginAt ?? null,
     }
   }
 }

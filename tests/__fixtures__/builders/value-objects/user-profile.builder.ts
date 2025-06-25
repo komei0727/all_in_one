@@ -25,7 +25,7 @@ export class UserPreferencesBuilder extends BaseBuilder<UserPreferencesProps> {
     this.props = {
       theme: faker.helpers.arrayElement(['light', 'dark', 'auto'] as const),
       notifications: faker.datatype.boolean(),
-      emailFrequency: faker.helpers.arrayElement(['daily', 'weekly', 'monthly', 'never'] as const)
+      emailFrequency: faker.helpers.arrayElement(['daily', 'weekly', 'monthly', 'never'] as const),
     }
   }
 
@@ -54,17 +54,14 @@ export class UserPreferencesBuilder extends BaseBuilder<UserPreferencesProps> {
    * デフォルト設定でビルド
    */
   withDefaults(): this {
-    return this
-      .withTheme('light')
-      .withNotifications(true)
-      .withEmailFrequency('weekly')
+    return this.withTheme('light').withNotifications(true).withEmailFrequency('weekly')
   }
 
   build(): UserPreferencesProps {
     return {
       theme: this.props.theme!,
       notifications: this.props.notifications!,
-      emailFrequency: this.props.emailFrequency!
+      emailFrequency: this.props.emailFrequency!,
     }
   }
 }
@@ -81,7 +78,7 @@ export class UserProfileBuilder extends BaseBuilder<UserProfileProps> {
       displayName: faker.person.fullName(),
       timezone: 'Asia/Tokyo',
       language: 'ja' as const,
-      preferences: new UserPreferencesBuilder().build()
+      preferences: new UserPreferencesBuilder().build(),
     }
   }
 
@@ -133,8 +130,7 @@ export class UserProfileBuilder extends BaseBuilder<UserProfileProps> {
    * デフォルトプロフィールでビルド
    */
   withDefaults(): this {
-    return this
-      .withJapaneseName()
+    return this.withJapaneseName()
       .withTimezone('Asia/Tokyo')
       .withLanguage('ja')
       .withPreferencesBuilder(new UserPreferencesBuilder().withDefaults())
@@ -145,7 +141,7 @@ export class UserProfileBuilder extends BaseBuilder<UserProfileProps> {
       displayName: this.props.displayName!,
       timezone: this.props.timezone!,
       language: this.props.language!,
-      preferences: this.props.preferences!
+      preferences: this.props.preferences!,
     }
   }
 }

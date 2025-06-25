@@ -8,6 +8,7 @@ NextAuthが認証・セッション管理を担当するため、本コンテキ
 ## 責任範囲の明確化
 
 ### NextAuthが担当（本コンテキスト対象外）
+
 - ユーザー登録・認証フロー
 - ログイン・ログアウト処理
 - セッション作成・管理・無効化
@@ -15,6 +16,7 @@ NextAuthが認証・セッション管理を担当するため、本コンテキ
 - メール認証処理
 
 ### ドメインが担当（本コンテキスト対象）
+
 - NextAuthユーザーとドメインユーザーの統合
 - プロフィール管理
 - アカウント状態管理
@@ -22,12 +24,12 @@ NextAuthが認証・セッション管理を担当するため、本コンテキ
 
 ## サービス一覧（NextAuth統合版）
 
-| サービス                     | 責務                             | 主要なユースケース                              |
-| ---------------------------- | -------------------------------- | ----------------------------------------------- |
-| UserIntegrationService       | NextAuthとドメインユーザーの統合 | ユーザー作成、同期、統合エラー処理              |
-| UserProfileManagementService | プロフィール管理                 | プロフィール更新、設定変更、バリデーション      |
-| UserAccountService           | アカウント状態管理               | アカウント無効化、再有効化、状態確認            |
-| UserQueryService             | ユーザー情報取得                 | ユーザー検索、プロフィール取得、状態取得        |
+| サービス                     | 責務                             | 主要なユースケース                         |
+| ---------------------------- | -------------------------------- | ------------------------------------------ |
+| UserIntegrationService       | NextAuthとドメインユーザーの統合 | ユーザー作成、同期、統合エラー処理         |
+| UserProfileManagementService | プロフィール管理                 | プロフィール更新、設定変更、バリデーション |
+| UserAccountService           | アカウント状態管理               | アカウント無効化、再有効化、状態確認       |
+| UserQueryService             | ユーザー情報取得                 | ユーザー検索、プロフィール取得、状態取得   |
 
 ## 削除されたサービス（NextAuthに委譲）
 
@@ -44,12 +46,12 @@ NextAuthとドメインユーザーの統合を担当するアプリケーショ
 
 ### 主要メソッド
 
-| メソッド                   | 説明                                 | トランザクション |
-| -------------------------- | ------------------------------------ | ---------------- |
-| createUserFromNextAuth     | NextAuthユーザーからドメインユーザー作成 | 必要             |
-| syncUserWithNextAuth       | 既存ユーザーとNextAuthユーザーの同期 | 必要             |
-| handleIntegrationFailure   | 統合エラーの処理と復旧               | 必要             |
-| validateIntegration        | 統合状態の検証                       | 読み取り専用     |
+| メソッド                 | 説明                                     | トランザクション |
+| ------------------------ | ---------------------------------------- | ---------------- |
+| createUserFromNextAuth   | NextAuthユーザーからドメインユーザー作成 | 必要             |
+| syncUserWithNextAuth     | 既存ユーザーとNextAuthユーザーの同期     | 必要             |
+| handleIntegrationFailure | 統合エラーの処理と復旧                   | 必要             |
+| validateIntegration      | 統合状態の検証                           | 読み取り専用     |
 
 ### ユースケース: NextAuthユーザーからドメインユーザー作成
 
@@ -97,12 +99,12 @@ NextAuthとドメインユーザーの統合を担当するアプリケーショ
 
 ### 主要メソッド
 
-| メソッド           | 説明                   | トランザクション |
-| ------------------ | ---------------------- | ---------------- |
-| updateProfile      | プロフィール更新       | 必要             |
-| updatePreferences  | ユーザー設定変更       | 必要             |
-| validateProfile    | プロフィール検証       | 読み取り専用     |
-| getProfile         | プロフィール取得       | 読み取り専用     |
+| メソッド          | 説明             | トランザクション |
+| ----------------- | ---------------- | ---------------- |
+| updateProfile     | プロフィール更新 | 必要             |
+| updatePreferences | ユーザー設定変更 | 必要             |
+| validateProfile   | プロフィール検証 | 読み取り専用     |
+| getProfile        | プロフィール取得 | 読み取り専用     |
 
 ### ユースケース: プロフィール更新
 
@@ -132,12 +134,12 @@ NextAuthとドメインユーザーの統合を担当するアプリケーショ
 
 ### 主要メソッド
 
-| メソッド         | 説明                 | トランザクション |
-| ---------------- | -------------------- | ---------------- |
-| deactivateUser   | アカウント無効化     | 必要             |
-| reactivateUser   | アカウント再有効化   | 必要             |
-| checkUserStatus  | ユーザー状態確認     | 読み取り専用     |
-| getUserActivity  | ユーザー活動履歴取得 | 読み取り専用     |
+| メソッド        | 説明                 | トランザクション |
+| --------------- | -------------------- | ---------------- |
+| deactivateUser  | アカウント無効化     | 必要             |
+| reactivateUser  | アカウント再有効化   | 必要             |
+| checkUserStatus | ユーザー状態確認     | 読み取り専用     |
+| getUserActivity | ユーザー活動履歴取得 | 読み取り専用     |
 
 ### ユースケース: アカウント無効化
 
@@ -165,13 +167,13 @@ NextAuthとドメインユーザーの統合を担当するアプリケーショ
 
 ### 主要メソッド
 
-| メソッド                | 説明                     | トランザクション |
-| ----------------------- | ------------------------ | ---------------- |
-| getUserById             | ID指定ユーザー取得       | 読み取り専用     |
-| getUserByNextAuthId     | NextAuthID指定ユーザー取得 | 読み取り専用     |
-| getUserByEmail          | Email指定ユーザー取得    | 読み取り専用     |
-| searchUsers             | ユーザー検索             | 読み取り専用     |
-| getUsersWithFilters     | フィルター指定ユーザー一覧 | 読み取り専用     |
+| メソッド            | 説明                       | トランザクション |
+| ------------------- | -------------------------- | ---------------- |
+| getUserById         | ID指定ユーザー取得         | 読み取り専用     |
+| getUserByNextAuthId | NextAuthID指定ユーザー取得 | 読み取り専用     |
+| getUserByEmail      | Email指定ユーザー取得      | 読み取り専用     |
+| searchUsers         | ユーザー検索               | 読み取り専用     |
+| getUsersWithFilters | フィルター指定ユーザー一覧 | 読み取り専用     |
 
 ### ユースケース: ユーザー検索
 
@@ -276,14 +278,14 @@ interface UserDto {
 
 ### 監査対象イベント
 
-| イベント                 | ログレベル | 保持期間 |
-| ------------------------ | ---------- | -------- |
-| NextAuth統合成功         | INFO       | 2年      |
-| NextAuth統合失敗         | ERROR      | 2年      |
-| プロフィール更新         | INFO       | 1年      |
-| アカウント無効化         | INFO       | 7年      |
-| 統合データ不整合         | ERROR      | 3年      |
-| アクセス権限エラー       | WARN       | 1年      |
+| イベント           | ログレベル | 保持期間 |
+| ------------------ | ---------- | -------- |
+| NextAuth統合成功   | INFO       | 2年      |
+| NextAuth統合失敗   | ERROR      | 2年      |
+| プロフィール更新   | INFO       | 1年      |
+| アカウント無効化   | INFO       | 7年      |
+| 統合データ不整合   | ERROR      | 3年      |
+| アクセス権限エラー | WARN       | 1年      |
 
 ### ログ内容
 
@@ -309,11 +311,13 @@ interface UserDto {
 ### 1. NextAuth統合セキュリティ
 
 **統合境界の保護:**
+
 - NextAuthIDの検証とサニタイズ
 - 統合データの暗号化
 - 不正な統合要求の検出と拒否
 
 **データ整合性の確保:**
+
 - NextAuthユーザーとドメインユーザーの1:1対応維持
 - 重複統合の防止
 - 統合状態の定期検証
@@ -321,11 +325,13 @@ interface UserDto {
 ### 2. アクセス制御
 
 **権限ベースアクセス:**
+
 - プロフィール更新は所有者のみ
 - 管理操作は管理者権限必須
 - NextAuth認証済みユーザーのみ処理
 
 **データ保護:**
+
 - 個人情報の最小権限アクセス
 - 機密データのマスキング
 - 監査ログの改ざん防止
@@ -333,11 +339,13 @@ interface UserDto {
 ### 3. 統合プロセスセキュリティ
 
 **コールバックセキュリティ:**
+
 - NextAuthトークンの検証
 - CSRF保護の実装
 - セッションハイジャック対策
 
 **エラーハンドリングセキュリティ:**
+
 - エラー詳細の適切な隠蔽
 - 攻撃者への情報漏洩防止
 - セキュリティインシデントの自動検出
@@ -350,22 +358,22 @@ interface UserDto {
 // NextAuthコールバック統合
 export class UserIntegrationService {
   async handleSignInCallback(nextAuthUser: NextAuthUser) {
-    const correlationId = generateCorrelationId();
-    
+    const correlationId = generateCorrelationId()
+
     try {
       // 軽量な処理でコールバックを高速化
-      const result = await this.createOrSyncUser(nextAuthUser);
-      
+      const result = await this.createOrSyncUser(nextAuthUser)
+
       // 重い処理は非同期で実行
       setImmediate(() => {
-        this.publishEvents(result, correlationId);
-        this.performDataIntegrityCheck(result.userId);
-      });
-      
-      return result;
+        this.publishEvents(result, correlationId)
+        this.performDataIntegrityCheck(result.userId)
+      })
+
+      return result
     } catch (error) {
-      await this.handleIntegrationError(error, nextAuthUser, correlationId);
-      throw error;
+      await this.handleIntegrationError(error, nextAuthUser, correlationId)
+      throw error
     }
   }
 }
@@ -378,9 +386,9 @@ export class UserIntegrationService {
 export class IntegrationRecoveryService {
   async recoverFailedIntegration(failureEvent: NextAuthIntegrationFailed) {
     if (failureEvent.metadata.retryable) {
-      await this.scheduleRetry(failureEvent);
+      await this.scheduleRetry(failureEvent)
     } else {
-      await this.escalateToManualReview(failureEvent);
+      await this.escalateToManualReview(failureEvent)
     }
   }
 }

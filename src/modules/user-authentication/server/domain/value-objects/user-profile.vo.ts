@@ -1,4 +1,5 @@
 import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
+
 import { UserPreferences } from './user-preferences.vo'
 
 /**
@@ -25,7 +26,7 @@ export class UserProfile extends ValueObject<UserProfileProps> {
     'Europe/London',
     'Europe/Paris',
     'Australia/Sydney',
-    'UTC'
+    'UTC',
   ]
 
   constructor(value: UserProfileProps) {
@@ -48,12 +49,12 @@ export class UserProfile extends ValueObject<UserProfileProps> {
     }
 
     // 言語のバリデーション
-    if (!UserProfile.VALID_LANGUAGES.includes(value.language as any)) {
+    if (!UserProfile.VALID_LANGUAGES.includes(value.language)) {
       throw new Error('サポートされていない言語です')
     }
 
     // タイムゾーンのバリデーション
-    if (!UserProfile.VALID_TIMEZONES.includes(value.timezone as any)) {
+    if (!UserProfile.VALID_TIMEZONES.includes(value.timezone)) {
       throw new Error('無効なタイムゾーンです')
     }
 
@@ -97,7 +98,7 @@ export class UserProfile extends ValueObject<UserProfileProps> {
   withDisplayName(displayName: string): UserProfile {
     return new UserProfile({
       ...this.value,
-      displayName
+      displayName,
     })
   }
 
@@ -107,7 +108,7 @@ export class UserProfile extends ValueObject<UserProfileProps> {
   withTimezone(timezone: string): UserProfile {
     return new UserProfile({
       ...this.value,
-      timezone
+      timezone,
     })
   }
 
@@ -117,7 +118,7 @@ export class UserProfile extends ValueObject<UserProfileProps> {
   withLanguage(language: 'ja' | 'en'): UserProfile {
     return new UserProfile({
       ...this.value,
-      language
+      language,
     })
   }
 
@@ -127,7 +128,7 @@ export class UserProfile extends ValueObject<UserProfileProps> {
   withPreferences(preferences: UserPreferences): UserProfile {
     return new UserProfile({
       ...this.value,
-      preferences
+      preferences,
     })
   }
 
@@ -154,7 +155,7 @@ export class UserProfile extends ValueObject<UserProfileProps> {
       displayName,
       timezone: 'Asia/Tokyo',
       language: 'ja',
-      preferences: UserPreferences.createDefault()
+      preferences: UserPreferences.createDefault(),
     })
   }
 }

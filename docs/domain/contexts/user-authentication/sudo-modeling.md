@@ -449,16 +449,19 @@ stateDiagram-v2
 ### NextAuth統合における不変条件
 
 1. **認証の一意性と整合性**
+
    - メールアドレスはシステム全体で一意（NextAuthレベル）
    - NextAuthユーザーとドメインユーザーは1:1対応を維持
    - アクティブなセッションは同一ユーザーにつき複数許可（異なるデバイス対応）
 
 2. **データ整合性の保証**
+
    - NextAuthユーザー作成時に必ずドメインユーザーを作成
    - ドメインユーザーのEmailはNextAuthユーザーのemailと常に同期
    - 論理削除されたドメインユーザーは認証を拒否
 
 3. **セキュリティ境界の維持**
+
    - 認証・認可はNextAuthに委譲（パスワード、トークン、セッション管理）
    - ビジネスロジックはドメイン層で管理（プロフィール、権限、状態）
    - NextAuthコールバックでのみドメイン統合を実行
@@ -473,11 +476,13 @@ stateDiagram-v2
 ### 食材管理・買い物サポートコンテキストへの認証提供
 
 **提供する機能**
+
 - **セッション確認**: NextAuth.getServerSession()によるセッション検証
 - **ユーザーID提供**: 認証済みユーザーのUserId取得
 - **ユーザー情報取得**: プロフィール、設定情報の提供
 
 **統合方法**
+
 ```typescript
 // 食材管理コンテキストでの使用例
 const session = await getServerSession(authOptions)
@@ -490,6 +495,7 @@ const user = await userRepository.findByNextAuthId(session.user.id)
 ### 共有管理コンテキストへの認可提供（Phase 2）
 
 **提供する機能**
+
 - **ロールベースアクセス制御**: UserStatus, UserPreferencesによる権限管理
 - **リソースレベル権限チェック**: User.canAccessFeature()メソッド
 - **共有グループメンバー管理**: 将来的なマルチテナント対応
@@ -497,12 +503,14 @@ const user = await userRepository.findByNextAuthId(session.user.id)
 ### イベント発行（ドメインイベント）
 
 **NextAuth統合特化イベント**
+
 - `UserCreatedFromNextAuth`: NextAuthユーザーからドメインユーザー作成
 - `UserSyncedWithNextAuth`: 既存ユーザーとNextAuthユーザーの同期
 - `UserProfileUpdated`: プロフィール更新
 - `UserDeactivated`: アカウント削除（論理削除）
 
 **従来イベントの簡素化**
+
 - ~~`UserRegistered`~~: NextAuthが処理
 - ~~`UserLoggedIn`~~: NextAuthが処理
 - ~~`UserLoggedOut`~~: NextAuthが処理
@@ -511,11 +519,13 @@ const user = await userRepository.findByNextAuthId(session.user.id)
 ### 共有カーネルの利用
 
 **継続使用する値オブジェクト**
+
 - `Email`: メールアドレス値オブジェクト（バリデーション強化）
 - `UserId`: アプリケーション固有のユーザーID
 - `DomainEvent`: イベント基底クラス（userId、correlationId追加）
 
 **不要となる値オブジェクト**
+
 - ~~`Token`基底クラス~~: NextAuthが管理
 - ~~`Password`関連~~: NextAuthが管理
 - ~~`SessionToken`~~: NextAuthが管理
@@ -523,18 +533,21 @@ const user = await userRepository.findByNextAuthId(session.user.id)
 ## 7. 実装優先度とロードマップ
 
 ### Phase 1: NextAuth基盤構築（高優先度）
+
 1. NextAuth設定とEmailProvider設定
 2. Prismaスキーマ（NextAuth標準テーブル）
 3. NextAuthCallbacks実装
 4. UserIntegrationService実装
 
 ### Phase 2: ドメイン機能実装（中優先度）
+
 1. User、UserProfile、UserStatus値オブジェクト
 2. UserRepository実装
 3. UserProfileService実装
 4. プロフィール管理API
 
 ### Phase 3: 統合・最適化（低優先度）
+
 1. ドメインイベント発行
 2. 他コンテキストとの統合テスト
 3. OAuth プロバイダー追加

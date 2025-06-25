@@ -1,6 +1,7 @@
-import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
+import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 
 /**
@@ -51,15 +52,13 @@ export interface UserDTO {
 
 /**
  * ユーザーアプリケーションサービス
- * 
+ *
  * ユーザー認証とプロフィール管理に関するアプリケーションロジックを提供します。
  * ドメインサービスのUserIntegrationServiceをラップし、
  * UI層に適したインターフェースを提供します。
  */
 export class UserApplicationService {
-  constructor(
-    private readonly userIntegrationService: UserIntegrationService
-  ) {}
+  constructor(private readonly userIntegrationService: UserIntegrationService) {}
 
   /**
    * NextAuthユーザーからドメインユーザーを作成または更新
@@ -70,7 +69,7 @@ export class UserApplicationService {
       ...nextAuthUser,
       emailVerified: nextAuthUser.emailVerified ?? null,
       name: nextAuthUser.name ?? null,
-      image: nextAuthUser.image ?? null
+      image: nextAuthUser.image ?? null,
     }
     const user = await this.userIntegrationService.createOrUpdateFromNextAuth(domainNextAuthUser)
     return this.mapToDTO(user)
@@ -92,7 +91,7 @@ export class UserApplicationService {
     this.validateUpdateProfileRequest(request)
 
     const userIdVO = new UserId(userId)
-    
+
     // 現在のユーザー情報を取得してプロフィールを構築
     const currentUser = await this.userIntegrationService.findUserById(userIdVO)
     if (!currentUser) {
@@ -103,7 +102,7 @@ export class UserApplicationService {
       displayName: request.displayName,
       timezone: request.timezone,
       language: request.language,
-      preferences: currentUser.getProfile().getPreferences()
+      preferences: currentUser.getProfile().getPreferences(),
     })
 
     const updatedUser = await this.userIntegrationService.updateUserProfile(userIdVO, newProfile)
@@ -150,7 +149,7 @@ export class UserApplicationService {
    */
   async getActiveUsers(limit?: number, offset?: number): Promise<UserDTO[]> {
     const users = await this.userIntegrationService.getActiveUsers(limit, offset)
-    return users.map(user => this.mapToDTO(user))
+    return users.map((user) => this.mapToDTO(user))
   }
 
   /**
@@ -185,7 +184,7 @@ export class UserApplicationService {
   /**
    * ドメインエンティティをDTOにマッピング
    */
-  private mapToDTO(user: any): UserDTO {
+  private mapToDTO(user: User): UserDTO {
     return {
       id: user.getId().getValue(),
       nextAuthId: user.getNextAuthId(),
@@ -197,14 +196,14 @@ export class UserApplicationService {
         preferences: {
           theme: user.getProfile().getPreferences().getTheme(),
           notifications: user.getProfile().getPreferences().getNotifications(),
-          emailFrequency: user.getProfile().getPreferences().getEmailFrequency()
-        }
+          emailFrequency: user.getProfile().getPreferences().getEmailFrequency(),
+        },
       },
       status: user.getStatus().getValue(),
       isActive: user.isActive(),
       lastLoginAt: user.getLastLoginAt(),
       createdAt: user.getCreatedAt(),
-      updatedAt: user.getUpdatedAt()
+      updatedAt: user.getUpdatedAt(),
     }
   }
 }

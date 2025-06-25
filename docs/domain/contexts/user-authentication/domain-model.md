@@ -19,16 +19,16 @@ NextAuthが提供する認証機能を活用し、アプリケーション固有
 
 #### 属性
 
-| 属性             | 型          | 説明                   | 制約                        |
-| ---------------- | ----------- | ---------------------- | --------------------------- |
-| id               | UserId      | アプリケーション内ID   | 必須、不変                  |
-| nextAuthId       | string      | NextAuthユーザーID     | 必須、NextAuthとの紐付け    |
-| email            | Email       | メールアドレス         | 必須、NextAuthと同期        |
-| profile          | UserProfile | ユーザープロフィール   | 必須、表示名等の基本情報    |
-| status           | UserStatus  | ユーザー状態           | 必須、ACTIVE/DEACTIVATED    |
-| createdAt        | Date        | 作成日時               | 必須、不変                  |
-| updatedAt        | Date        | 更新日時               | 必須                        |
-| lastLoginAt      | Date        | 最終ログイン日時       | 任意、ログイン時に更新      |
+| 属性        | 型          | 説明                 | 制約                     |
+| ----------- | ----------- | -------------------- | ------------------------ |
+| id          | UserId      | アプリケーション内ID | 必須、不変               |
+| nextAuthId  | string      | NextAuthユーザーID   | 必須、NextAuthとの紐付け |
+| email       | Email       | メールアドレス       | 必須、NextAuthと同期     |
+| profile     | UserProfile | ユーザープロフィール | 必須、表示名等の基本情報 |
+| status      | UserStatus  | ユーザー状態         | 必須、ACTIVE/DEACTIVATED |
+| createdAt   | Date        | 作成日時             | 必須、不変               |
+| updatedAt   | Date        | 更新日時             | 必須                     |
+| lastLoginAt | Date        | 最終ログイン日時     | 任意、ログイン時に更新   |
 
 #### ビジネスルール
 
@@ -58,18 +58,18 @@ NextAuthUser.name → User.profile.displayName（初期値）
 
 ### 値オブジェクト一覧（NextAuth統合版）
 
-| 名前           | 説明                   | 主な責務                       | 継続使用 |
-| -------------- | ---------------------- | ------------------------------ | -------- |
-| UserId         | アプリケーション内ID   | ドメインユーザーの一意識別     | ✅       |
-| Email          | メールアドレス         | メールアドレスの形式検証       | ✅       |
-| UserProfile    | ユーザープロフィール   | 表示名等の基本情報管理         | ✅       |
-| UserPreferences| ユーザー設定           | テーマ、通知等の設定管理       | ✅       |
-| UserStatus     | ユーザー状態           | アクティブ/無効状態の管理      | ✅       |
-| ~~Password~~   | ~~パスワード（平文）~~ | ~~NextAuthが管理~~             | ❌       |
+| 名前               | 説明                     | 主な責務                   | 継続使用 |
+| ------------------ | ------------------------ | -------------------------- | -------- |
+| UserId             | アプリケーション内ID     | ドメインユーザーの一意識別 | ✅       |
+| Email              | メールアドレス           | メールアドレスの形式検証   | ✅       |
+| UserProfile        | ユーザープロフィール     | 表示名等の基本情報管理     | ✅       |
+| UserPreferences    | ユーザー設定             | テーマ、通知等の設定管理   | ✅       |
+| UserStatus         | ユーザー状態             | アクティブ/無効状態の管理  | ✅       |
+| ~~Password~~       | ~~パスワード（平文）~~   | ~~NextAuthが管理~~         | ❌       |
 | ~~HashedPassword~~ | ~~ハッシュ化パスワード~~ | ~~NextAuthが管理~~         | ❌       |
-| ~~SessionToken~~ | ~~セッショントークン~~ | ~~NextAuthが管理~~           | ❌       |
-| ~~SessionId~~  | ~~セッションID~~       | ~~NextAuthが管理~~             | ❌       |
-| ~~IpAddress~~  | ~~IPアドレス~~         | ~~NextAuthが管理~~             | ❌       |
+| ~~SessionToken~~   | ~~セッショントークン~~   | ~~NextAuthが管理~~         | ❌       |
+| ~~SessionId~~      | ~~セッションID~~         | ~~NextAuthが管理~~         | ❌       |
+| ~~IpAddress~~      | ~~IPアドレス~~           | ~~NextAuthが管理~~         | ❌       |
 
 ### 値オブジェクト詳細
 
@@ -210,7 +210,7 @@ createFromNextAuth(nextAuthUser) {
     profile: UserProfile.createDefault(nextAuthUser.name),
     status: UserStatus.active()
   });
-  
+
   this.handleFirstLogin(user);
   return user;
 }
@@ -317,8 +317,7 @@ fromNextAuthUser(nextAuthUser: NextAuthUser): User {
 ```typescript
 class ActiveUserSpecification {
   isSatisfiedBy(user: User): boolean {
-    return user.status.isActive() && 
-           user.nextAuthId != null;
+    return user.status.isActive() && user.nextAuthId != null
   }
 }
 ```
@@ -339,9 +338,11 @@ class ActiveUserSpecification {
 ```typescript
 class ValidProfileSpecification {
   isSatisfiedBy(profile: UserProfile): boolean {
-    return profile.displayName.length >= 1 &&
-           profile.displayName.length <= 50 &&
-           this.isAppropriateContent(profile.displayName);
+    return (
+      profile.displayName.length >= 1 &&
+      profile.displayName.length <= 50 &&
+      this.isAppropriateContent(profile.displayName)
+    )
   }
 }
 ```
@@ -361,9 +362,11 @@ NextAuthとの統合が正常かどうかを判定する仕様。
 ```typescript
 class NextAuthIntegrationSpecification {
   isSatisfiedBy(user: User, nextAuthUser?: NextAuthUser): boolean {
-    return user.nextAuthId != null &&
-           nextAuthUser != null &&
-           user.email.getValue() === nextAuthUser.email;
+    return (
+      user.nextAuthId != null &&
+      nextAuthUser != null &&
+      user.email.getValue() === nextAuthUser.email
+    )
   }
 }
 ```

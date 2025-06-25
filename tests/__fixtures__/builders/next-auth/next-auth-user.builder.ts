@@ -18,9 +18,9 @@ interface NextAuthUserProps {
 export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
   constructor() {
     super()
-    
+
     const now = new Date()
-    
+
     // NextAuth標準フォーマットでデフォルト値を設定
     this.props = {
       id: testDataHelpers.cuid(), // NextAuthはCUID使用
@@ -29,7 +29,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
       name: faker.person.fullName(),
       image: null, // マジックリンク認証では基本的にnull
       createdAt: faker.date.past({ years: 1 }),
-      updatedAt: now
+      updatedAt: now,
     }
   }
 
@@ -110,8 +110,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
    */
   withNewUser(): this {
     const now = new Date()
-    return this
-      .withCreatedAt(now)
+    return this.withCreatedAt(now)
       .withUpdatedAt(now)
       .withEmailVerified(now)
       .withName(null) // 初回作成時は名前なし
@@ -122,8 +121,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
    * テスト用固定ユーザーでビルド
    */
   withTestUser(): this {
-    return this
-      .withId('clxxxx1234test')
+    return this.withId('clxxxx1234test')
       .withEmail('test@example.com')
       .withJapaneseName()
       .withEmailVerified()
@@ -152,7 +150,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
       name: this.props.name ?? null,
       image: this.props.image ?? null,
       createdAt: this.props.createdAt!,
-      updatedAt: this.props.updatedAt!
+      updatedAt: this.props.updatedAt!,
     }
   }
 }

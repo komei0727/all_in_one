@@ -3,7 +3,7 @@ import { ValueObject } from './value-object.base'
 /**
  * Email値オブジェクト
  * メールアドレスを表現する
- * 
+ *
  * 共有カーネルの一部として、すべてのコンテキストから利用可能
  * - ユーザー認証コンテキスト: ログイン時のメールアドレス
  * - 食材管理コンテキスト: ユーザーの連絡先情報
@@ -18,7 +18,7 @@ export class Email extends ValueObject<string> {
     if (value === null || value === undefined) {
       throw new Error('メールアドレスは必須です')
     }
-    
+
     // 正規化（小文字化・トリミング）
     const normalizedValue = value.trim().toLowerCase()
     super(normalizedValue)

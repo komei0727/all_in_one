@@ -150,12 +150,12 @@ import { getCsrfToken, signIn } from 'next-auth/react'
 
 const handleEmailSignIn = async (email: string) => {
   const csrfToken = await getCsrfToken()
-  
+
   const result = await signIn('email', {
     email,
     redirect: false,
   })
-  
+
   if (result?.ok) {
     // メール確認ページへリダイレクト
     router.push('/auth/verify-request')
@@ -201,7 +201,7 @@ import { signOut } from 'next-auth/react'
 const handleSignOut = async () => {
   await signOut({
     redirect: true,
-    callbackUrl: '/'
+    callbackUrl: '/',
   })
 }
 ```
@@ -250,15 +250,15 @@ import { useSession } from 'next-auth/react'
 
 function MyComponent() {
   const { data: session, status } = useSession()
-  
+
   if (status === 'loading') {
     return <div>読み込み中...</div>
   }
-  
+
   if (status === 'unauthenticated') {
     return <div>ログインしてください</div>
   }
-  
+
   return <div>ようこそ、{session?.user?.email}</div>
 }
 ```
@@ -271,7 +271,7 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]'
 
 export async function getServerSideProps(context) {
   const session = await getServerSession(context.req, context.res, authOptions)
-  
+
   if (!session) {
     return {
       redirect: {
@@ -280,7 +280,7 @@ export async function getServerSideProps(context) {
       },
     }
   }
-  
+
   return {
     props: { session },
   }
@@ -376,7 +376,7 @@ export default async function handler(req, res) {
   }
 
   const nextAuthUser = await prisma.user.findUnique({
-    where: { id: session.user.id }
+    where: { id: session.user.id },
   })
 
   const domainUser = await userRepository.findByNextAuthId(session.user.id)
@@ -393,11 +393,11 @@ export default async function handler(req, res) {
       integrated: !!domainUser && issues.length === 0,
       nextAuthUser,
       domainUser,
-      issues
+      issues,
     },
     meta: {
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   })
 }
 ```
@@ -464,25 +464,25 @@ export default async function handler(req, res) {
   try {
     const result = await userIntegrationService.syncUser({
       nextAuthId: session.user.id,
-      email: session.user.email!
+      email: session.user.email!,
     })
 
     res.json({
       data: {
         message: 'ユーザー情報を同期しました',
         domainUser: result.user,
-        syncedFields: result.syncedFields
+        syncedFields: result.syncedFields,
       },
       meta: {
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     })
   } catch (error) {
     res.status(500).json({
       error: {
         code: 'SYNC_FAILED',
-        message: '同期処理に失敗しました'
-      }
+        message: '同期処理に失敗しました',
+      },
     })
   }
 }
@@ -536,12 +536,9 @@ export async function getServerSideProps(context) {
 
 ---
 
-
 ---
 
-
 ---
-
 
 ---
 

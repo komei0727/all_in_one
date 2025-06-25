@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto'
 
 import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
+
 import { ValidationException } from '../exceptions/validation.exception'
 
 /**

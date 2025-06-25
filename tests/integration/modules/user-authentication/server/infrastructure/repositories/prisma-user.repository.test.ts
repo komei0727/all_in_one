@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { PrismaClient } from '@/generated/prisma-test'
-import { 
-  UserIdBuilder, 
+import {
+  UserIdBuilder,
   EmailBuilder,
   UserProfileBuilder,
   UserStatusBuilder,
-  NextAuthUserBuilder
+  NextAuthUserBuilder,
 } from '../../../../../../__fixtures__/builders'
 
 // テスト対象のPrismaUserRepository
@@ -25,8 +25,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
   beforeEach(async () => {
     // テスト用のPrismaクライアントを作成
     prisma = new PrismaClient()
-    repository = new PrismaUserRepository(prisma)
-    
+    repository = new PrismaUserRepository(prisma as any)
+
     // テストデータをクリア
     await prisma.domainUser.deleteMany()
     await prisma.user.deleteMany()
@@ -52,8 +52,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
 
       // Act（実行）
@@ -67,7 +67,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
 
       // データベースに保存されていることを確認
       const dbUser = await prisma.domainUser.findUnique({
-        where: { nextAuthId: nextAuthUser.id }
+        where: { nextAuthId: nextAuthUser.id },
       })
       expect(dbUser).toBeDefined()
       expect(dbUser?.email).toBe(nextAuthUser.email)
@@ -85,8 +85,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
 
       // 最初に保存
@@ -97,7 +97,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
         displayName: '更新された名前',
         timezone: 'America/New_York',
         language: 'en',
-        preferences: user.getProfile().getPreferences()
+        preferences: user.getProfile().getPreferences(),
       })
       user.updateProfile(newProfile)
 
@@ -110,7 +110,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
 
       // データベースで確認
       const dbUser = await prisma.domainUser.findUnique({
-        where: { nextAuthId: nextAuthUser.id }
+        where: { nextAuthId: nextAuthUser.id },
       })
       expect(dbUser?.displayName).toBe('更新された名前')
       expect(dbUser?.preferredLanguage).toBe('en')
@@ -130,8 +130,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
       await repository.save(user)
 
@@ -156,8 +156,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
       await repository.save(user)
 
@@ -183,8 +183,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
       await repository.save(user)
 
@@ -226,8 +226,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
       await repository.save(user)
 
@@ -253,8 +253,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
       await repository.save(user)
 
@@ -280,8 +280,8 @@ describe('PrismaUserRepository（統合テスト）', () => {
           email: nextAuthUser.email,
           name: nextAuthUser.name,
           image: nextAuthUser.image,
-          emailVerified: nextAuthUser.emailVerified
-        }
+          emailVerified: nextAuthUser.emailVerified,
+        },
       })
       await repository.save(user)
 
@@ -311,17 +311,26 @@ describe('PrismaUserRepository（統合テスト）', () => {
   describe('アクティブユーザーの取得', () => {
     it('アクティブユーザーのリストを取得できる', async () => {
       // Arrange（準備）
-      const activeUser1 = new NextAuthUserBuilder().withId('active-1').withEmail('active1@example.com').build()
-      const activeUser2 = new NextAuthUserBuilder().withId('active-2').withEmail('active2@example.com').build()
-      const deactivatedUser = new NextAuthUserBuilder().withId('deactivated-1').withEmail('deactivated@example.com').build()
+      const activeUser1 = new NextAuthUserBuilder()
+        .withId('active-1')
+        .withEmail('active1@example.com')
+        .build()
+      const activeUser2 = new NextAuthUserBuilder()
+        .withId('active-2')
+        .withEmail('active2@example.com')
+        .build()
+      const deactivatedUser = new NextAuthUserBuilder()
+        .withId('deactivated-1')
+        .withEmail('deactivated@example.com')
+        .build()
 
       // NextAuthユーザーを作成
       await prisma.user.createMany({
         data: [
           { id: activeUser1.id, email: activeUser1.email, name: activeUser1.name },
           { id: activeUser2.id, email: activeUser2.email, name: activeUser2.name },
-          { id: deactivatedUser.id, email: deactivatedUser.email, name: deactivatedUser.name }
-        ]
+          { id: deactivatedUser.id, email: deactivatedUser.email, name: deactivatedUser.name },
+        ],
       })
 
       // ドメインユーザーを作成
@@ -339,20 +348,23 @@ describe('PrismaUserRepository（統合テスト）', () => {
 
       // Assert（検証）
       expect(activeUsers).toHaveLength(2)
-      expect(activeUsers.every(user => user.isActive())).toBe(true)
+      expect(activeUsers.every((user) => user.isActive())).toBe(true)
     })
 
     it('期間内のアクティブユーザー数を取得できる', async () => {
       // Arrange（準備）
-      const recentUser = new NextAuthUserBuilder().withId('recent').withEmail('recent@example.com').build()
+      const recentUser = new NextAuthUserBuilder()
+        .withId('recent')
+        .withEmail('recent@example.com')
+        .build()
       const oldUser = new NextAuthUserBuilder().withId('old').withEmail('old@example.com').build()
 
       // NextAuthユーザーを作成
       await prisma.user.createMany({
         data: [
           { id: recentUser.id, email: recentUser.email, name: recentUser.name },
-          { id: oldUser.id, email: oldUser.email, name: oldUser.name }
-        ]
+          { id: oldUser.id, email: oldUser.email, name: oldUser.name },
+        ],
       })
 
       // 最近ログインしたユーザーと古いユーザーを作成

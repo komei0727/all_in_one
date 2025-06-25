@@ -1,5 +1,6 @@
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+
 import { User } from '../entities/user.entity'
 
 /**

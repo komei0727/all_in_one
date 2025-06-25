@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { 
-  UserIdBuilder, 
+import {
+  UserIdBuilder,
   EmailBuilder,
   UserProfileBuilder,
   UserStatusBuilder,
-  NextAuthUserBuilder
+  NextAuthUserBuilder,
 } from '../../../../../../__fixtures__/builders'
 
 // テスト対象のUserApplicationService
@@ -42,18 +42,20 @@ describe('UserApplicationService', () => {
       // Arrange（準備）
       const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
       const createdUser = User.createFromNextAuth(nextAuthUser)
-      
+
       mockUserIntegrationService.createOrUpdateFromNextAuth.mockResolvedValue(createdUser)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.createOrUpdateFromNextAuth(nextAuthUser)
-      
+
       // Assert（検証）
       expect(result.nextAuthId).toBe(nextAuthUser.id)
       expect(result.email).toBe(nextAuthUser.email)
       expect(result.status).toBe('ACTIVE')
-      expect(mockUserIntegrationService.createOrUpdateFromNextAuth).toHaveBeenCalledWith(nextAuthUser)
+      expect(mockUserIntegrationService.createOrUpdateFromNextAuth).toHaveBeenCalledWith(
+        nextAuthUser
+      )
     })
 
     it('認証成功時にログインを記録できる', async () => {
@@ -61,17 +63,19 @@ describe('UserApplicationService', () => {
       const nextAuthId = 'test-next-auth-id'
       const user = User.createFromNextAuth(new NextAuthUserBuilder().withId(nextAuthId).build())
       user.recordLogin()
-      
+
       mockUserIntegrationService.handleSuccessfulAuthentication.mockResolvedValue(user)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.handleSuccessfulAuthentication(nextAuthId)
-      
+
       // Assert（検証）
       expect(result.nextAuthId).toBe(nextAuthId)
       expect(result.lastLoginAt).not.toBeNull()
-      expect(mockUserIntegrationService.handleSuccessfulAuthentication).toHaveBeenCalledWith(nextAuthId)
+      expect(mockUserIntegrationService.handleSuccessfulAuthentication).toHaveBeenCalledWith(
+        nextAuthId
+      )
     })
   })
 
@@ -87,14 +91,14 @@ describe('UserApplicationService', () => {
         status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        lastLoginAt: null
+        lastLoginAt: null,
       })
 
       const newProfile = new UserProfile({
         displayName: '新しい名前',
         timezone: 'America/New_York',
         language: 'en',
-        preferences: originalUser.getProfile().getPreferences()
+        preferences: originalUser.getProfile().getPreferences(),
       })
 
       const updatedUser = new User({
@@ -105,20 +109,20 @@ describe('UserApplicationService', () => {
         status: originalUser.getStatus(),
         createdAt: originalUser.getCreatedAt(),
         updatedAt: new Date(),
-        lastLoginAt: originalUser.getLastLoginAt()
+        lastLoginAt: originalUser.getLastLoginAt(),
       })
 
       mockUserIntegrationService.findUserById.mockResolvedValue(originalUser)
       mockUserIntegrationService.updateUserProfile.mockResolvedValue(updatedUser)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.updateUserProfile(userId.getValue(), {
         displayName: '新しい名前',
         timezone: 'America/New_York',
-        language: 'en'
+        language: 'en',
       })
-      
+
       // Assert（検証）
       expect(result.profile.displayName).toBe('新しい名前')
       expect(result.profile.language).toBe('en')
@@ -128,29 +132,33 @@ describe('UserApplicationService', () => {
     it('無効なプロフィール更新データはエラーとなる', async () => {
       // Arrange（準備）
       const userId = 'user-123'
-      
+
       // Act & Assert（実行 & 検証）
       const service = new UserApplicationService(mockUserIntegrationService as any)
-      
-      await expect(service.updateUserProfile(userId, {
-        displayName: '', // 空文字は無効
-        timezone: 'America/New_York',
-        language: 'en'
-      })).rejects.toThrow('表示名は必須です')
+
+      await expect(
+        service.updateUserProfile(userId, {
+          displayName: '', // 空文字は無効
+          timezone: 'America/New_York',
+          language: 'en',
+        })
+      ).rejects.toThrow('表示名は必須です')
     })
 
     it('サポートされていない言語はエラーとなる', async () => {
       // Arrange（準備）
       const userId = 'user-123'
-      
+
       // Act & Assert（実行 & 検証）
       const service = new UserApplicationService(mockUserIntegrationService as any)
-      
-      await expect(service.updateUserProfile(userId, {
-        displayName: '有効な名前',
-        timezone: 'America/New_York',
-        language: 'fr' as any // サポートされていない言語
-      })).rejects.toThrow('サポートされていない言語です')
+
+      await expect(
+        service.updateUserProfile(userId, {
+          displayName: '有効な名前',
+          timezone: 'America/New_York',
+          language: 'fr' as any, // サポートされていない言語
+        })
+      ).rejects.toThrow('サポートされていない言語です')
     })
   })
 
@@ -166,15 +174,15 @@ describe('UserApplicationService', () => {
         status: UserStatus.createDeactivated(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        lastLoginAt: null
+        lastLoginAt: null,
       })
 
       mockUserIntegrationService.deactivateUser.mockResolvedValue(deactivatedUser)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.deactivateUser(userId.getValue())
-      
+
       // Assert（検証）
       expect(result.status).toBe('DEACTIVATED')
       expect(result.isActive).toBe(false)
@@ -187,11 +195,11 @@ describe('UserApplicationService', () => {
       const user = User.createFromNextAuth(new NextAuthUserBuilder().withTestUser().build())
 
       mockUserIntegrationService.findUserById.mockResolvedValue(user)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.getUserById(userId.getValue())
-      
+
       // Assert（検証）
       expect(result).toBeDefined()
       expect(result!.id).toBe(user.getId().getValue())
@@ -201,14 +209,16 @@ describe('UserApplicationService', () => {
     it('メールアドレスでユーザーを取得できる', async () => {
       // Arrange（準備）
       const email = new Email('test@example.com')
-      const user = User.createFromNextAuth(new NextAuthUserBuilder().withEmail(email.getValue()).build())
+      const user = User.createFromNextAuth(
+        new NextAuthUserBuilder().withEmail(email.getValue()).build()
+      )
 
       mockUserIntegrationService.findUserByEmail.mockResolvedValue(user)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.getUserByEmail(email.getValue())
-      
+
       // Assert（検証）
       expect(result).toBeDefined()
       expect(result!.email).toBe(email.getValue())
@@ -222,12 +232,12 @@ describe('UserApplicationService', () => {
 
       mockUserIntegrationService.findUserById.mockResolvedValue(null)
       mockUserIntegrationService.findUserByEmail.mockResolvedValue(null)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const userById = await service.getUserById(userId.getValue())
       const userByEmail = await service.getUserByEmail(email.getValue())
-      
+
       // Assert（検証）
       expect(userById).toBeNull()
       expect(userByEmail).toBeNull()
@@ -238,16 +248,20 @@ describe('UserApplicationService', () => {
     it('アクティブユーザーのリストを取得できる', async () => {
       // Arrange（準備）
       const users = [
-        User.createFromNextAuth(new NextAuthUserBuilder().withId('user1').withEmail('user1@example.com').build()),
-        User.createFromNextAuth(new NextAuthUserBuilder().withId('user2').withEmail('user2@example.com').build())
+        User.createFromNextAuth(
+          new NextAuthUserBuilder().withId('user1').withEmail('user1@example.com').build()
+        ),
+        User.createFromNextAuth(
+          new NextAuthUserBuilder().withId('user2').withEmail('user2@example.com').build()
+        ),
       ]
 
       mockUserIntegrationService.getActiveUsers.mockResolvedValue(users)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.getActiveUsers(10, 0)
-      
+
       // Assert（検証）
       expect(result).toHaveLength(2)
       expect(result[0].email).toBe('user1@example.com')
@@ -260,11 +274,11 @@ describe('UserApplicationService', () => {
       const count = 15
 
       mockUserIntegrationService.getActiveUserCount.mockResolvedValue(count)
-      
+
       // Act（実行）
       const service = new UserApplicationService(mockUserIntegrationService as any)
       const result = await service.getActiveUserCount(7)
-      
+
       // Assert（検証）
       expect(result).toBe(15)
       expect(mockUserIntegrationService.getActiveUserCount).toHaveBeenCalledWith(7)

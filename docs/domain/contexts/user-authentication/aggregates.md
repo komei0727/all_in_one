@@ -15,12 +15,14 @@ NextAuthが認証・セッション・トークン管理を担当するため、
 ## 責任範囲の明確化
 
 ### NextAuthが管理（集約設計から除外）
+
 - 認証情報（パスワード、認証プロバイダー情報）
 - セッション（作成、更新、無効化）
 - トークン（アクセストークン、リフレッシュトークン、検証トークン）
 - ログイン履歴
 
 ### ドメインが管理（本設計の対象）
+
 - ユーザープロフィール
 - ユーザー状態（アクティブ/非アクティブ）
 - ユーザー設定・プリファレンス
@@ -28,9 +30,9 @@ NextAuthが認証・セッション・トークン管理を担当するため、
 
 ## 集約一覧（NextAuth統合版）
 
-| 集約名       | 集約ルート | 責務                                     |
-| ------------ | ---------- | ---------------------------------------- |
-| ユーザー集約 | User       | ユーザー情報、プロフィール、状態の管理   |
+| 集約名       | 集約ルート | 責務                                   |
+| ------------ | ---------- | -------------------------------------- |
+| ユーザー集約 | User       | ユーザー情報、プロフィール、状態の管理 |
 
 ## 削除された集約（NextAuthに委譲）
 
@@ -82,10 +84,12 @@ NextAuthとの統合を前提としたユーザー集約。認証・セッショ
 ### NextAuth統合設計
 
 1. **責任分離**
+
    - NextAuth: 認証、セッション、トークン管理
    - ドメイン: プロフィール、設定、ビジネスロジック
 
 2. **データ同期**
+
    - nextAuthIdによる1:1マッピング
    - emailはNextAuthと常に同期
    - 認証状態はNextAuthが管理
@@ -95,8 +99,8 @@ NextAuthとの統合を前提としたユーザー集約。認証・セッショ
    // NextAuthコールバックでの統合
    callbacks: {
      signIn: async ({ user }) => {
-       await userService.createOrSyncUser(user);
-       return true;
+       await userService.createOrSyncUser(user)
+       return true
      }
    }
    ```
@@ -104,11 +108,13 @@ NextAuthとの統合を前提としたユーザー集約。認証・セッショ
 ### 不変条件（Invariants）
 
 1. **NextAuthとの一貫性**
+
    - nextAuthIdは必須かつ不変
    - NextAuthユーザーと1:1対応を維持
    - emailはNextAuthと常に一致
 
 2. **プロフィール必須性**
+
    - UserProfileは必ず存在
    - displayNameは必須（1-50文字）
 
@@ -130,20 +136,20 @@ NextAuthとの統合を前提としたユーザー集約。認証・セッショ
 const user = User.createFromNextAuth({
   nextAuthId: 'clxxxx1234',
   email: 'user@example.com',
-  profile: UserProfile.createDefault('ユーザー名')
+  profile: UserProfile.createDefault('ユーザー名'),
 })
 
 // プロフィール更新
 user.updateProfile({
   displayName: '新しい名前',
   timezone: 'Asia/Tokyo',
-  language: 'ja'
+  language: 'ja',
 })
 
 // 設定更新
 user.updatePreferences({
   theme: 'dark',
-  notifications: true
+  notifications: true,
 })
 
 // アカウント無効化
@@ -210,6 +216,7 @@ NextAuth統合により、認証関連の集約が削除され、シンプルな
 ### 整合性保証
 
 1. **即時整合性（User集約内）**
+
    - プロフィール更新は単一トランザクション
    - 不変条件は常に満たされる
    - NextAuthIDの一意性は必須
@@ -223,18 +230,18 @@ NextAuth統合により、認証関連の集約が削除され、シンプルな
 
 ### ドメイン層のリポジトリ
 
-| 集約         | リポジトリ     | 責務                               |
-| ------------ | -------------- | ---------------------------------- |
-| ユーザー集約 | UserRepository | ドメインユーザーの永続化と検索     |
+| 集約         | リポジトリ     | 責務                           |
+| ------------ | -------------- | ------------------------------ |
+| ユーザー集約 | UserRepository | ドメインユーザーの永続化と検索 |
 
 ### NextAuth管理テーブル（直接アクセス禁止）
 
-| テーブル            | 管理者          | アクセス方法          |
-| ------------------- | --------------- | --------------------- |
-| users               | Prisma Adapter  | NextAuth API経由      |
-| accounts            | Prisma Adapter  | NextAuth API経由      |
-| sessions            | Prisma Adapter  | useSession()フック    |
-| verification_tokens | Prisma Adapter  | NextAuth内部処理      |
+| テーブル            | 管理者         | アクセス方法       |
+| ------------------- | -------------- | ------------------ |
+| users               | Prisma Adapter | NextAuth API経由   |
+| accounts            | Prisma Adapter | NextAuth API経由   |
+| sessions            | Prisma Adapter | useSession()フック |
+| verification_tokens | Prisma Adapter | NextAuth内部処理   |
 
 ## 集約設計のベストプラクティス（NextAuth統合版）
 
@@ -267,6 +274,7 @@ NextAuth統合により、認証関連の集約が削除され、シンプルな
 ### 読み込み戦略
 
 1. **User集約の最適化**
+
    - プロフィール情報は完全読み込み（小さいデータ）
    - NextAuthIDによる高速検索（インデックス必須）
    - 頻繁なアクセスパターンに対応
@@ -278,11 +286,11 @@ NextAuth統合により、認証関連の集約が削除され、シンプルな
 
 ### キャッシュ戦略
 
-| 対象                 | キャッシュ期間 | 無効化タイミング       |
-| -------------------- | -------------- | ---------------------- |
-| ユーザー基本情報     | 10分           | プロフィール更新時     |
-| NextAuthID検索結果   | 5分            | ユーザー作成時         |
-| プロフィール         | 5分            | 更新時即座に無効化     |
+| 対象               | キャッシュ期間 | 無効化タイミング   |
+| ------------------ | -------------- | ------------------ |
+| ユーザー基本情報   | 10分           | プロフィール更新時 |
+| NextAuthID検索結果 | 5分            | ユーザー作成時     |
+| プロフィール       | 5分            | 更新時即座に無効化 |
 
 ### 統合パフォーマンス指標
 
@@ -310,11 +318,7 @@ export class User {
   ) {}
 
   // NextAuthユーザーから作成
-  static createFromNextAuth(params: {
-    nextAuthId: string;
-    email: string;
-    name?: string;
-  }): User {
+  static createFromNextAuth(params: { nextAuthId: string; email: string; name?: string }): User {
     return new User(
       new UserId(generateUUID()),
       params.nextAuthId,
@@ -324,30 +328,30 @@ export class User {
       UserStatus.active(),
       new Date(),
       new Date()
-    );
+    )
   }
 
   // NextAuthとの同期
   syncWithNextAuth(nextAuthUser: NextAuthUser): void {
     if (this.email.getValue() !== nextAuthUser.email) {
-      this.email = new Email(nextAuthUser.email);
-      this.updatedAt = new Date();
+      this.email = new Email(nextAuthUser.email)
+      this.updatedAt = new Date()
     }
   }
 
   // プロフィール更新
   updateProfile(newProfile: UserProfile): void {
-    this.profile = newProfile;
-    this.updatedAt = new Date();
+    this.profile = newProfile
+    this.updatedAt = new Date()
   }
 
   // アカウント無効化
   deactivate(reason: string): void {
     if (this.status.isDeactivated()) {
-      throw new Error('Already deactivated');
+      throw new Error('Already deactivated')
     }
-    this.status = UserStatus.deactivated();
-    this.updatedAt = new Date();
+    this.status = UserStatus.deactivated()
+    this.updatedAt = new Date()
   }
 }
 ```
@@ -360,7 +364,7 @@ export const authOptions: NextAuthOptions = {
   providers: [
     EmailProvider({
       // Email Provider設定
-    })
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -369,25 +373,25 @@ export const authOptions: NextAuthOptions = {
         await userIntegrationService.createOrSyncUser({
           nextAuthId: user.id,
           email: user.email!,
-          name: user.name
-        });
-        return true;
+          name: user.name,
+        })
+        return true
       } catch (error) {
         // エラーでもログインは継続（UX優先）
-        console.error('User integration failed:', error);
-        return true;
+        console.error('User integration failed:', error)
+        return true
       }
     },
     async session({ session, token }) {
       // セッションにドメインユーザーIDを追加
-      const domainUser = await userRepository.findByNextAuthId(token.sub!);
+      const domainUser = await userRepository.findByNextAuthId(token.sub!)
       if (domainUser) {
-        session.userId = domainUser.id.getValue();
+        session.userId = domainUser.id.getValue()
       }
-      return session;
-    }
-  }
-};
+      return session
+    },
+  },
+}
 ```
 
 ## 更新履歴
