@@ -28,32 +28,26 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       expect(email.getValue()).toBe('test@example.com')
     })
 
-    it('日本語ドメインを含むメールアドレスで作成できる', () => {
+    it('メールアドレスは小文字に正規化される', () => {
       // Arrange（準備）
-      const japaneseEmail = 'user@日本.jp'
+      const mixedCaseEmail = 'Test.User@Example.COM'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const email = new Email(japaneseEmail)
+      // Act（実行）
+      const email = new Email(mixedCaseEmail)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(email.getValue()).toBe(japaneseEmail)
-
-      // 実装前のプレースホルダー
-      expect(japaneseEmail).toBe('user@日本.jp')
+      // Assert（検証）
+      expect(email.getValue()).toBe('test.user@example.com')
     })
 
     it('Gmailアドレスで作成できる', () => {
       // Arrange（準備）
       const testEmailData = new EmailBuilder().withGmail().build()
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const email = new Email(testEmailData.value)
+      // Act（実行）
+      const email = new Email(testEmailData.value)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(email.getValue()).toContain('@gmail.com')
-
-      // 実装前のプレースホルダー
-      expect(testEmailData.value).toContain('@gmail.com')
+      // Assert（検証）
+      expect(email.getValue()).toContain('@gmail.com')
     })
   })
 
@@ -78,11 +72,8 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       // Arrange（準備）
       const undefinedEmail = undefined as any
 
-      // Act & Assert（実行 & 検証） - 実装後にコメントアウト解除
-      // expect(() => new Email(undefinedEmail)).toThrow('メールアドレスは必須です')
-
-      // 実装前のプレースホルダー
-      expect(undefinedEmail).toBeUndefined()
+      // Act & Assert（実行 & 検証）
+      expect(() => new Email(undefinedEmail)).toThrow('メールアドレスは必須です')
     })
 
     it('無効な形式のメールアドレスで作成するとエラーが発生する', () => {
@@ -127,14 +118,35 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       // Arrange（準備）
       const email = 'user@sub.example.co.jp'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const emailObj = new Email(email)
+      // Act（実行）
+      const emailObj = new Email(email)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(emailObj.getDomain()).toBe('sub.example.co.jp')
+      // Assert（検証）
+      expect(emailObj.getDomain()).toBe('sub.example.co.jp')
+    })
+  })
 
-      // 実装前のプレースホルダー
-      expect(email.split('@')[1]).toBe('sub.example.co.jp')
+  describe('ローカル部分取得', () => {
+    it('ローカル部分を取得できる', () => {
+      // Arrange（準備）
+      const email = 'user.name@example.com'
+
+      // Act（実行）
+      const emailObj = new Email(email)
+
+      // Assert（検証）
+      expect(emailObj.getLocalPart()).toBe('user.name')
+    })
+
+    it('複雑なローカル部分でも正しく取得できる', () => {
+      // Arrange（準備）
+      const email = 'user+tag@example.com'
+
+      // Act（実行）
+      const emailObj = new Email(email)
+
+      // Assert（検証）
+      expect(emailObj.getLocalPart()).toBe('user+tag')
     })
   })
 
@@ -143,15 +155,12 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       // Arrange（準備）
       const email = 'test@example.com'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const email1 = new Email(email)
-      // const email2 = new Email(email)
+      // Act（実行）
+      const email1 = new Email(email)
+      const email2 = new Email(email)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(email1.equals(email2)).toBe(true)
-
-      // 実装前のプレースホルダー
-      expect(email).toBe(email)
+      // Assert（検証）
+      expect(email1.equals(email2)).toBe(true)
     })
 
     it('異なるメールアドレスのEmailは等しくない', () => {
@@ -159,15 +168,12 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       const email1 = 'test1@example.com'
       const email2 = 'test2@example.com'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const emailObj1 = new Email(email1)
-      // const emailObj2 = new Email(email2)
+      // Act（実行）
+      const emailObj1 = new Email(email1)
+      const emailObj2 = new Email(email2)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(emailObj1.equals(emailObj2)).toBe(false)
-
-      // 実装前のプレースホルダー
-      expect(email1).not.toBe(email2)
+      // Assert（検証）
+      expect(emailObj1.equals(emailObj2)).toBe(false)
     })
 
     it('大文字小文字は区別せず等価と判定される', () => {
@@ -175,15 +181,37 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       const email1 = 'Test@Example.COM'
       const email2 = 'test@example.com'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const emailObj1 = new Email(email1)
-      // const emailObj2 = new Email(email2)
+      // Act（実行）
+      const emailObj1 = new Email(email1)
+      const emailObj2 = new Email(email2)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(emailObj1.equals(emailObj2)).toBe(true)
+      // Assert（検証）
+      expect(emailObj1.equals(emailObj2)).toBe(true)
+    })
 
-      // 実装前のプレースホルダー
-      expect(email1.toLowerCase()).toBe(email2.toLowerCase())
+    it('nullとの比較ではfalseを返す', () => {
+      // Arrange（準備）
+      const email = new Email('test@example.com')
+
+      // Act & Assert（実行 & 検証）
+      expect(email.equals(null)).toBe(false)
+    })
+
+    it('undefinedとの比較ではfalseを返す', () => {
+      // Arrange（準備）
+      const email = new Email('test@example.com')
+
+      // Act & Assert（実行 & 検証）
+      expect(email.equals(undefined)).toBe(false)
+    })
+
+    it('Email以外のオブジェクトとの比較ではfalseを返す', () => {
+      // Arrange（準備）
+      const email = new Email('test@example.com')
+      const notEmail = { value: 'test@example.com' }
+
+      // Act & Assert（実行 & 検証）
+      expect(email.equals(notEmail as any)).toBe(false)
     })
   })
 
@@ -192,28 +220,22 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       // Arrange（準備）
       const email = 'Test@Example.COM'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const emailObj = new Email(email)
+      // Act（実行）
+      const emailObj = new Email(email)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(emailObj.getValue()).toBe('test@example.com')
-
-      // 実装前のプレースホルダー
-      expect(email.toLowerCase()).toBe('test@example.com')
+      // Assert（検証）
+      expect(emailObj.getValue()).toBe('test@example.com')
     })
 
     it('前後の空白は除去される', () => {
       // Arrange（準備）
       const email = '  test@example.com  '
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const emailObj = new Email(email)
+      // Act（実行）
+      const emailObj = new Email(email)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(emailObj.getValue()).toBe('test@example.com')
-
-      // 実装前のプレースホルダー
-      expect(email.trim()).toBe('test@example.com')
+      // Assert（検証）
+      expect(emailObj.getValue()).toBe('test@example.com')
     })
   })
 
@@ -222,18 +244,52 @@ describe('Email値オブジェクト（共有カーネル）', () => {
       // Arrange（準備）
       const emailAddress = 'user@example.com'
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const userAuthContextEmail = new Email(emailAddress) // ユーザー認証コンテキスト
-      // const ingredientContextEmail = new Email(emailAddress) // 食材管理コンテキスト
-      // const shoppingContextEmail = new Email(emailAddress) // 買い物サポートコンテキスト
+      // Act（実行）
+      const userAuthContextEmail = new Email(emailAddress) // ユーザー認証コンテキスト
+      const ingredientContextEmail = new Email(emailAddress) // 食材管理コンテキスト
+      const shoppingContextEmail = new Email(emailAddress) // 買い物サポートコンテキスト
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(userAuthContextEmail.equals(ingredientContextEmail)).toBe(true)
-      // expect(ingredientContextEmail.equals(shoppingContextEmail)).toBe(true)
-      // expect(userAuthContextEmail.equals(shoppingContextEmail)).toBe(true)
+      // Assert（検証）
+      expect(userAuthContextEmail.equals(ingredientContextEmail)).toBe(true)
+      expect(ingredientContextEmail.equals(shoppingContextEmail)).toBe(true)
+      expect(userAuthContextEmail.equals(shoppingContextEmail)).toBe(true)
+    })
+  })
 
-      // 実装前のプレースホルダー
-      expect(emailAddress).toBe(emailAddress)
+  describe('有効性検証', () => {
+    it('有効なメールアドレスはtrueを返す', () => {
+      // Arrange（準備）
+      const email = new Email('valid@example.com')
+
+      // Act & Assert（実行 & 検証）
+      expect(email.isValid()).toBe(true)
+    })
+
+    it('正規化されたメールアドレスもtrueを返す', () => {
+      // Arrange（準備）
+      const email = new Email('USER@EXAMPLE.COM')
+
+      // Act & Assert（実行 & 検証）
+      expect(email.isValid()).toBe(true)
+    })
+  })
+
+  describe('文字列表現', () => {
+    it('toStringメソッドがメールアドレスを返す', () => {
+      // Arrange（準備）
+      const emailAddress = 'test@example.com'
+      const email = new Email(emailAddress)
+
+      // Act & Assert（実行 & 検証）
+      expect(email.toString()).toBe(emailAddress)
+    })
+
+    it('正規化されたメールアドレスを返す', () => {
+      // Arrange（準備）
+      const email = new Email('TEST@EXAMPLE.COM')
+
+      // Act & Assert（実行 & 検証）
+      expect(email.toString()).toBe('test@example.com')
     })
   })
 })

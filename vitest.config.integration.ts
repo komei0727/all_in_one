@@ -24,6 +24,7 @@ export default defineConfig({
       '@/app': path.resolve(__dirname, './src/app'),
       '@/modules': path.resolve(__dirname, './src/modules'),
       '@/lib': path.resolve(__dirname, './src/lib'),
+      '@/tests': path.resolve(__dirname, './tests'),
       '@ingredients': path.resolve(__dirname, './src/modules/ingredients'),
       '@shared': path.resolve(__dirname, './src/modules/shared'),
       '@/generated': path.resolve(__dirname, './src/generated'),

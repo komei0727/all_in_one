@@ -14,7 +14,17 @@ import { User } from '@/modules/user-authentication/server/domain/entities/user.
 import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
+import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
+
+// テスト用ヘルパー関数
+const createUserProfileFromBuilder = (builder: UserProfileBuilder) => {
+  const data = builder.build()
+  return new UserProfile({
+    ...data,
+    preferences: new UserPreferences(data.preferences),
+  })
+}
 
 describe('Userエンティティ', () => {
   describe('エンティティの作成', () => {
@@ -52,37 +62,35 @@ describe('Userエンティティ', () => {
       // Arrange（準備）
       const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = User.createFromNextAuth(nextAuthUser)
+      // Act（実行）
+      const user = User.createFromNextAuth(nextAuthUser)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.getNextAuthId()).toBe(nextAuthUser.id)
-      // expect(user.getEmail().getValue()).toBe(nextAuthUser.email)
-      // expect(user.isActive()).toBe(true)
-      // expect(user.getProfile().getDisplayName()).toBeDefined()
-
-      // 実装前のプレースホルダー
-      expect(nextAuthUser.email).toBeDefined()
+      // Assert（検証）
+      expect(user.getNextAuthId()).toBe(nextAuthUser.id)
+      expect(user.getEmail().getValue()).toBe(nextAuthUser.email)
+      expect(user.isActive()).toBe(true)
+      expect(user.getProfile().getDisplayName()).toBeDefined()
     })
 
     it('カスタムプロフィール付きでUserエンティティを作成できる', () => {
       // Arrange（準備）
       const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
-      const customProfile = new UserProfileBuilder()
+      const customProfileData = new UserProfileBuilder()
         .withDisplayName('カスタム太郎')
         .withLanguage('en')
         .build()
+      const customProfile = new UserProfile({
+        ...customProfileData,
+        preferences: new UserPreferences(customProfileData.preferences),
+      })
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = User.createFromNextAuthWithProfile(nextAuthUser, customProfile)
+      // Act（実行）
+      const user = User.createFromNextAuthWithProfile(nextAuthUser, customProfile)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.getNextAuthId()).toBe(nextAuthUser.id)
-      // expect(user.getProfile().getDisplayName()).toBe('カスタム太郎')
-      // expect(user.getProfile().getLanguage()).toBe('en')
-
-      // 実装前のプレースホルダー
-      expect(customProfile.displayName).toBe('カスタム太郎')
+      // Assert（検証）
+      expect(user.getNextAuthId()).toBe(nextAuthUser.id)
+      expect(user.getProfile().getDisplayName()).toBe('カスタム太郎')
+      expect(user.getProfile().getLanguage()).toBe('en')
     })
   })
 
@@ -90,64 +98,52 @@ describe('Userエンティティ', () => {
     it('無効なnextAuthIdで作成するとエラーが発生する', () => {
       // Arrange（準備）
       const invalidUserData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: '', // 空文字
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act & Assert（実行 & 検証） - 実装後にコメントアウト解除
-      // expect(() => new User(invalidUserData))
-      //   .toThrow('NextAuth IDは必須です')
-
-      // 実装前のプレースホルダー
-      expect(invalidUserData.nextAuthId).toBe('')
+      // Act & Assert（実行 & 検証）
+      expect(() => new User(invalidUserData)).toThrow('NextAuth IDは必須です')
     })
 
     it('nullまたはundefinedのプロパティで作成するとエラーが発生する', () => {
       // Arrange（準備）
       const invalidUserData = {
-        id: null,
+        id: null as any,
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act & Assert（実行 & 検証） - 実装後にコメントアウト解除
-      // expect(() => new User(invalidUserData))
-      //   .toThrow('ユーザーIDは必須です')
-
-      // 実装前のプレースホルダー
-      expect(invalidUserData.id).toBeNull()
+      // Act & Assert（実行 & 検証）
+      expect(() => new User(invalidUserData)).toThrow('ユーザーIDは必須です')
     })
 
     it('作成日時が更新日時より後の場合エラーが発生する', () => {
       // Arrange（準備）
       const invalidUserData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date('2024-01-02T00:00:00Z'),
         updatedAt: new Date('2024-01-01T00:00:00Z'), // 作成日より前
         lastLoginAt: null,
       }
 
-      // Act & Assert（実行 & 検証） - 実装後にコメントアウト解除
-      // expect(() => new User(invalidUserData))
-      //   .toThrow('更新日時は作成日時以降である必要があります')
-
-      // 実装前のプレースホルダー
-      expect(invalidUserData.createdAt > invalidUserData.updatedAt).toBe(true)
+      // Act & Assert（実行 & 検証）
+      expect(() => new User(invalidUserData)).toThrow('更新日時は作成日時以降である必要があります')
     })
   })
 
@@ -155,185 +151,168 @@ describe('Userエンティティ', () => {
     it('アクティブなユーザーはログイン可能である', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.isActive()).toBe(true)
-      // expect(user.canLogin()).toBe(true)
-
-      // 実装前のプレースホルダー
-      expect(userData.status).toBeDefined()
+      // Assert（検証）
+      expect(user.isActive()).toBe(true)
+      expect(user.canLogin()).toBe(true)
     })
 
     it('無効化されたユーザーはログイン不可である', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withDeactivated().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createDeactivated(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.isActive()).toBe(false)
-      // expect(user.canLogin()).toBe(false)
-
-      // 実装前のプレースホルダー
-      expect(userData.status).toBeDefined()
+      // Assert（検証）
+      expect(user.isActive()).toBe(false)
+      expect(user.canLogin()).toBe(false)
     })
 
     it('ユーザーを無効化できる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
-      // user.deactivate()
+      // Act（実行）
+      const user = new User(userData)
+      user.deactivate()
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.isActive()).toBe(false)
-      // expect(user.canLogin()).toBe(false)
-      // expect(user.getStatus().isDeactivated()).toBe(true)
-
-      // 実装前のプレースホルダー
-      expect(userData.status).toBeDefined()
+      // Assert（検証）
+      expect(user.isActive()).toBe(false)
+      expect(user.canLogin()).toBe(false)
+      expect(user.getStatus().isDeactivated()).toBe(true)
     })
 
     it('既に無効化されたユーザーの再無効化はエラーになる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withDeactivated().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createDeactivated(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(() => user.deactivate())
-      //   .toThrow('既に無効化されたユーザーです')
-
-      // 実装前のプレースホルダー
-      expect(userData.status).toBeDefined()
+      // Assert（検証）
+      expect(() => user.deactivate()).toThrow('既に無効化されたユーザーです')
     })
   })
 
   describe('プロフィール管理', () => {
-    it('プロフィールを更新できる', () => {
+    it('プロフィールを更新できる', async () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      const newProfile = new UserProfileBuilder()
-        .withDisplayName('更新された名前')
-        .withLanguage('en')
-        .build()
+      const newProfile = createUserProfileFromBuilder(
+        new UserProfileBuilder().withDisplayName('更新された名前').withLanguage('en')
+      )
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
-      // const originalUpdatedAt = user.getUpdatedAt()
+      // Act（実行）
+      const user = new User(userData)
+      const originalUpdatedAt = user.getUpdatedAt()
+
+      // 少し時間を待ってから更新
+      const waitPromise = new Promise((resolve) => setTimeout(resolve, 10))
+      await waitPromise
 
       // プロフィール更新
-      // user.updateProfile(newProfile)
+      user.updateProfile(newProfile)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.getProfile().getDisplayName()).toBe('更新された名前')
-      // expect(user.getProfile().getLanguage()).toBe('en')
-      // expect(user.getUpdatedAt() > originalUpdatedAt).toBe(true)
-
-      // 実装前のプレースホルダー
-      expect(newProfile.displayName).toBe('更新された名前')
+      // Assert（検証）
+      expect(user.getProfile().getDisplayName()).toBe('更新された名前')
+      expect(user.getProfile().getLanguage()).toBe('en')
+      expect(user.getUpdatedAt().getTime()).toBeGreaterThan(originalUpdatedAt.getTime())
     })
 
     it('無効なプロフィールでの更新はエラーになる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(() => user.updateProfile(null))
-      //   .toThrow('プロフィールは必須です')
-
-      // 実装前のプレースホルダー
-      expect(userData.profile).toBeDefined()
+      // Assert（検証）
+      expect(() => user.updateProfile(null as any)).toThrow('プロフィールは必須です')
     })
 
     it('無効化されたユーザーのプロフィール更新はエラーになる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withDeactivated().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createDeactivated(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      const newProfile = new UserProfileBuilder().withDisplayName('更新された名前').build()
+      const newProfile = createUserProfileFromBuilder(
+        new UserProfileBuilder().withDisplayName('更新された名前')
+      )
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(() => user.updateProfile(newProfile))
-      //   .toThrow('無効化されたユーザーのプロフィールは更新できません')
-
-      // 実装前のプレースホルダー
-      expect(userData.status).toBeDefined()
+      // Assert（検証）
+      expect(() => user.updateProfile(newProfile)).toThrow(
+        '無効化されたユーザーのプロフィールは更新できません'
+      )
     })
   })
 
@@ -341,11 +320,11 @@ describe('Userエンティティ', () => {
     it('ログインを記録できる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
@@ -353,25 +332,22 @@ describe('Userエンティティ', () => {
 
       const loginTime = new Date()
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
-      // user.recordLogin(loginTime)
+      // Act（実行）
+      const user = new User(userData)
+      user.recordLogin(loginTime)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.getLastLoginAt()).toEqual(loginTime)
-
-      // 実装前のプレースホルダー
-      expect(userData.lastLoginAt).toBeNull()
+      // Assert（検証）
+      expect(user.getLastLoginAt()).toEqual(loginTime)
     })
 
     it('無効化されたユーザーのログイン記録はエラーになる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withDeactivated().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createDeactivated(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
@@ -379,15 +355,11 @@ describe('Userエンティティ', () => {
 
       const loginTime = new Date()
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(() => user.recordLogin(loginTime))
-      //   .toThrow('無効化されたユーザーはログインできません')
-
-      // 実装前のプレースホルダー
-      expect(userData.status).toBeDefined()
+      // Assert（検証）
+      expect(() => user.recordLogin(loginTime)).toThrow('無効化されたユーザーはログインできません')
     })
   })
 
@@ -395,11 +367,11 @@ describe('Userエンティティ', () => {
     it('NextAuthユーザーと同期できる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
@@ -410,25 +382,22 @@ describe('Userエンティティ', () => {
         .withEmail('updated@example.com')
         .build()
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
-      // user.syncWithNextAuth(updatedNextAuthUser)
+      // Act（実行）
+      const user = new User(userData)
+      user.syncWithNextAuth(updatedNextAuthUser)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user.getEmail().getValue()).toBe('updated@example.com')
-
-      // 実装前のプレースホルダー
-      expect(updatedNextAuthUser.email).toBe('updated@example.com')
+      // Assert（検証）
+      expect(user.getEmail().getValue()).toBe('updated@example.com')
     })
 
     it('異なるNextAuthIdでの同期はエラーになる', () => {
       // Arrange（準備）
       const userData = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
@@ -439,28 +408,26 @@ describe('Userエンティティ', () => {
         .withEmail('different@example.com')
         .build()
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user = new User(userData)
+      // Act（実行）
+      const user = new User(userData)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(() => user.syncWithNextAuth(differentNextAuthUser))
-      //   .toThrow('NextAuth IDが一致しません')
-
-      // 実装前のプレースホルダー
-      expect(differentNextAuthUser.id).toBe('different-id')
+      // Assert（検証）
+      expect(() => user.syncWithNextAuth(differentNextAuthUser)).toThrow(
+        'NextAuth IDが一致しません'
+      )
     })
   })
 
   describe('等価性比較', () => {
     it('同じIDのUserエンティティは等しい', () => {
       // Arrange（準備）
-      const userId = new UserIdBuilder().build()
+      const userId = new UserId(new UserIdBuilder().build().value)
       const userData1 = {
         id: userId,
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
@@ -468,57 +435,215 @@ describe('Userエンティティ', () => {
       const userData2 = {
         id: userId, // 同じID
         nextAuthId: 'next-auth-456', // 異なるnextAuthId
-        email: new EmailBuilder().withValue('different@example.com').build(),
-        profile: new UserProfileBuilder().withDisplayName('異なる名前').build(),
-        status: new UserStatusBuilder().withDeactivated().build(),
+        email: new Email(new EmailBuilder().withValue('different@example.com').build().value),
+        profile: createUserProfileFromBuilder(
+          new UserProfileBuilder().withDisplayName('異なる名前')
+        ),
+        status: UserStatus.createDeactivated(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user1 = new User(userData1)
-      // const user2 = new User(userData2)
+      // Act（実行）
+      const user1 = new User(userData1)
+      const user2 = new User(userData2)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user1.equals(user2)).toBe(true)
-
-      // 実装前のプレースホルダー
-      expect(userData1.id).toBeDefined()
+      // Assert（検証）
+      expect(user1.equals(user2)).toBe(true)
     })
 
     it('異なるIDのUserエンティティは等しくない', () => {
       // Arrange（準備）
       const userData1 = {
-        id: new UserIdBuilder().build(),
+        id: new UserId(new UserIdBuilder().build().value),
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
       const userData2 = {
-        id: new UserIdBuilder().build(), // 異なるID
+        id: new UserId(new UserIdBuilder().build().value), // 異なるID
         nextAuthId: 'next-auth-123',
-        email: new EmailBuilder().withTestEmail().build(),
-        profile: new UserProfileBuilder().withDefaults().build(),
-        status: new UserStatusBuilder().withActive().build(),
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: null,
       }
 
-      // Act（実行） - 実装後にコメントアウト解除
-      // const user1 = new User(userData1)
-      // const user2 = new User(userData2)
+      // Act（実行）
+      const user1 = new User(userData1)
+      const user2 = new User(userData2)
 
-      // Assert（検証） - 実装後にコメントアウト解除
-      // expect(user1.equals(user2)).toBe(false)
+      // Assert（検証）
+      expect(user1.equals(user2)).toBe(false)
+    })
 
-      // 実装前のプレースホルダー
-      expect(userData2.id).toBeDefined()
+    it('User以外のオブジェクトとは等しくない', () => {
+      // Arrange（準備）
+      const userData = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+
+      // Act（実行）
+      const user = new User(userData)
+      const notUser = { id: userData.id }
+
+      // Assert（検証）
+      expect(user.equals(notUser as any)).toBe(false)
+    })
+  })
+
+  describe('その他のメソッド', () => {
+    it('recordLoginで時刻を指定しない場合は現在時刻が設定される', () => {
+      // Arrange（準備）
+      const userData = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+
+      // Act（実行）
+      const user = new User(userData)
+      const beforeLogin = new Date()
+      user.recordLogin()
+      const afterLogin = new Date()
+
+      // Assert（検証）
+      const loginTime = user.getLastLoginAt()
+      expect(loginTime).not.toBeNull()
+      expect(loginTime!.getTime()).toBeGreaterThanOrEqual(beforeLogin.getTime())
+      expect(loginTime!.getTime()).toBeLessThanOrEqual(afterLogin.getTime())
+    })
+
+    it('syncWithNextAuthでメールアドレスが同じ場合は更新日時が変わらない', () => {
+      // Arrange（準備）
+      const originalEmail = 'test@example.com'
+      const userData = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(originalEmail),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        lastLoginAt: null,
+      }
+
+      const sameEmailNextAuthUser = new NextAuthUserBuilder()
+        .withId('next-auth-123')
+        .withEmail(originalEmail)
+        .build()
+
+      // Act（実行）
+      const user = new User(userData)
+      const originalUpdatedAt = user.getUpdatedAt()
+      user.syncWithNextAuth(sameEmailNextAuthUser)
+
+      // Assert（検証）
+      expect(user.getEmail().getValue()).toBe(originalEmail)
+      expect(user.getUpdatedAt()).toEqual(originalUpdatedAt)
+    })
+
+    it('必須プロパティがすべて検証される', () => {
+      // emailがnullの場合
+      const invalidData1 = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: null as any,
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+      expect(() => new User(invalidData1)).toThrow('メールアドレスは必須です')
+
+      // profileがnullの場合
+      const invalidData2 = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: null as any,
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+      expect(() => new User(invalidData2)).toThrow('プロフィールは必須です')
+
+      // statusがnullの場合
+      const invalidData3 = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: null as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+      expect(() => new User(invalidData3)).toThrow('ユーザーステータスは必須です')
+
+      // createdAtがnullの場合
+      const invalidData4 = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: null as any,
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+      expect(() => new User(invalidData4)).toThrow('作成日時は必須です')
+
+      // updatedAtがnullの場合
+      const invalidData5 = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: 'next-auth-123',
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: null as any,
+        lastLoginAt: null,
+      }
+      expect(() => new User(invalidData5)).toThrow('更新日時は必須です')
+    })
+
+    it('nextAuthIdがスペースのみの場合エラーになる', () => {
+      // Arrange（準備）
+      const invalidUserData = {
+        id: new UserId(new UserIdBuilder().build().value),
+        nextAuthId: '   ', // スペースのみ
+        email: new Email(new EmailBuilder().withTestEmail().build().value),
+        profile: createUserProfileFromBuilder(new UserProfileBuilder().withDefaults()),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      }
+
+      // Act & Assert（実行 & 検証）
+      expect(() => new User(invalidUserData)).toThrow('NextAuth IDは必須です')
     })
   })
 })

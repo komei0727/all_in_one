@@ -304,4 +304,83 @@ describe('UserIntegrationService', () => {
       await expect(service.deactivateUser(userId)).rejects.toThrow('既に無効化されたユーザーです')
     })
   })
+
+  describe('アクティブユーザー管理', () => {
+    it('アクティブなユーザー一覧を取得できる', async () => {
+      // Arrange（準備）
+      const activeUsers = [
+        new User({
+          id: new UserId('user-1'),
+          nextAuthId: 'next-auth-1',
+          email: new Email('user1@example.com'),
+          profile: UserProfile.createDefault('ユーザー1'),
+          status: UserStatus.createActive(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastLoginAt: new Date(),
+        }),
+        new User({
+          id: new UserId('user-2'),
+          nextAuthId: 'next-auth-2',
+          email: new Email('user2@example.com'),
+          profile: UserProfile.createDefault('ユーザー2'),
+          status: UserStatus.createActive(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastLoginAt: new Date(),
+        }),
+      ]
+
+      mockUserRepository.findActiveUsers.mockResolvedValue(activeUsers)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.getActiveUsers(50, 0)
+
+      // Assert（検証）
+      expect(result).toHaveLength(2)
+      expect(result[0].isActive()).toBe(true)
+      expect(result[1].isActive()).toBe(true)
+      expect(mockUserRepository.findActiveUsers).toHaveBeenCalledWith(50, 0)
+    })
+
+    it('デフォルトのlimitとoffsetでアクティブユーザーを取得できる', async () => {
+      // Arrange（準備）
+      mockUserRepository.findActiveUsers.mockResolvedValue([])
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      await service.getActiveUsers()
+
+      // Assert（検証）
+      expect(mockUserRepository.findActiveUsers).toHaveBeenCalledWith(100, 0)
+    })
+
+    it('指定期間内のアクティブユーザー数を取得できる', async () => {
+      // Arrange（準備）
+      const activeUserCount = 42
+      mockUserRepository.countActiveUsersInPeriod.mockResolvedValue(activeUserCount)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.getActiveUserCount(30)
+
+      // Assert（検証）
+      expect(result).toBe(42)
+      expect(mockUserRepository.countActiveUsersInPeriod).toHaveBeenCalledWith(30)
+    })
+
+    it('0日の期間でアクティブユーザー数を取得できる', async () => {
+      // Arrange（準備）
+      mockUserRepository.countActiveUsersInPeriod.mockResolvedValue(0)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.getActiveUserCount(0)
+
+      // Assert（検証）
+      expect(result).toBe(0)
+      expect(mockUserRepository.countActiveUsersInPeriod).toHaveBeenCalledWith(0)
+    })
+  })
 })
