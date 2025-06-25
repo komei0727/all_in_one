@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { NextRequest } from 'next/server'
-
-// テスト対象のAPIハンドラー
-import { GET, PUT } from '@/app/api/auth/user/profile/route'
+import { NextRequest, NextResponse } from 'next/server'
 
 // モッククラス - アプリケーションサービス
 const mockUserApplicationService = {
   getUserByNextAuthId: vi.fn(),
   updateUserProfile: vi.fn(),
+}
+
+// モッククラス - APIハンドラー
+const mockProfileApiHandler = {
+  getProfile: vi.fn(),
+  updateProfile: vi.fn(),
 }
 
 // モッククラス - NextAuth session
@@ -21,6 +24,17 @@ vi.mock(
   })
 )
 
+vi.mock('@/modules/user-authentication/server/api/handlers/profile-handler', () => ({
+  ProfileApiHandler: vi.fn().mockImplementation(() => mockProfileApiHandler),
+}))
+
+vi.mock('@/modules/user-authentication/server/api/error-handler', () => ({
+  ApiErrorHandler: {
+    unauthorizedError: vi.fn(),
+    handleError: vi.fn(),
+  },
+}))
+
 vi.mock('next-auth', () => ({
   getServerSession: () => mockGetServerSession(),
 }))
@@ -29,9 +43,52 @@ vi.mock('@/lib/auth', () => ({
   authOptions: {},
 }))
 
+// テスト対象のAPIハンドラーをインポート（モック設定後）
+import { GET, PUT } from '@/app/api/auth/user/profile/route'
+import { ApiErrorHandler } from '@/modules/user-authentication/server/api/error-handler'
+
 describe('User Profile API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+
+    // エラーハンドラーのモック実装をセットアップ
+    vi.mocked(ApiErrorHandler.unauthorizedError).mockReturnValue(
+      NextResponse.json(
+        {
+          error: 'Unauthorized',
+          message: 'ログインが必要です',
+        },
+        { status: 401 }
+      )
+    )
+
+    vi.mocked(ApiErrorHandler.handleError).mockImplementation((error: unknown) => {
+      if (error instanceof Error && error.message === 'ユーザーが見つかりません') {
+        return NextResponse.json(
+          {
+            error: 'User not found',
+            message: 'ユーザーが見つかりません',
+          },
+          { status: 404 }
+        )
+      }
+      if (error instanceof Error && error.message === '表示名は必須です') {
+        return NextResponse.json(
+          {
+            error: 'Validation error',
+            message: '表示名は必須です',
+          },
+          { status: 400 }
+        )
+      }
+      return NextResponse.json(
+        {
+          error: 'Internal server error',
+          message: '処理中にエラーが発生しました',
+        },
+        { status: 500 }
+      )
+    })
   })
 
   describe('GET /api/auth/user/profile', () => {
@@ -66,7 +123,7 @@ describe('User Profile API', () => {
       }
 
       mockGetServerSession.mockResolvedValue(session)
-      mockUserApplicationService.getUserByNextAuthId.mockResolvedValue(userProfile)
+      mockProfileApiHandler.getProfile.mockResolvedValue(userProfile)
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile')
@@ -78,7 +135,7 @@ describe('User Profile API', () => {
       expect(data.user.email).toBe('test@example.com')
       expect(data.user.profile.displayName).toBe('テストユーザー')
       expect(data.user.profile.language).toBe('ja')
-      expect(mockUserApplicationService.getUserByNextAuthId).toHaveBeenCalledWith('next-auth-123')
+      expect(mockProfileApiHandler.getProfile).toHaveBeenCalledWith('next-auth-123')
     })
 
     it('未認証の場合は401エラーを返す', async () => {
@@ -106,7 +163,7 @@ describe('User Profile API', () => {
       }
 
       mockGetServerSession.mockResolvedValue(session)
-      mockUserApplicationService.getUserByNextAuthId.mockResolvedValue(null)
+      mockProfileApiHandler.getProfile.mockRejectedValue(new Error('ユーザーが見つかりません'))
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile')
@@ -129,7 +186,7 @@ describe('User Profile API', () => {
       }
 
       mockGetServerSession.mockResolvedValue(session)
-      mockUserApplicationService.getUserByNextAuthId.mockRejectedValue(new Error('Database error'))
+      mockProfileApiHandler.getProfile.mockRejectedValue(new Error('Database error'))
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile')
@@ -139,7 +196,7 @@ describe('User Profile API', () => {
       // Assert（検証）
       expect(response.status).toBe(500)
       expect(data.error).toBe('Internal server error')
-      expect(data.message).toBe('プロフィールの取得に失敗しました')
+      expect(data.message).toBe('処理中にエラーが発生しました')
     })
   })
 
@@ -181,8 +238,7 @@ describe('User Profile API', () => {
       }
 
       mockGetServerSession.mockResolvedValue(session)
-      mockUserApplicationService.getUserByNextAuthId.mockResolvedValue({ id: 'user-123' })
-      mockUserApplicationService.updateUserProfile.mockResolvedValue(updatedProfile)
+      mockProfileApiHandler.updateProfile.mockResolvedValue(updatedProfile)
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile', {
@@ -200,10 +256,7 @@ describe('User Profile API', () => {
       expect(data.user.profile.displayName).toBe('更新されたユーザー')
       expect(data.user.profile.language).toBe('en')
       expect(data.message).toBe('プロフィールが更新されました')
-      expect(mockUserApplicationService.updateUserProfile).toHaveBeenCalledWith(
-        'user-123',
-        requestBody
-      )
+      expect(mockProfileApiHandler.updateProfile).toHaveBeenCalledWith('next-auth-123', requestBody)
     })
 
     it('未認証の場合は401エラーを返す', async () => {
@@ -249,8 +302,7 @@ describe('User Profile API', () => {
       }
 
       mockGetServerSession.mockResolvedValue(session)
-      mockUserApplicationService.getUserByNextAuthId.mockResolvedValue({ id: 'user-123' })
-      mockUserApplicationService.updateUserProfile.mockRejectedValue(new Error('表示名は必須です'))
+      mockProfileApiHandler.updateProfile.mockRejectedValue(new Error('表示名は必須です'))
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile', {
@@ -313,10 +365,7 @@ describe('User Profile API', () => {
       }
 
       mockGetServerSession.mockResolvedValue(session)
-      mockUserApplicationService.getUserByNextAuthId.mockResolvedValue({ id: 'user-123' })
-      mockUserApplicationService.updateUserProfile.mockRejectedValue(
-        new Error('Database connection failed')
-      )
+      mockProfileApiHandler.updateProfile.mockRejectedValue(new Error('Database connection failed'))
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile', {
@@ -332,7 +381,7 @@ describe('User Profile API', () => {
       // Assert（検証）
       expect(response.status).toBe(500)
       expect(data.error).toBe('Internal server error')
-      expect(data.message).toBe('プロフィールの更新に失敗しました')
+      expect(data.message).toBe('処理中にエラーが発生しました')
     })
   })
 })

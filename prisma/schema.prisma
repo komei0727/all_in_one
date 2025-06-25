@@ -115,6 +115,9 @@ model DomainUser {
   displayName       String?
   preferredLanguage String          @default("ja")
   timezone          String          @default("Asia/Tokyo")
+  theme             String          @default("light")
+  notifications     Boolean         @default(true)
+  emailFrequency    String          @default("weekly")
   status            UserStatusType  @default(ACTIVE)
   lastLoginAt       DateTime?
   createdAt         DateTime        @default(now())

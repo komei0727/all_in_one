@@ -83,6 +83,9 @@ export class PrismaUserRepository implements UserRepository {
       displayName: user.getProfile().getDisplayName(),
       preferredLanguage: user.getProfile().getLanguage(),
       timezone: user.getProfile().getTimezone(),
+      theme: user.getProfile().getPreferences().getTheme(),
+      notifications: user.getProfile().getPreferences().getNotifications(),
+      emailFrequency: user.getProfile().getPreferences().getEmailFrequency(),
       status: user.getStatus().getValue(),
       lastLoginAt: user.getLastLoginAt(),
       updatedAt: new Date(),
@@ -121,12 +124,16 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * ユーザーを削除
+   * ユーザーを削除（論理削除）
    */
   async delete(id: UserId): Promise<boolean> {
     try {
-      await (this.prisma as any).domainUser.delete({
+      await (this.prisma as any).domainUser.update({
         where: { id: id.getValue() },
+        data: {
+          status: 'DEACTIVATED',
+          updatedAt: new Date(),
+        },
       })
       return true
     } catch (error) {
@@ -220,8 +227,12 @@ export class PrismaUserRepository implements UserRepository {
       updatedAt: Date
     }
   }): User {
-    // UserPreferencesを構築（デフォルト値を使用）
-    const preferences = UserPreferences.createDefault()
+    // UserPreferencesを構築（データベースの値から）
+    const preferences = new UserPreferences({
+      theme: prismaUser.theme as 'light' | 'dark' | 'auto',
+      notifications: prismaUser.notifications,
+      emailFrequency: prismaUser.emailFrequency as 'daily' | 'weekly' | 'monthly' | 'never',
+    })
 
     // UserProfileを構築
     const profile = new UserProfile({

@@ -81,9 +81,12 @@ NextAuthが管理する基本的なユーザー情報。
 | id                 | TEXT      | PRIMARY KEY                   | CUID形式の一意識別子             |
 | next_auth_id       | TEXT      | NOT NULL, UNIQUE              | NextAuthユーザーID（外部キー）   |
 | email              | TEXT      | NOT NULL, UNIQUE              | メールアドレス（NextAuthと同期） |
-| name               | TEXT      | NULL                          | 表示名（NextAuthと同期可能）     |
-| preferred_language | TEXT      | NOT NULL DEFAULT 'ja'         | 優先言語                         |
-| timezone           | TEXT      | NOT NULL DEFAULT 'Asia/Tokyo' | タイムゾーン                     |
+| display_name       | TEXT      | NULL                          | 表示名（UserProfile）            |
+| preferred_language | TEXT      | NOT NULL DEFAULT 'ja'         | 優先言語（UserProfile）          |
+| timezone           | TEXT      | NOT NULL DEFAULT 'Asia/Tokyo' | タイムゾーン（UserProfile）      |
+| theme              | TEXT      | NOT NULL DEFAULT 'light'      | テーマ設定（UserPreferences）    |
+| notifications      | BOOLEAN   | NOT NULL DEFAULT true         | 通知設定（UserPreferences）      |
+| email_frequency    | TEXT      | NOT NULL DEFAULT 'weekly'     | メール頻度（UserPreferences）    |
 | status             | TEXT      | NOT NULL DEFAULT 'ACTIVE'     | ステータス（ACTIVE/DEACTIVATED） |
 | last_login_at      | TIMESTAMP | NULL                          | 最終ログイン日時                 |
 | created_at         | TIMESTAMP | NOT NULL DEFAULT NOW()        | 作成日時                         |
@@ -98,6 +101,18 @@ NextAuthが管理する基本的なユーザー情報。
 - `check_status` - ステータスは定義された値のみ
   ```sql
   CHECK (status IN ('ACTIVE', 'DEACTIVATED'))
+  ```
+- `check_theme` - テーマは定義された値のみ
+  ```sql
+  CHECK (theme IN ('light', 'dark', 'auto'))
+  ```
+- `check_preferred_language` - 言語は定義された値のみ
+  ```sql
+  CHECK (preferred_language IN ('ja', 'en'))
+  ```
+- `check_email_frequency` - メール頻度は定義された値のみ
+  ```sql
+  CHECK (email_frequency IN ('daily', 'weekly', 'monthly', 'never'))
   ```
 
 **ユニーク制約**:
@@ -247,7 +262,7 @@ CREATE INDEX idx_domain_users_status ON domain_users (status)
 - OAuth プロバイダー追加（Google, GitHub等）
 - 二要素認証（2FA）サポート
 - より詳細なユーザープロフィール
-- ユーザー設定の拡張
+- 追加のユーザー設定項目
 
 ## 更新履歴
 

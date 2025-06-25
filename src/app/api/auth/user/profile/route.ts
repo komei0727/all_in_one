@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ApiErrorHandler } from '@/modules/user-authentication/server/api/error-handler'
+import { ProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/profile-handler'
 import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
@@ -17,48 +19,24 @@ export async function GET(_request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          error: 'Unauthorized',
-          message: 'ログインが必要です',
-        },
-        { status: 401 }
-      )
+      return ApiErrorHandler.unauthorizedError()
     }
 
     // サービス依存関係の構築
     const userRepository = new PrismaUserRepository(prisma)
     const userIntegrationService = new UserIntegrationService(userRepository)
     const userApplicationService = new UserApplicationService(userIntegrationService)
+    const profileApiHandler = new ProfileApiHandler(userApplicationService)
 
     // ユーザープロフィール取得
-    const user = await userApplicationService.getUserByNextAuthId(session.user.id)
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: 'User not found',
-          message: 'ユーザーが見つかりません',
-        },
-        { status: 404 }
-      )
-    }
+    const user = await profileApiHandler.getProfile(session.user.id)
 
     return NextResponse.json({
       user,
       message: 'プロフィールを取得しました',
     })
   } catch (error) {
-    // エラーログは本番環境では適切なロガーに置き換える
-    // console.error('Profile fetch error:', error)
-
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'プロフィールの取得に失敗しました',
-      },
-      { status: 500 }
-    )
+    return ApiErrorHandler.handleError(error)
   }
 }
 
@@ -72,13 +50,7 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          error: 'Unauthorized',
-          message: 'ログインが必要です',
-        },
-        { status: 401 }
-      )
+      return ApiErrorHandler.unauthorizedError()
     }
 
     // リクエストボディの解析
@@ -99,56 +71,16 @@ export async function PUT(request: NextRequest) {
     const userRepository = new PrismaUserRepository(prisma)
     const userIntegrationService = new UserIntegrationService(userRepository)
     const userApplicationService = new UserApplicationService(userIntegrationService)
-
-    // 現在のユーザー情報を取得
-    const currentUser = await userApplicationService.getUserByNextAuthId(session.user.id)
-
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          error: 'User not found',
-          message: 'ユーザーが見つかりません',
-        },
-        { status: 404 }
-      )
-    }
+    const profileApiHandler = new ProfileApiHandler(userApplicationService)
 
     // プロフィール更新
-    const updatedUser = await userApplicationService.updateUserProfile(currentUser.id, {
-      displayName: requestData.displayName,
-      timezone: requestData.timezone,
-      language: requestData.language,
-    })
+    const updatedUser = await profileApiHandler.updateProfile(session.user.id, requestData)
 
     return NextResponse.json({
       user: updatedUser,
       message: 'プロフィールが更新されました',
     })
   } catch (error) {
-    // エラーログは本番環境では適切なロガーに置き換える
-    // console.error('Profile update error:', error)
-
-    // バリデーションエラーの場合
-    if (
-      (error instanceof Error && error.message.includes('必須')) ||
-      (error instanceof Error && error.message.includes('無効')) ||
-      (error instanceof Error && error.message.includes('サポート'))
-    ) {
-      return NextResponse.json(
-        {
-          error: 'Validation error',
-          message: error.message,
-        },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'プロフィールの更新に失敗しました',
-      },
-      { status: 500 }
-    )
+    return ApiErrorHandler.handleError(error)
   }
 }

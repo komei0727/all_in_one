@@ -268,7 +268,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
   })
 
   describe('ユーザーの削除', () => {
-    it('ユーザーを削除できる', async () => {
+    it('ユーザーを論理削除できる', async () => {
       // Arrange（準備）
       const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
       const user = User.createFromNextAuth(nextAuthUser)
@@ -291,9 +291,11 @@ describe('PrismaUserRepository（統合テスト）', () => {
       // Assert（検証）
       expect(deleteResult).toBe(true)
 
-      // データベースから削除されていることを確認
+      // データベースから論理削除されていることを確認（statusがDEACTIVATEDになる）
       const deletedUser = await repository.findById(user.getId())
-      expect(deletedUser).toBeNull()
+      expect(deletedUser).not.toBeNull()
+      expect(deletedUser?.getStatus().isDeactivated()).toBe(true)
+      expect(deletedUser?.isActive()).toBe(false)
     })
 
     it('存在しないユーザーの削除はfalseを返す', async () => {

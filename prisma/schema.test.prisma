@@ -86,6 +86,9 @@ model DomainUser {
   displayName       String?
   preferredLanguage String          @default("ja")
   timezone          String          @default("Asia/Tokyo")
+  theme             String          @default("light")
+  notifications     Boolean         @default(true)
+  emailFrequency    String          @default("weekly")
   status            String          @default("ACTIVE") // SQLite: Use String instead of enum
   lastLoginAt       DateTime?
   createdAt         DateTime        @default(now())
