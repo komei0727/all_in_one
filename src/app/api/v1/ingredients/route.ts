@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 
+import { authOptions } from '@/lib/auth'
 import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions/business-rule.exception'
 import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
 import { ValidationException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
@@ -13,6 +15,22 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  */
 export async function POST(request: NextRequest) {
   try {
+    // 認証チェック
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.domainUserId) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'UNAUTHORIZED',
+            message: '認証が必要です',
+            timestamp: new Date().toISOString(),
+            path: '/api/v1/ingredients',
+          },
+        },
+        { status: 401 }
+      )
+    }
+
     // リクエストボディの取得
     const body = await request.json()
 
@@ -20,8 +38,8 @@ export async function POST(request: NextRequest) {
     const compositionRoot = CompositionRoot.getInstance()
     const apiHandler = compositionRoot.getCreateIngredientApiHandler()
 
-    // ハンドラーの実行
-    const result = await apiHandler.handle(body)
+    // ハンドラーの実行（ドメインユーザーIDを渡す）
+    const result = await apiHandler.handle(body, session.user.domainUserId)
 
     // 成功レスポンス（201 Created）
     return NextResponse.json(result, { status: 201 })

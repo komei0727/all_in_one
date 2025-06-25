@@ -7,11 +7,11 @@ import { CategoryRepository } from '@/modules/ingredients/server/domain/reposito
 import { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
-import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
 import {
-  createTestCategory,
-  createTestUnit,
-} from '../../../../../../__fixtures__/factories/entities'
+  CreateIngredientCommandBuilder,
+  CategoryBuilder,
+  UnitBuilder,
+} from '../../../../../../__fixtures__/builders'
 import {
   createMockIngredientRepository,
   createMockCategoryRepository,
@@ -39,8 +39,8 @@ describe('CreateIngredientHandler', () => {
       // ビルダーを使用してテストデータを作成
       const command = new CreateIngredientCommandBuilder().withFullData().build()
 
-      const mockCategory = createTestCategory()
-      const mockUnit = createTestUnit()
+      const mockCategory = new CategoryBuilder().build()
+      const mockUnit = new UnitBuilder().build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(mockUnit)
@@ -53,9 +53,11 @@ describe('CreateIngredientHandler', () => {
       expect(result).toBeInstanceOf(Ingredient)
       expect(result.getName().getValue()).toBe(command.name)
       expect(result.getCategoryId().getValue()).toBe(command.categoryId)
-      expect(result.getCurrentStock()).not.toBeNull()
-      expect(result.getCurrentStock()?.getQuantity().getValue()).toBe(command.quantity.amount)
+      expect(result.getUserId()).toBe(command.userId)
+      expect(result.getIngredientStock().getQuantity()).toBe(command.quantity.amount)
       expect(result.getMemo()?.getValue()).toBe(command.memo)
+      expect(result.getPrice()?.getValue()).toBe(command.price)
+      expect(result.getPurchaseDate()).toBeInstanceOf(Date)
 
       // リポジトリが呼ばれたことを確認
       expect(categoryRepository.findById).toHaveBeenCalledWith(
@@ -93,7 +95,7 @@ describe('CreateIngredientHandler', () => {
         .withQuantity(3, 'invalid-unit-id')
         .build()
 
-      const mockCategory = createTestCategory()
+      const mockCategory = new CategoryBuilder().build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(null)
@@ -108,8 +110,8 @@ describe('CreateIngredientHandler', () => {
       // 必須項目のみでコマンドを作成
       const command = new CreateIngredientCommandBuilder().build()
 
-      const mockCategory = createTestCategory()
-      const mockUnit = createTestUnit()
+      const mockCategory = new CategoryBuilder().build()
+      const mockUnit = new UnitBuilder().build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(mockUnit)
@@ -121,9 +123,8 @@ describe('CreateIngredientHandler', () => {
       // Assert
       expect(result).toBeInstanceOf(Ingredient)
       expect(result.getMemo()).toBeNull()
-      expect(result.getCurrentStock()?.getPrice()).toBeNull()
-      expect(result.getCurrentStock()?.getExpiryInfo().getBestBeforeDate()).toBeNull()
-      expect(result.getCurrentStock()?.getExpiryInfo().getUseByDate()).toBeNull()
+      expect(result.getPrice()).toBeNull()
+      expect(result.getExpiryInfo()).toBeNull()
     })
   })
 })

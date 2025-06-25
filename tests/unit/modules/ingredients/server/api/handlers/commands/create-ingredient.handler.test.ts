@@ -53,7 +53,9 @@ describe('CreateIngredientApiHandler', () => {
       }
 
       // ZodErrorがスローされることを確認
-      await expect(handler.handle(invalidRequest)).rejects.toThrow('name: 食材名は必須です')
+      await expect(handler.handle(invalidRequest, 'test-user-id')).rejects.toThrow(
+        'name: 食材名は必須です'
+      )
     })
 
     it('複数のバリデーションエラーを結合する', async () => {
@@ -72,7 +74,7 @@ describe('CreateIngredientApiHandler', () => {
       }
 
       // 複数のエラーメッセージが結合されることを確認
-      await expect(handler.handle(invalidRequest)).rejects.toThrow(
+      await expect(handler.handle(invalidRequest, 'test-user-id')).rejects.toThrow(
         /name:.*quantity.amount:.*storageLocation.type:/
       )
     })
@@ -105,7 +107,9 @@ describe('CreateIngredientApiHandler', () => {
       ;(mockCategoryRepo.findById as Mock).mockResolvedValue(mockCategory)
 
       // 元のエラーがそのままスローされることを確認
-      await expect(handler.handle(validRequest)).rejects.toThrow('データベースエラー')
+      await expect(handler.handle(validRequest, 'test-user-id')).rejects.toThrow(
+        'データベースエラー'
+      )
     })
   })
 })

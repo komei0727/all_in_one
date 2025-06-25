@@ -8,11 +8,11 @@ async function main() {
 
   // Delete existing data (順序に注意)
   await prisma.ingredientStockHistory.deleteMany()
-  await prisma.ingredientStock.deleteMany()
   await prisma.ingredient.deleteMany()
   await prisma.unit.deleteMany()
   await prisma.category.deleteMany()
   await prisma.domainEvent.deleteMany()
+  await prisma.domainUser.deleteMany()
 
   // Create categories
   const categories = await Promise.all([
@@ -134,84 +134,69 @@ async function main() {
     prisma.ingredient.create({
       data: {
         name: 'トマト',
+        userId: 'test-user-001',
         categoryId: vegetableCategory.id,
         memo: '有機栽培',
-        stocks: {
-          create: {
-            quantity: 3,
-            purchaseDate: now,
-            price: new Prisma.Decimal(300),
-            unitId: pieceUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: nextWeek,
-          },
-        },
+        purchaseDate: now,
+        price: new Prisma.Decimal(300),
+        quantity: 3,
+        unitId: pieceUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: nextWeek,
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '鶏もも肉',
+        userId: 'test-user-001',
         categoryId: meatFishCategory.id,
-        stocks: {
-          create: {
-            quantity: 500,
-            purchaseDate: now,
-            price: new Prisma.Decimal(450),
-            unitId: gramUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: tomorrow,
-            bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-          },
-        },
+        purchaseDate: now,
+        price: new Prisma.Decimal(450),
+        quantity: 500,
+        unitId: gramUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: tomorrow,
+        bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '牛乳',
+        userId: 'test-user-001',
         categoryId: dairyCategory.id,
-        stocks: {
-          create: {
-            quantity: 1,
-            purchaseDate: now,
-            price: new Prisma.Decimal(250),
-            unitId: literUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-          },
-        },
+        purchaseDate: now,
+        price: new Prisma.Decimal(250),
+        quantity: 1,
+        unitId: literUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '卵',
+        userId: 'test-user-001',
         categoryId: dairyCategory.id,
         memo: 'Lサイズ',
-        stocks: {
-          create: {
-            quantity: 10,
-            purchaseDate: now,
-            price: new Prisma.Decimal(280),
-            unitId: packUnit.id,
-            storageLocationType: StorageLocation.REFRIGERATED,
-            useByDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-          },
-        },
+        purchaseDate: now,
+        price: new Prisma.Decimal(280),
+        quantity: 10,
+        unitId: packUnit.id,
+        storageLocationType: StorageLocation.REFRIGERATED,
+        useByDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.ingredient.create({
       data: {
         name: '醤油',
+        userId: 'test-user-001',
         categoryId: seasoningCategory.id,
-        stocks: {
-          create: {
-            quantity: 1,
-            purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-            price: new Prisma.Decimal(350),
-            unitId: bottleUnit.id,
-            storageLocationType: StorageLocation.ROOM_TEMPERATURE,
-            useByDate: nextMonth,
-          },
-        },
+        purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        price: new Prisma.Decimal(350),
+        quantity: 1,
+        unitId: bottleUnit.id,
+        storageLocationType: StorageLocation.ROOM_TEMPERATURE,
+        useByDate: nextMonth,
       },
     }),
   ])

@@ -103,6 +103,48 @@ export class ExpiryInfo extends ValueObject<{
   }
 
   /**
+   * 期限切れが間近かどうかを判定
+   * @param days 判定する日数
+   * @returns 指定日数以内に期限切れになる場合true
+   */
+  isExpiringSoon(days: number): boolean {
+    const daysUntilExpiry = this.getDaysUntilExpiry()
+    if (daysUntilExpiry === null) {
+      return false
+    }
+    return daysUntilExpiry <= days
+  }
+
+  /**
+   * 表示用の期限日付を取得（消費期限優先）
+   * @returns 消費期限または賞味期限、どちらもない場合はnull
+   */
+  getDisplayDate(): Date | null {
+    // 消費期限を優先
+    return this.value.useByDate || this.value.bestBeforeDate
+  }
+
+  /**
+   * プレーンオブジェクトに変換
+   */
+  toObject(): { bestBeforeDate: string | null; useByDate: string | null } {
+    return {
+      bestBeforeDate: this.value.bestBeforeDate?.toISOString() ?? null,
+      useByDate: this.value.useByDate?.toISOString() ?? null,
+    }
+  }
+
+  /**
+   * プレーンオブジェクトから作成
+   */
+  static fromObject(obj: { bestBeforeDate: string | null; useByDate: string | null }): ExpiryInfo {
+    return new ExpiryInfo({
+      bestBeforeDate: obj.bestBeforeDate ? new Date(obj.bestBeforeDate) : null,
+      useByDate: obj.useByDate ? new Date(obj.useByDate) : null,
+    })
+  }
+
+  /**
    * 等価性の判定
    * @param other 比較対象の値オブジェクト
    * @returns 値が等しい場合はtrue

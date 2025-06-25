@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { faker } from '@faker-js/faker/locale/ja'
 
 import {
   IngredientId,
@@ -6,229 +7,244 @@ import {
   CategoryId,
   Quantity,
   Memo,
+  Price,
+  ExpiryInfo,
+  IngredientStock,
+  StorageLocation,
+  StorageType,
+  UnitId,
 } from '@/modules/ingredients/server/domain/value-objects'
 
-import { IngredientBuilder, IngredientStockBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
 
 describe('Ingredient', () => {
   describe('constructor', () => {
-    it('食材を作成できる', () => {
+    it('必須項目のみで食材を作成できる', () => {
       // ビルダーを使用してランダムなテストデータで検証
-      const ingredient = new IngredientBuilder().withRandomName().withRandomMemo().build()
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withPurchaseDate(new Date())
+        .build()
 
       // Assert
       expect(ingredient.getId()).toBeInstanceOf(IngredientId)
+      expect(ingredient.getUserId()).toBe('user123')
       expect(ingredient.getName()).toBeInstanceOf(IngredientName)
       expect(ingredient.getCategoryId()).toBeInstanceOf(CategoryId)
-      expect(ingredient.getMemo()).toBeInstanceOf(Memo)
-      expect(ingredient.getCurrentStock()).toBeNull()
+      expect(ingredient.getMemo()).toBeNull()
+      expect(ingredient.getExpiryInfo()).toBeNull()
+      expect(ingredient.getIngredientStock()).not.toBeNull()
+      expect(ingredient.getPrice()).toBeNull()
+      expect(ingredient.getPurchaseDate()).toBeInstanceOf(Date)
       expect(ingredient.getCreatedAt()).toBeInstanceOf(Date)
       expect(ingredient.getUpdatedAt()).toBeInstanceOf(Date)
     })
 
-    it('メモなしで食材を作成できる', () => {
-      // メモなしで食材を作成
-      const ingredient = new IngredientBuilder().withMemo(null).build()
+    it('すべての項目を指定して食材を作成できる', () => {
+      // Given: すべての項目を準備
+      const userId = 'user123'
+      const memo = new Memo('特売品')
+      const price = new Price(298)
+      const purchaseDate = faker.date.recent()
+      const expiryInfo = new ExpiryInfo({
+        bestBeforeDate: faker.date.future(),
+        useByDate: null,
+      })
+      const ingredientStock = new IngredientStock({
+        quantity: 3,
+        unitId: new UnitId('unit1'),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED),
+        threshold: 1,
+      })
 
-      // Assert
-      expect(ingredient.getMemo()).toBeNull()
-    })
-  })
-
-  describe('setStock', () => {
-    it('在庫を設定できる', () => {
-      // 食材と在庫をビルダーで作成
-      const ingredient = new IngredientBuilder().build()
-      const stock = new IngredientStockBuilder().build()
-
-      // Act
-      ingredient.setStock(stock)
-
-      // Assert
-      expect(ingredient.getCurrentStock()).toEqual(stock)
-      expect(ingredient.isInStock()).toBe(true)
-    })
-
-    it('在庫を更新すると更新日時が変わる', () => {
-      // 食材と在庫をビルダーで作成
-      const ingredient = new IngredientBuilder().build()
-      const originalUpdatedAt = ingredient.getUpdatedAt()
-      const stock = new IngredientStockBuilder().build()
-
-      // Act (少し待ってから実行)
-      setTimeout(() => {
-        ingredient.setStock(stock)
-
-        // Assert
-        expect(ingredient.getUpdatedAt().getTime()).toBeGreaterThan(originalUpdatedAt.getTime())
-      }, 10)
-    })
-  })
-
-  describe('removeStock', () => {
-    it('在庫を削除できる', () => {
-      // 在庫付きの食材を作成
-      const ingredient = new IngredientBuilder().withDefaultStock().build()
-
-      // Act
-      ingredient.removeStock()
-
-      // Assert
-      expect(ingredient.getCurrentStock()).toBeNull()
-      expect(ingredient.isInStock()).toBe(false)
-    })
-  })
-
-  describe('update methods', () => {
-    it('名前を更新できる', () => {
-      // 初期の食材を作成
-      const ingredient = new IngredientBuilder().withName('トマト').build()
-
-      // 新しい名前を準備
-      const newName = new IngredientName('キャベツ')
-
-      // Act
-      ingredient.updateName(newName)
-
-      // Assert
-      expect(ingredient.getName()).toEqual(newName)
-    })
-
-    it('カテゴリーを更新できる', () => {
-      // 初期の食材を作成
-      const ingredient = new IngredientBuilder().build()
-      const newCategoryId = new CategoryId('550e8400-e29b-41d4-a716-446655440002')
-
-      // Act
-      ingredient.updateCategory(newCategoryId)
-
-      // Assert
-      expect(ingredient.getCategoryId()).toEqual(newCategoryId)
-    })
-
-    it('メモを更新できる', () => {
-      // 初期の食材を作成
-      const ingredient = new IngredientBuilder().withMemo('古いメモ').build()
-
-      // 新しいメモを準備
-      const newMemo = new Memo('新しいメモ')
-
-      // Act
-      ingredient.updateMemo(newMemo)
-
-      // Assert
-      expect(ingredient.getMemo()).toEqual(newMemo)
-    })
-
-    it('削除済みの食材のメモを更新しようとするとエラー', () => {
-      // 食材を作成して削除
-      const ingredient = new IngredientBuilder().withMemo('メモ').build()
-      ingredient.delete()
-      const newMemo = new Memo('新しいメモ')
-
-      // Act & Assert
-      expect(() => ingredient.updateMemo(newMemo)).toThrow('削除済みの食材は更新できません')
-    })
-
-    it('更新時にユーザーIDが記録される', () => {
-      // 食材を作成
-      const ingredient = new IngredientBuilder().withMemo('古いメモ').build()
-      const newMemo = new Memo('新しいメモ')
-      const userId = 'user-123'
-
-      // Act
-      ingredient.updateMemo(newMemo, userId)
-
-      // Assert
-      expect(ingredient.getMemo()).toEqual(newMemo)
-      expect(ingredient.getUpdatedBy()).toBe(userId)
-    })
-  })
-
-  describe('isExpired', () => {
-    it('在庫がない場合はfalseを返す', () => {
-      // 在庫なしの食材を作成
-      const ingredient = new IngredientBuilder().withoutStock().build()
-
-      // Act & Assert
-      expect(ingredient.isExpired()).toBe(false)
-    })
-
-    it('消費期限が過ぎている場合はtrueを返す', () => {
-      // 期限切れの在庫を持つ食材を作成
-      const ingredient = new IngredientBuilder().withExpiredStock().build()
-
-      // Act & Assert
-      expect(ingredient.isExpired()).toBe(true)
-    })
-
-    it('賞味期限のみで消費期限がない場合、賞味期限で判断する', () => {
-      // 賞味期限が過ぎた在庫を作成
-      const stock = new IngredientStockBuilder()
-        .withPastBestBeforeDate()
-        .withUseByDate(null)
+      // When: 食材を作成
+      const ingredient = new IngredientBuilder()
+        .withUserId(userId)
+        .withMemo(memo)
+        .withExpiryInfo(expiryInfo)
+        .withIngredientStock(ingredientStock)
+        .withPrice(price)
+        .withPurchaseDate(purchaseDate)
         .build()
-      const ingredient = new IngredientBuilder().withStock(stock).build()
 
-      // Act & Assert
-      expect(ingredient.isExpired()).toBe(true)
-    })
-
-    it('期限内の場合はfalseを返す', () => {
-      // 期限内の在庫を作成
-      const stock = new IngredientStockBuilder()
-        .withFutureBestBeforeDate()
-        .withFutureExpiryDate()
-        .build()
-      const ingredient = new IngredientBuilder().withStock(stock).build()
-
-      // Act & Assert
-      expect(ingredient.isExpired()).toBe(false)
-    })
-  })
-
-  describe('delete', () => {
-    it('論理削除できる', () => {
-      // 食材を作成
-      const ingredient = new IngredientBuilder().build()
-
-      // Act
-      ingredient.delete()
-
-      // Assert
-      expect(ingredient.isDeleted()).toBe(true)
-      expect(ingredient.getDeletedAt()).toBeInstanceOf(Date)
-    })
-
-    it('削除済みの食材は再削除できない', () => {
-      // 食材を作成して削除
-      const ingredient = new IngredientBuilder().build()
-      ingredient.delete()
-
-      // Act & Assert
-      expect(() => ingredient.delete()).toThrow('すでに削除されています')
+      // Then: すべての値が正しく設定される
+      expect(ingredient.getUserId()).toBe(userId)
+      expect(ingredient.getMemo()).toBe(memo)
+      expect(ingredient.getExpiryInfo()).toBe(expiryInfo)
+      expect(ingredient.getIngredientStock()).toBe(ingredientStock)
+      expect(ingredient.getPrice()).toBe(price)
+      expect(ingredient.getPurchaseDate()).toBe(purchaseDate)
     })
   })
 
   describe('consume', () => {
     it('在庫を消費できる', () => {
-      // 在庫付きの食材を作成
-      const stock = new IngredientStockBuilder().withQuantity(10).build()
-      const ingredient = new IngredientBuilder().withStock(stock).build()
+      // Given: 在庫付きの食材を作成
+      const ingredientStock = new IngredientStock({
+        quantity: 10,
+        unitId: new UnitId('unit1'),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED),
+      })
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withIngredientStock(ingredientStock)
+        .build()
 
-      // Act
-      ingredient.consume(new Quantity(3))
+      // When: 在庫を消費
+      ingredient.consume(3)
 
-      // Assert
-      expect(ingredient.getCurrentStock()?.getQuantity().getValue()).toBe(7)
+      // Then: 在庫が減る
+      expect(ingredient.getIngredientStock().getQuantity()).toBe(7)
     })
 
-    it('在庫がない場合はエラーをスローする', () => {
-      // 在庫なしの食材を作成
-      const ingredient = new IngredientBuilder().withoutStock().build()
+    it('在庫が不足している場合はエラーになる', () => {
+      // Given: 少ない在庫の食材
+      const ingredientStock = new IngredientStock({
+        quantity: 2,
+        unitId: new UnitId('unit1'),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED),
+      })
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withIngredientStock(ingredientStock)
+        .build()
 
-      // Act & Assert
-      expect(() => ingredient.consume(new Quantity(1))).toThrow('在庫がありません')
+      // When/Then: エラーが発生
+      expect(() => ingredient.consume(5)).toThrow('在庫が不足しています')
+    })
+  })
+
+  describe('replenish', () => {
+    it('在庫を補充できる', () => {
+      // Given: 在庫付きの食材を作成
+      const ingredientStock = new IngredientStock({
+        quantity: 5,
+        unitId: new UnitId('unit1'),
+        storageLocation: new StorageLocation(StorageType.REFRIGERATED),
+      })
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withIngredientStock(ingredientStock)
+        .build()
+
+      // When: 在庫を補充
+      ingredient.replenish(10)
+
+      // Then: 在庫が増える
+      expect(ingredient.getIngredientStock().getQuantity()).toBe(15)
+    })
+  })
+
+  describe('update methods', () => {
+    it('削除済みの食材は更新できない', () => {
+      // Given: 削除済みの食材
+      const ingredient = new IngredientBuilder().withUserId('user123').build()
+      ingredient.delete()
+
+      // When/Then: 更新しようとするとエラー
+      const newMemo = new Memo('新しいメモ')
+      expect(() => ingredient.updateMemo(newMemo)).toThrow('削除済みの食材は更新できません')
+    })
+
+    it('他のユーザーの食材は更新できない', () => {
+      // Given: 別のユーザーの食材
+      const ingredient = new IngredientBuilder().withUserId('user123').build()
+
+      // When/Then: 別のユーザーが更新しようとするとエラー
+      const newMemo = new Memo('新しいメモ')
+      expect(() => ingredient.updateMemo(newMemo, 'user456')).toThrow(
+        '他のユーザーの食材は更新できません'
+      )
+    })
+
+    it('所有者は食材を更新できる', () => {
+      // Given: 食材
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withMemo(new Memo('古いメモ'))
+        .build()
+
+      // When: 所有者が更新
+      const newMemo = new Memo('新しいメモ')
+      ingredient.updateMemo(newMemo, 'user123')
+
+      // Then: 更新される
+      expect(ingredient.getMemo()).toEqual(newMemo)
+    })
+  })
+
+  describe('isExpired', () => {
+    it('期限情報がない場合はfalseを返す', () => {
+      // Given: 期限情報なしの食材
+      const ingredient = new IngredientBuilder().withUserId('user123').withExpiryInfo(null).build()
+
+      // When/Then
+      expect(ingredient.isExpired()).toBe(false)
+    })
+
+    it('期限が過ぎている場合はtrueを返す', () => {
+      // Given: 期限切れの食材
+      const pastDate = new Date()
+      pastDate.setDate(pastDate.getDate() - 1)
+      const expiryInfo = new ExpiryInfo({
+        bestBeforeDate: pastDate,
+        useByDate: null,
+      })
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withExpiryInfo(expiryInfo)
+        .build()
+
+      // When/Then
+      expect(ingredient.isExpired()).toBe(true)
+    })
+
+    it('期限内の場合はfalseを返す', () => {
+      // Given: 期限内の食材
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 7)
+      const expiryInfo = new ExpiryInfo({
+        bestBeforeDate: futureDate,
+        useByDate: null,
+      })
+      const ingredient = new IngredientBuilder()
+        .withUserId('user123')
+        .withExpiryInfo(expiryInfo)
+        .build()
+
+      // When/Then
+      expect(ingredient.isExpired()).toBe(false)
+    })
+  })
+
+  describe('delete', () => {
+    it('所有者は食材を削除できる', () => {
+      // Given: 食材
+      const ingredient = new IngredientBuilder().withUserId('user123').build()
+
+      // When: 所有者が削除
+      ingredient.delete('user123')
+
+      // Then: 削除される
+      expect(ingredient.isDeleted()).toBe(true)
+      expect(ingredient.getDeletedAt()).toBeInstanceOf(Date)
+    })
+
+    it('他のユーザーの食材は削除できない', () => {
+      // Given: 別のユーザーの食材
+      const ingredient = new IngredientBuilder().withUserId('user123').build()
+
+      // When/Then: 別のユーザーが削除しようとするとエラー
+      expect(() => ingredient.delete('user456')).toThrow('他のユーザーの食材は削除できません')
+    })
+
+    it('削除済みの食材は再削除できない', () => {
+      // Given: 削除済みの食材
+      const ingredient = new IngredientBuilder().withUserId('user123').build()
+      ingredient.delete('user123')
+
+      // When/Then: 再削除しようとするとエラー
+      expect(() => ingredient.delete('user123')).toThrow('すでに削除されています')
     })
   })
 })

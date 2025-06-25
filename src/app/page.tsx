@@ -80,6 +80,25 @@ export default function HomePage() {
                 </div>
 
                 <div>
+                  <h3 className="text-md mb-2 font-medium text-gray-900">機能</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <Link
+                        href="/ingredients"
+                        className="block text-indigo-600 hover:text-indigo-500"
+                      >
+                        食材管理 →
+                      </Link>
+                    </div>
+                    <div>
+                      <Link href="/profile" className="block text-indigo-600 hover:text-indigo-500">
+                        プロフィール編集 →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
                   <h3 className="text-md mb-2 font-medium text-gray-900">APIテスト</h3>
                   <div className="space-y-2">
                     <div>
@@ -92,8 +111,21 @@ export default function HomePage() {
                       </Link>
                     </div>
                     <div>
-                      <Link href="/profile" className="block text-indigo-600 hover:text-indigo-500">
-                        プロフィール編集ページ →
+                      <Link
+                        href="/api/v1/ingredients/categories"
+                        target="_blank"
+                        className="block text-indigo-600 hover:text-indigo-500"
+                      >
+                        カテゴリー一覧API (JSON) →
+                      </Link>
+                    </div>
+                    <div>
+                      <Link
+                        href="/api/v1/ingredients/units"
+                        target="_blank"
+                        className="block text-indigo-600 hover:text-indigo-500"
+                      >
+                        単位一覧API (JSON) →
                       </Link>
                     </div>
                   </div>

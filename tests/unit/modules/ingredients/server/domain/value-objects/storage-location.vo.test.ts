@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
+import { StorageLocation, StorageType } from '@/modules/ingredients/server/domain/value-objects'
 
 import { StorageLocationBuilder } from '../../../../../../__fixtures__/builders'
 
@@ -12,7 +12,7 @@ describe('StorageLocation', () => {
 
       // Assert
       expect(location.getType()).toBe(StorageType.REFRIGERATED)
-      expect(location.getDetail()).toBe('')
+      expect(location.getDetail()).toBeNull()
     })
 
     it('保管場所タイプと詳細で作成できる', () => {
@@ -55,6 +55,29 @@ describe('StorageLocation', () => {
       ).not.toThrow()
       expect(() => new StorageLocationBuilder().withType(StorageType.FROZEN).build()).not.toThrow()
       expect(() => new StorageLocationBuilder().withRoomTemperature().build()).not.toThrow()
+    })
+
+    it('空白のみの詳細はnullとして扱われる', () => {
+      // Arrange
+      const builder = new StorageLocationBuilder()
+        .withType(StorageType.REFRIGERATED)
+        .withDetail('   ')
+
+      // Act
+      const location = builder.build()
+
+      // Assert
+      expect(location.getDetail()).toBeNull()
+    })
+
+    it('無効な保管場所タイプの場合エラーをスローする', () => {
+      // Arrange
+      const invalidType = 'INVALID_TYPE' as any
+
+      // Act & Assert
+      expect(() => new StorageLocationBuilder().withType(invalidType).build()).toThrow(
+        '無効な保存場所タイプです'
+      )
     })
   })
 
@@ -116,6 +139,106 @@ describe('StorageLocation', () => {
         '冷凍'
       )
       expect(new StorageLocationBuilder().withRoomTemperature().build().toString()).toBe('常温')
+    })
+  })
+
+  describe('タイプ判定メソッド', () => {
+    it('isRefrigerated()が正しく動作する', () => {
+      // Arrange
+      const refrigerated = new StorageLocationBuilder().withType(StorageType.REFRIGERATED).build()
+      const frozen = new StorageLocationBuilder().withType(StorageType.FROZEN).build()
+      const room = new StorageLocationBuilder().withRoomTemperature().build()
+
+      // Act & Assert
+      expect(refrigerated.isRefrigerated()).toBe(true)
+      expect(frozen.isRefrigerated()).toBe(false)
+      expect(room.isRefrigerated()).toBe(false)
+    })
+
+    it('isFrozen()が正しく動作する', () => {
+      // Arrange
+      const refrigerated = new StorageLocationBuilder().withType(StorageType.REFRIGERATED).build()
+      const frozen = new StorageLocationBuilder().withType(StorageType.FROZEN).build()
+      const room = new StorageLocationBuilder().withRoomTemperature().build()
+
+      // Act & Assert
+      expect(refrigerated.isFrozen()).toBe(false)
+      expect(frozen.isFrozen()).toBe(true)
+      expect(room.isFrozen()).toBe(false)
+    })
+
+    it('isRoomTemperature()が正しく動作する', () => {
+      // Arrange
+      const refrigerated = new StorageLocationBuilder().withType(StorageType.REFRIGERATED).build()
+      const frozen = new StorageLocationBuilder().withType(StorageType.FROZEN).build()
+      const room = new StorageLocationBuilder().withRoomTemperature().build()
+
+      // Act & Assert
+      expect(refrigerated.isRoomTemperature()).toBe(false)
+      expect(frozen.isRoomTemperature()).toBe(false)
+      expect(room.isRoomTemperature()).toBe(true)
+    })
+  })
+
+  describe('toObject/fromObject', () => {
+    it('toObject()でプレーンオブジェクトに変換できる', () => {
+      // Arrange
+      const location = new StorageLocationBuilder()
+        .withType(StorageType.REFRIGERATED)
+        .withDetail('野菜室')
+        .build()
+
+      // Act
+      const obj = location.toObject()
+
+      // Assert
+      expect(obj).toEqual({
+        type: 'REFRIGERATED',
+        detail: '野菜室',
+      })
+    })
+
+    it('detailがnullの場合もtoObject()で正しく変換される', () => {
+      // Arrange
+      const location = new StorageLocationBuilder().withType(StorageType.FROZEN).build()
+
+      // Act
+      const obj = location.toObject()
+
+      // Assert
+      expect(obj).toEqual({
+        type: 'FROZEN',
+        detail: null,
+      })
+    })
+
+    it('fromObject()でプレーンオブジェクトから復元できる', () => {
+      // Arrange
+      const obj = {
+        type: StorageType.REFRIGERATED,
+        detail: 'ドアポケット',
+      }
+
+      // Act
+      const location = StorageLocation.fromObject(obj)
+
+      // Assert
+      expect(location.getType()).toBe(StorageType.REFRIGERATED)
+      expect(location.getDetail()).toBe('ドアポケット')
+    })
+
+    it('fromObject()でdetailがない場合も復元できる', () => {
+      // Arrange
+      const obj = {
+        type: StorageType.FROZEN,
+      }
+
+      // Act
+      const location = StorageLocation.fromObject(obj)
+
+      // Assert
+      expect(location.getType()).toBe(StorageType.FROZEN)
+      expect(location.getDetail()).toBeNull()
     })
   })
 })

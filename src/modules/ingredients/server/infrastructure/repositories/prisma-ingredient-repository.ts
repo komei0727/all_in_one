@@ -1,20 +1,18 @@
 import { PrismaClient, Prisma } from '@/generated/prisma'
 
-import { IngredientStock } from '../../domain/entities/ingredient-stock.entity'
 import { Ingredient } from '../../domain/entities/ingredient.entity'
 import { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 import {
   CategoryId,
   IngredientId,
-  IngredientStockId,
   IngredientName,
   Memo,
   Price,
-  Quantity,
   StorageLocation,
   StorageType,
   UnitId,
   ExpiryInfo,
+  IngredientStock,
 } from '../../domain/value-objects'
 
 /**
@@ -29,52 +27,58 @@ export class PrismaIngredientRepository implements IngredientRepository {
    * @returns 保存された食材
    */
   async save(ingredient: Ingredient): Promise<Ingredient> {
-    const stock = ingredient.getCurrentStock()
+    const ingredientStock = ingredient.getIngredientStock()
+    const expiryInfo = ingredient.getExpiryInfo()
 
-    // トランザクションで食材と在庫を同時に保存
-    const result = await this.prisma.$transaction(async (tx) => {
-      // 食材の保存
-      const savedIngredient = await tx.ingredient.upsert({
-        where: { id: ingredient.getId().getValue() },
-        update: {
-          name: ingredient.getName().getValue(),
-          categoryId: ingredient.getCategoryId().getValue(),
-          memo: ingredient.getMemo()?.getValue() || null,
-          updatedAt: ingredient.getUpdatedAt(),
-        },
-        create: {
-          id: ingredient.getId().getValue(),
-          name: ingredient.getName().getValue(),
-          categoryId: ingredient.getCategoryId().getValue(),
-          memo: ingredient.getMemo()?.getValue() || null,
-          createdAt: ingredient.getCreatedAt(),
-          updatedAt: ingredient.getUpdatedAt(),
-        },
-      })
-
-      // 在庫の保存（ある場合）
-      if (stock) {
-        await tx.ingredientStock.create({
-          data: {
-            ingredientId: savedIngredient.id,
-            quantity: stock.getQuantity().getValue(),
-            unitId: stock.getUnitId().getValue(),
-            storageLocationType: stock.getStorageLocation().getType(),
-            storageLocationDetail: stock.getStorageLocation().getDetail() || null,
-            bestBeforeDate: stock.getExpiryInfo().getBestBeforeDate(),
-            useByDate: stock.getExpiryInfo().getUseByDate(),
-            purchaseDate: stock.getPurchaseDate(),
-            price: stock.getPrice() ? new Prisma.Decimal(stock.getPrice()!.getValue()) : null,
-            isActive: true,
-          },
-        })
-      }
-
-      return savedIngredient
+    // 食材の保存
+    const savedIngredient = await this.prisma.ingredient.upsert({
+      where: { id: ingredient.getId().getValue() },
+      update: {
+        userId: ingredient.getUserId(),
+        name: ingredient.getName().getValue(),
+        categoryId: ingredient.getCategoryId().getValue(),
+        memo: ingredient.getMemo()?.getValue() || null,
+        price: ingredient.getPrice() ? new Prisma.Decimal(ingredient.getPrice()!.getValue()) : null,
+        purchaseDate: ingredient.getPurchaseDate(),
+        // 在庫情報
+        quantity: ingredientStock.getQuantity(),
+        unitId: ingredientStock.getUnitId().getValue(),
+        threshold: ingredientStock.getThreshold(),
+        // 保存場所
+        storageLocationType: ingredientStock.getStorageLocation().getType(),
+        storageLocationDetail: ingredientStock.getStorageLocation().getDetail() || null,
+        // 期限情報
+        bestBeforeDate: expiryInfo?.getBestBeforeDate() || null,
+        useByDate: expiryInfo?.getUseByDate() || null,
+        updatedAt: ingredient.getUpdatedAt(),
+        deletedAt: ingredient.getDeletedAt(),
+      },
+      create: {
+        id: ingredient.getId().getValue(),
+        userId: ingredient.getUserId(),
+        name: ingredient.getName().getValue(),
+        categoryId: ingredient.getCategoryId().getValue(),
+        memo: ingredient.getMemo()?.getValue() || null,
+        price: ingredient.getPrice() ? new Prisma.Decimal(ingredient.getPrice()!.getValue()) : null,
+        purchaseDate: ingredient.getPurchaseDate(),
+        // 在庫情報
+        quantity: ingredientStock.getQuantity(),
+        unitId: ingredientStock.getUnitId().getValue(),
+        threshold: ingredientStock.getThreshold(),
+        // 保存場所
+        storageLocationType: ingredientStock.getStorageLocation().getType(),
+        storageLocationDetail: ingredientStock.getStorageLocation().getDetail() || null,
+        // 期限情報
+        bestBeforeDate: expiryInfo?.getBestBeforeDate() || null,
+        useByDate: expiryInfo?.getUseByDate() || null,
+        createdAt: ingredient.getCreatedAt(),
+        updatedAt: ingredient.getUpdatedAt(),
+        deletedAt: ingredient.getDeletedAt(),
+      },
     })
 
     // エンティティの再構築
-    return this.toEntity(result, stock)
+    return this.toEntity(savedIngredient as any)
   }
 
   /**
@@ -88,26 +92,13 @@ export class PrismaIngredientRepository implements IngredientRepository {
         id: id.getValue(),
         deletedAt: null, // 論理削除されていないもののみ
       },
-      include: {
-        stocks: {
-          where: {
-            isActive: true,
-            deletedAt: null, // 論理削除されていないもののみ
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
     })
 
     if (!result) {
       return null
     }
 
-    const currentStock = result.stocks[0]
-    const stock = currentStock ? this.toStock(currentStock) : null
-
-    return this.toEntity(result, stock)
+    return this.toEntity(result as any)
   }
 
   /**
@@ -121,26 +112,13 @@ export class PrismaIngredientRepository implements IngredientRepository {
         name: name.getValue(),
         deletedAt: null, // 論理削除されていないもののみ
       },
-      include: {
-        stocks: {
-          where: {
-            isActive: true,
-            deletedAt: null, // 論理削除されていないもののみ
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
     })
 
     if (!result) {
       return null
     }
 
-    const currentStock = result.stocks[0]
-    const stock = currentStock ? this.toStock(currentStock) : null
-
-    return this.toEntity(result, stock)
+    return this.toEntity(result as any)
   }
 
   /**
@@ -152,24 +130,10 @@ export class PrismaIngredientRepository implements IngredientRepository {
       where: {
         deletedAt: null, // 論理削除されていないもののみ
       },
-      include: {
-        stocks: {
-          where: {
-            isActive: true,
-            deletedAt: null, // 論理削除されていないもののみ
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
       orderBy: { createdAt: 'desc' },
     })
 
-    return results.map((result) => {
-      const currentStock = result.stocks[0]
-      const stock = currentStock ? this.toStock(currentStock) : null
-      return this.toEntity(result, stock)
-    })
+    return results.map((result) => this.toEntity(result as any))
   }
 
   /**
@@ -187,81 +151,78 @@ export class PrismaIngredientRepository implements IngredientRepository {
   }
 
   /**
-   * Prismaの結果をエンティティに変換
+   * ユーザーIDで食材を検索
+   * @param userId ユーザーID
+   * @returns 食材のリスト
    */
-  private toEntity(
-    data: {
-      id: string
-      name: string
-      categoryId: string
-      memo: string | null
-      createdAt: Date
-      updatedAt: Date
-      deletedAt: Date | null
-      createdBy: string | null
-      updatedBy: string | null
-    },
-    stock: IngredientStock | null
-  ): Ingredient {
-    const ingredient = new Ingredient({
-      id: new IngredientId(data.id),
-      name: new IngredientName(data.name),
-      categoryId: new CategoryId(data.categoryId),
-      memo: data.memo ? new Memo(data.memo) : null,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
-      deletedAt: data.deletedAt,
-      createdBy: data.createdBy,
-      updatedBy: data.updatedBy,
+  async findByUserId(userId: string): Promise<Ingredient[]> {
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        deletedAt: null, // 論理削除されていないもののみ
+      },
+      orderBy: { createdAt: 'desc' },
     })
 
-    if (stock) {
-      ingredient.setStock(stock)
-    }
-
-    return ingredient
+    return results.map((result) => this.toEntity(result as any))
   }
 
   /**
-   * Prismaの在庫データを在庫エンティティに変換
+   * Prismaの結果をエンティティに変換
    */
-  private toStock(data: {
+  private toEntity(data: {
     id: string
+    userId: string
+    name: string
+    categoryId: string
+    memo: string | null
+    price: Prisma.Decimal | null
+    purchaseDate: Date
     quantity: number
     unitId: string
-    storageLocationType: string
+    threshold: number | null
+    storageLocationType: StorageLocation
     storageLocationDetail: string | null
     bestBeforeDate: Date | null
     useByDate: Date | null
-    purchaseDate: Date
-    price: Prisma.Decimal | null
-    isActive: boolean
     createdAt: Date
     updatedAt: Date
     deletedAt: Date | null
-    createdBy: string | null
-    updatedBy: string | null
-  }): IngredientStock {
-    return new IngredientStock({
-      id: new IngredientStockId(data.id),
-      quantity: new Quantity(data.quantity),
+  }): Ingredient {
+    // 在庫情報の構築
+    const ingredientStock = new IngredientStock({
+      quantity: data.quantity,
       unitId: new UnitId(data.unitId),
       storageLocation: new StorageLocation(
-        data.storageLocationType as StorageType,
+        data.storageLocationType as unknown as StorageType,
         data.storageLocationDetail || undefined
       ),
-      expiryInfo: new ExpiryInfo({
-        bestBeforeDate: data.bestBeforeDate,
-        useByDate: data.useByDate,
-      }),
+      threshold: data.threshold,
+    })
+
+    // 期限情報の構築
+    const expiryInfo =
+      data.bestBeforeDate || data.useByDate
+        ? new ExpiryInfo({
+            bestBeforeDate: data.bestBeforeDate,
+            useByDate: data.useByDate,
+          })
+        : null
+
+    // 食材エンティティの構築
+    return new Ingredient({
+      id: new IngredientId(data.id),
+      userId: data.userId,
+      name: new IngredientName(data.name),
+      categoryId: new CategoryId(data.categoryId),
       purchaseDate: data.purchaseDate,
+      ingredientStock,
+      memo: data.memo ? new Memo(data.memo) : null,
       price: data.price !== null ? new Price(data.price.toNumber()) : null,
-      isActive: data.isActive,
+      expiryInfo,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       deletedAt: data.deletedAt,
-      createdBy: data.createdBy,
-      updatedBy: data.updatedBy,
     })
   }
 }

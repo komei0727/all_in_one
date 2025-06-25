@@ -60,6 +60,12 @@ export const createIngredientSchema = z.object({
       .optional(),
   }),
 
+  threshold: z
+    .number()
+    .positive({ message: '閾値は0より大きい値を入力してください' })
+    .max(9999.99, { message: '閾値は9999.99以下で入力してください' })
+    .optional(),
+
   expiryInfo: expiryInfoSchema.optional(),
 
   purchaseDate: dateStringSchema,
