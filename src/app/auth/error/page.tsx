@@ -1,9 +1,11 @@
 'use client'
 
+import { Suspense } from 'react'
+
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
@@ -30,5 +32,21 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <p className="text-gray-600">読み込み中...</p>
+          </div>
+        </div>
+      }
+    >
+      <ErrorContent />
+    </Suspense>
   )
 }
