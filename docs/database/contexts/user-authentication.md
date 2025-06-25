@@ -2,193 +2,144 @@
 
 ## 概要
 
-ユーザー認証コンテキストに関連するテーブル設計を定義します。集約設計に基づき、各集約ルートに対応するテーブルを設計し、認証・認可のセキュリティ要件を満たすスキーマを採用します。
+ユーザー認証コンテキストに関連するテーブル設計を定義します。NextAuth.jsを使用したマジックリンク認証を前提とし、NextAuthの標準テーブル構成とドメイン固有のユーザー管理テーブルを統合した設計を採用します。
 
 ## テーブル設計
 
-### users（ユーザー）テーブル
+### NextAuth標準テーブル
 
-ユーザー集約のルートエンティティ。ユーザーの基本情報とプロフィールを管理。
+NextAuth.jsが管理する認証関連テーブル。Prisma Adapterにより自動生成・管理されます。
 
-| カラム名              | 型        | 制約                          | 説明                                    |
-| --------------------- | --------- | ----------------------------- | --------------------------------------- |
-| id                    | TEXT      | PRIMARY KEY                   | CUID形式の一意識別子                    |
-| email                 | TEXT      | NOT NULL, UNIQUE              | メールアドレス（ログインID）            |
-| email_verified        | BOOLEAN   | NOT NULL DEFAULT FALSE        | メール確認済みフラグ                    |
-| display_name          | TEXT      | NOT NULL                      | 表示名                                  |
-| first_name            | TEXT      | NULL                          | 名                                      |
-| last_name             | TEXT      | NULL                          | 姓                                      |
-| avatar_url            | TEXT      | NULL                          | アバター画像URL                         |
-| preferred_language    | TEXT      | NOT NULL DEFAULT 'ja'         | 優先言語                                |
-| timezone              | TEXT      | NOT NULL DEFAULT 'Asia/Tokyo' | タイムゾーン                            |
-| status                | TEXT      | NOT NULL DEFAULT 'ACTIVE'     | ステータス（ACTIVE/INACTIVE/SUSPENDED） |
-| last_login_at         | TIMESTAMP | NULL                          | 最終ログイン日時                        |
-| failed_login_attempts | INTEGER   | NOT NULL DEFAULT 0            | 連続ログイン失敗回数                    |
-| locked_until          | TIMESTAMP | NULL                          | アカウントロック解除日時                |
-| created_at            | TIMESTAMP | NOT NULL DEFAULT NOW()        | 作成日時                                |
-| updated_at            | TIMESTAMP | NOT NULL                      | 更新日時                                |
-| deleted_at            | TIMESTAMP | NULL                          | 論理削除日時                            |
+#### Account（NextAuthアカウント）テーブル
+
+外部認証プロバイダーとの連携情報を管理。
+
+| カラム名          | 型      | 制約        | 説明                               |
+| ----------------- | ------- | ----------- | ---------------------------------- |
+| id                | TEXT    | PRIMARY KEY | CUID形式の一意識別子               |
+| userId            | TEXT    | NOT NULL    | NextAuthユーザーID（外部キー）     |
+| type              | TEXT    | NOT NULL    | アカウントタイプ（email, oauth等） |
+| provider          | TEXT    | NOT NULL    | プロバイダー名（email等）          |
+| providerAccountId | TEXT    | NOT NULL    | プロバイダー側のアカウントID       |
+| refresh_token     | TEXT    | NULL        | リフレッシュトークン（OAuth用）    |
+| access_token      | TEXT    | NULL        | アクセストークン（OAuth用）        |
+| expires_at        | INTEGER | NULL        | トークン有効期限（Unix時間）       |
+| token_type        | TEXT    | NULL        | トークンタイプ                     |
+| scope             | TEXT    | NULL        | 権限スコープ                       |
+| id_token          | TEXT    | NULL        | IDトークン（OAuth用）              |
+| session_state     | TEXT    | NULL        | セッション状態                     |
+
+**制約**:
+
+- UNIQUE(provider, providerAccountId)
+
+#### Session（NextAuthセッション）テーブル
+
+アクティブなセッション情報を管理。
+
+| カラム名     | 型        | 制約            | 説明                           |
+| ------------ | --------- | --------------- | ------------------------------ |
+| id           | TEXT      | PRIMARY KEY     | CUID形式の一意識別子           |
+| sessionToken | TEXT      | NOT NULL UNIQUE | セッショントークン             |
+| userId       | TEXT      | NOT NULL        | NextAuthユーザーID（外部キー） |
+| expires      | TIMESTAMP | NOT NULL        | セッション有効期限             |
+
+#### User（NextAuthユーザー）テーブル
+
+NextAuthが管理する基本的なユーザー情報。
+
+| カラム名      | 型        | 制約        | 説明                 |
+| ------------- | --------- | ----------- | -------------------- |
+| id            | TEXT      | PRIMARY KEY | CUID形式の一意識別子 |
+| email         | TEXT      | UNIQUE      | メールアドレス       |
+| emailVerified | TIMESTAMP | NULL        | メール確認日時       |
+| name          | TEXT      | NULL        | 表示名               |
+| image         | TEXT      | NULL        | プロフィール画像URL  |
+
+#### VerificationToken（検証トークン）テーブル
+
+マジックリンクのトークンを管理。
+
+| カラム名   | 型        | 制約     | 説明               |
+| ---------- | --------- | -------- | ------------------ |
+| identifier | TEXT      | NOT NULL | 識別子（メール等） |
+| token      | TEXT      | NOT NULL | 検証トークン       |
+| expires    | TIMESTAMP | NOT NULL | 有効期限           |
+
+**制約**:
+
+- PRIMARY KEY(identifier, token)
+
+### ドメインテーブル
+
+### domain_users（ドメインユーザー）テーブル
+
+ユーザー集約のルートエンティティ。NextAuthユーザーと連携してドメイン固有の情報を管理。
+
+| カラム名           | 型        | 制約                          | 説明                             |
+| ------------------ | --------- | ----------------------------- | -------------------------------- |
+| id                 | TEXT      | PRIMARY KEY                   | CUID形式の一意識別子             |
+| next_auth_id       | TEXT      | NOT NULL, UNIQUE              | NextAuthユーザーID（外部キー）   |
+| email              | TEXT      | NOT NULL, UNIQUE              | メールアドレス（NextAuthと同期） |
+| display_name       | TEXT      | NULL                          | 表示名（UserProfile）            |
+| preferred_language | TEXT      | NOT NULL DEFAULT 'ja'         | 優先言語（UserProfile）          |
+| timezone           | TEXT      | NOT NULL DEFAULT 'Asia/Tokyo' | タイムゾーン（UserProfile）      |
+| theme              | TEXT      | NOT NULL DEFAULT 'light'      | テーマ設定（UserPreferences）    |
+| notifications      | BOOLEAN   | NOT NULL DEFAULT true         | 通知設定（UserPreferences）      |
+| email_frequency    | TEXT      | NOT NULL DEFAULT 'weekly'     | メール頻度（UserPreferences）    |
+| status             | TEXT      | NOT NULL DEFAULT 'ACTIVE'     | ステータス（ACTIVE/DEACTIVATED） |
+| last_login_at      | TIMESTAMP | NULL                          | 最終ログイン日時                 |
+| created_at         | TIMESTAMP | NOT NULL DEFAULT NOW()        | 作成日時                         |
+| updated_at         | TIMESTAMP | NOT NULL                      | 更新日時                         |
+
+**外部キー制約**:
+
+- `next_auth_id` → NextAuth `User.id` (CASCADE削除)
 
 **制約**:
 
 - `check_status` - ステータスは定義された値のみ
   ```sql
-  CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED'))
+  CHECK (status IN ('ACTIVE', 'DEACTIVATED'))
+  ```
+- `check_theme` - テーマは定義された値のみ
+  ```sql
+  CHECK (theme IN ('light', 'dark', 'auto'))
+  ```
+- `check_preferred_language` - 言語は定義された値のみ
+  ```sql
+  CHECK (preferred_language IN ('ja', 'en'))
+  ```
+- `check_email_frequency` - メール頻度は定義された値のみ
+  ```sql
+  CHECK (email_frequency IN ('daily', 'weekly', 'monthly', 'never'))
   ```
 
 **ユニーク制約**:
 
-- `email` - メールアドレスの一意性（大文字小文字を区別しない）
+- `next_auth_id` - NextAuthユーザーとの1対1対応
+- `email` - メールアドレスの一意性
 
 **インデックス**:
 
-- `idx_users_email` - メールアドレスによる高速検索
-- `idx_users_status` - ステータスによるフィルタリング
-- `idx_users_deleted_at` - 論理削除フィルタリング
-- `idx_users_email_deleted` - メール検索（削除済み除外）
-
-### user_credentials（ユーザー認証情報）テーブル
-
-ユーザー認証情報集約のルートエンティティ。パスワード情報を安全に管理。
-
-| カラム名                | 型        | 制約                   | 説明                             |
-| ----------------------- | --------- | ---------------------- | -------------------------------- |
-| id                      | TEXT      | PRIMARY KEY            | CUID形式の一意識別子             |
-| user_id                 | TEXT      | NOT NULL, UNIQUE       | ユーザーID（外部キー）           |
-| password_hash           | TEXT      | NOT NULL               | bcryptハッシュ化されたパスワード |
-| password_changed_at     | TIMESTAMP | NOT NULL DEFAULT NOW() | パスワード最終変更日時           |
-| require_password_change | BOOLEAN   | NOT NULL DEFAULT FALSE | パスワード変更要求フラグ         |
-| created_at              | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                         |
-| updated_at              | TIMESTAMP | NOT NULL               | 更新日時                         |
-
-**外部キー制約**:
-
-- `user_id` → `users.id` (CASCADE削除)
-
-**インデックス**:
-
-- `idx_user_credentials_user_id` - ユーザーIDによる高速検索
-
-### auth_sessions（認証セッション）テーブル
-
-認証セッション集約のルートエンティティ。アクティブなセッションを管理。
-
-| カラム名       | 型        | 制約                   | 説明                                       |
-| -------------- | --------- | ---------------------- | ------------------------------------------ |
-| id             | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                       |
-| user_id        | TEXT      | NOT NULL               | ユーザーID（外部キー）                     |
-| session_token  | TEXT      | NOT NULL, UNIQUE       | セッショントークン（暗号学的に安全な生成） |
-| ip_address     | TEXT      | NOT NULL               | IPアドレス                                 |
-| user_agent     | TEXT      | NULL                   | ユーザーエージェント                       |
-| device_info    | JSONB     | NULL                   | デバイス情報                               |
-| expires_at     | TIMESTAMP | NOT NULL               | 有効期限                                   |
-| last_activity  | TIMESTAMP | NOT NULL DEFAULT NOW() | 最終アクティビティ                         |
-| revoked_at     | TIMESTAMP | NULL                   | 無効化日時                                 |
-| revoked_reason | TEXT      | NULL                   | 無効化理由                                 |
-| created_at     | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                                   |
-
-**外部キー制約**:
-
-- `user_id` → `users.id` (CASCADE削除)
-
-**制約**:
-
-- `check_expiry` - 有効期限は作成時より未来
-  ```sql
-  CHECK (expires_at > created_at)
-  ```
-
-**インデックス**:
-
-- `idx_auth_sessions_token` - トークンによる高速検索
-- `idx_auth_sessions_user_id` - ユーザー別セッション検索
-- `idx_auth_sessions_expires_at` - 期限切れセッションのクリーンアップ
-- `idx_auth_sessions_revoked_at` - 無効化されたセッションのフィルタリング
-
-### password_reset_tokens（パスワードリセットトークン）テーブル
-
-パスワードリセットトークン集約のルートエンティティ。
-
-| カラム名   | 型        | 制約                   | 説明                                     |
-| ---------- | --------- | ---------------------- | ---------------------------------------- |
-| id         | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                     |
-| user_id    | TEXT      | NOT NULL               | ユーザーID（外部キー）                   |
-| token      | TEXT      | NOT NULL, UNIQUE       | リセットトークン（暗号学的に安全な生成） |
-| expires_at | TIMESTAMP | NOT NULL               | 有効期限（作成から1時間）                |
-| used_at    | TIMESTAMP | NULL                   | 使用日時                                 |
-| ip_address | TEXT      | NOT NULL               | 要求元IPアドレス                         |
-| user_agent | TEXT      | NULL                   | 要求元ユーザーエージェント               |
-| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                                 |
-
-**外部キー制約**:
-
-- `user_id` → `users.id` (CASCADE削除)
-
-**制約**:
-
-- `check_expiry` - 有効期限は作成時より未来かつ1時間以内
-  ```sql
-  CHECK (expires_at > created_at AND expires_at <= created_at + INTERVAL '1 hour')
-  ```
-
-**インデックス**:
-
-- `idx_password_reset_tokens_token` - トークンによる高速検索
-- `idx_password_reset_tokens_user_id` - ユーザー別トークン検索
-- `idx_password_reset_tokens_expires_at` - 期限切れトークンのクリーンアップ
-- `idx_password_reset_tokens_used_at` - 使用済みトークンのフィルタリング
-
-### email_verification_tokens（メール確認トークン）テーブル
-
-メール確認トークン集約のルートエンティティ。
-
-| カラム名   | 型        | 制約                   | 説明                                 |
-| ---------- | --------- | ---------------------- | ------------------------------------ |
-| id         | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                 |
-| user_id    | TEXT      | NOT NULL               | ユーザーID（外部キー）               |
-| email      | TEXT      | NOT NULL               | 確認対象メールアドレス               |
-| token      | TEXT      | NOT NULL, UNIQUE       | 確認トークン（暗号学的に安全な生成） |
-| expires_at | TIMESTAMP | NOT NULL               | 有効期限（作成から24時間）           |
-| used_at    | TIMESTAMP | NULL                   | 使用日時                             |
-| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                             |
-
-**外部キー制約**:
-
-- `user_id` → `users.id` (CASCADE削除)
-
-**制約**:
-
-- `check_expiry` - 有効期限は作成時より未来かつ24時間以内
-  ```sql
-  CHECK (expires_at > created_at AND expires_at <= created_at + INTERVAL '24 hours')
-  ```
-
-**インデックス**:
-
-- `idx_email_verification_tokens_token` - トークンによる高速検索
-- `idx_email_verification_tokens_user_id` - ユーザー別トークン検索
-- `idx_email_verification_tokens_expires_at` - 期限切れトークンのクリーンアップ
-- `idx_email_verification_tokens_used_at` - 使用済みトークンのフィルタリング
+- `idx_domain_users_next_auth_id` - NextAuthユーザーIDによる高速検索
+- `idx_domain_users_email` - メールアドレスによる高速検索
+- `idx_domain_users_status` - ステータスによるフィルタリング
 
 ## ドメインイベント用テーブル
 
 認証コンテキストのイベントは、共通の`domain_events`テーブルに保存されます。
 
-### 認証関連イベントタイプ
+### 認証関連イベントタイプ（NextAuth統合版）
 
-| イベントタイプ         | 説明                   | 主要データ                   |
-| ---------------------- | ---------------------- | ---------------------------- |
-| UserRegistered         | ユーザー登録           | userId, email, displayName   |
-| UserLoggedIn           | ログイン成功           | userId, sessionId, ipAddress |
-| UserLoggedOut          | ログアウト             | userId, sessionId            |
-| PasswordChanged        | パスワード変更         | userId                       |
-| PasswordResetRequested | パスワードリセット要求 | userId, tokenId              |
-| PasswordResetCompleted | パスワードリセット完了 | userId                       |
-| EmailVerificationSent  | メール確認送信         | userId, email, tokenId       |
-| EmailVerified          | メール確認完了         | userId                       |
-| AccountLocked          | アカウントロック       | userId, reason, lockedUntil  |
-| AccountUnlocked        | アカウントロック解除   | userId                       |
-| SessionRevoked         | セッション無効化       | userId, sessionId, reason    |
+| イベントタイプ          | 説明                     | 主要データ                |
+| ----------------------- | ------------------------ | ------------------------- |
+| UserCreatedFromNextAuth | NextAuthユーザーから作成 | userId, nextAuthId, email |
+| UserLoggedIn            | ログイン成功             | userId, nextAuthId        |
+| UserLoggedOut           | ログアウト               | userId                    |
+| UserProfileUpdated      | プロフィール更新         | userId, changedFields     |
+| UserDeactivated         | ユーザー無効化           | userId, reason            |
+| UserReactivated         | ユーザー再有効化         | userId                    |
 
 ## パフォーマンス考慮事項
 
@@ -220,55 +171,53 @@
 
 ### データ保護
 
-1. **パスワード保護**
+1. **認証情報の保護**
 
-   - bcryptによるハッシュ化（コスト係数12以上）
-   - 平文パスワードは一切保存しない
-   - パスワード履歴による再利用防止（将来実装）
+   - NextAuthによる安全な認証フロー
+   - マジックリンクトークンの自動管理
+   - パスワードレス認証による安全性向上
 
-2. **トークン保護**
-
-   - 暗号学的に安全な乱数生成
-   - 適切な有効期限の設定
-   - 使用済みトークンの即座の無効化
-
-3. **セッション管理**
-   - セッショントークンの安全な生成
-   - IPアドレスによる検証
-   - 異常検知によるセッション無効化
+2. **セッション管理**
+   - NextAuthによる安全なセッション管理
+   - HTTPOnly Cookieによる保護
+   - 自動的なセッション有効期限管理
 
 ### Row Level Security (RLS)
 
 Supabase環境では、以下のRLSポリシーを適用：
 
 ```sql
--- ユーザーは自分の情報のみ参照・更新可能
-CREATE POLICY "Users can view own profile" ON users
-  FOR SELECT USING (id = auth.uid() AND deleted_at IS NULL);
+-- NextAuthテーブルはシステムのみアクセス可能（RLSなし）
 
-CREATE POLICY "Users can update own profile" ON users
-  FOR UPDATE USING (id = auth.uid() AND deleted_at IS NULL);
+-- ドメインユーザーは自分の情報のみ参照・更新可能
+-- NextAuthのセッションを通じて認証されたユーザーのみアクセス可能
+CREATE POLICY "Users can view own domain profile" ON domain_users
+  FOR SELECT USING (
+    next_auth_id = auth.uid()
+    AND status = 'ACTIVE'
+  );
 
--- 認証情報は本人のみアクセス可能
-CREATE POLICY "Users can view own credentials" ON user_credentials
-  FOR SELECT USING (user_id = auth.uid());
-
--- セッションは本人のみ参照可能
-CREATE POLICY "Users can view own sessions" ON auth_sessions
-  FOR SELECT USING (user_id = auth.uid() AND revoked_at IS NULL);
-
--- トークンはシステムのみアクセス可能（RLSなし）
--- password_reset_tokens と email_verification_tokens はアプリケーション層で制御
+CREATE POLICY "Users can update own domain profile" ON domain_users
+  FOR UPDATE USING (
+    next_auth_id = auth.uid()
+    AND status = 'ACTIVE'
+  )
+  WITH CHECK (
+    -- statusとnext_auth_idは変更不可
+    next_auth_id = auth.uid()
+    AND status = 'ACTIVE'
+  );
 ```
 
 ### 監査ログ
 
 すべての認証関連操作は`domain_events`テーブルに記録：
 
-- ログイン試行（成功/失敗）
-- パスワード変更
-- アカウントロック/アンロック
-- セッション操作
+- NextAuthユーザーからのドメインユーザー作成
+- ログイン（NextAuth経由）
+- ログアウト
+- プロフィール更新
+- アカウント無効化/再有効化
 
 ## データベース初期化
 
@@ -286,33 +235,34 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 ### インデックス作成
 
 ```sql
--- 大文字小文字を区別しないメール検索用
-CREATE UNIQUE INDEX idx_users_email_lower ON users (LOWER(email)) WHERE deleted_at IS NULL;
+-- NextAuthテーブルのインデックス（Prisma Adapterが自動作成）
+-- Account: provider, providerAccountId の複合インデックス
+-- Session: sessionToken のユニークインデックス
+-- User: email のユニークインデックス
+-- VerificationToken: identifier, token の複合主キー
 
--- セッションの複合インデックス
-CREATE INDEX idx_auth_sessions_user_expires ON auth_sessions (user_id, expires_at)
-  WHERE revoked_at IS NULL;
-
--- トークンの有効性チェック用
-CREATE INDEX idx_password_reset_tokens_valid ON password_reset_tokens (token, expires_at)
-  WHERE used_at IS NULL;
+-- ドメインユーザーテーブルのインデックス
+CREATE UNIQUE INDEX idx_domain_users_next_auth_id ON domain_users (next_auth_id);
+CREATE UNIQUE INDEX idx_domain_users_email ON domain_users (email);
+CREATE INDEX idx_domain_users_status ON domain_users (status)
+  WHERE status = 'ACTIVE';
 ```
 
 ## マイグレーション戦略
 
 ### 初期マイグレーション
 
-1. ユーザー関連テーブルの作成
-2. インデックスの作成
-3. RLSポリシーの適用
-4. 初期管理者ユーザーの作成
+1. NextAuthテーブルの作成（Prisma Adapterによる自動生成）
+2. ドメインユーザーテーブルの作成
+3. インデックスの作成
+4. RLSポリシーの適用
 
 ### 今後の拡張
 
-- OAuth プロバイダー連携テーブル
+- OAuth プロバイダー追加（Google, GitHub等）
 - 二要素認証（2FA）サポート
-- パスワード履歴テーブル
-- ログイン履歴の詳細記録
+- より詳細なユーザープロフィール
+- 追加のユーザー設定項目
 
 ## 更新履歴
 

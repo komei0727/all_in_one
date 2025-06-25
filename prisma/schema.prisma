@@ -30,11 +30,106 @@ enum UnitType {
   VOLUME  // 容量
 }
 
+// User status enum for user authentication
+enum UserStatusType {
+  ACTIVE      // アクティブ
+  DEACTIVATED // 無効化
+}
+
 // Stock operation type enum
 enum OperationType {
   CONSUME   // 消費
   REPLENISH // 補充
   ADJUST    // 調整
+}
+
+// ==================== NEXTAUTH TABLES ====================
+
+// NextAuth Account model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// NextAuth Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// NextAuth User model
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts    Account[]
+  sessions    Session[]
+  domainUser  DomainUser?
+
+  @@map("users")
+}
+
+// NextAuth VerificationToken model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==================== DOMAIN USER TABLES ====================
+
+// Domain User model - extends NextAuth User with domain-specific information
+model DomainUser {
+  id                String          @id @default(cuid())
+  nextAuthId        String          @unique
+  email             String          @unique
+  displayName       String?
+  preferredLanguage String          @default("ja")
+  timezone          String          @default("Asia/Tokyo")
+  theme             String          @default("light")
+  notifications     Boolean         @default(true)
+  emailFrequency    String          @default("weekly")
+  status            UserStatusType  @default(ACTIVE)
+  lastLoginAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  nextAuthUser      User            @relation(fields: [nextAuthId], references: [id], onDelete: Cascade)
+
+  @@index([nextAuthId])
+  @@index([email])
+  @@index([status])
+  @@map("domain_users")
 }
 
 // ==================== MASTER TABLES ====================

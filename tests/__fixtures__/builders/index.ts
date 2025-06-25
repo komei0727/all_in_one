@@ -33,3 +33,11 @@ export { UnitBuilder, createTestUnit } from './entities/unit.builder'
 
 // コマンドビルダー
 export { CreateIngredientCommandBuilder } from './commands/create-ingredient-command.builder'
+
+// ユーザー認証系ビルダー
+export { UserIdBuilder } from './value-objects/user-id.builder'
+export { EmailBuilder } from './value-objects/email.builder'
+export { UserProfileBuilder, UserPreferencesBuilder } from './value-objects/user-profile.builder'
+export { UserStatusBuilder } from './value-objects/user-status.builder'
+export { UserBuilder } from './entities/user.builder'
+export { NextAuthUserBuilder } from './next-auth/next-auth-user.builder'

@@ -1,78 +1,74 @@
-# ユーザー管理API
+# ユーザー管理API（NextAuth版）
 
 ## 概要
 
-ユーザープロフィール管理、セッション管理、アカウント管理を行うAPIです。すべてのエンドポイントは認証が必要で、ユーザーは自分の情報のみ操作できます。
+NextAuthを使用した認証基盤上で、ドメインユーザーのプロフィール管理、アカウント管理を行うAPIです。セッション管理はNextAuthに委譲しています。
 
 ### 認証・認可
 
-- すべてのエンドポイントで認証が必要
-- 認証方式: Bearer Token（Authorization ヘッダー）
+- すべてのエンドポイントでNextAuthセッションが必要
+- 認証方式: NextAuthセッション（Cookieベース）
 - ユーザーは自分の情報のみアクセス可能
 
 ## エンドポイント一覧
 
 ### ユーザー情報
 
-- `GET /api/v1/users/me` - 自分のユーザー情報取得
+- `GET /api/v1/users/me` - 自分のドメインユーザー情報取得
 - `PUT /api/v1/users/me` - プロフィール更新
-- `DELETE /api/v1/users/me` - アカウント削除
+- `PUT /api/v1/users/me/preferences` - ユーザー設定更新
+- `DELETE /api/v1/users/me` - アカウント無効化
 
-### セッション管理
+### 統合管理
 
-- `GET /api/v1/users/me/sessions` - アクティブセッション一覧
-- `DELETE /api/v1/users/me/sessions/:id` - 特定セッション無効化
-- `DELETE /api/v1/users/me/sessions` - 全セッション無効化
+- `GET /api/v1/users/me/integration-status` - NextAuth統合状態確認
+- `POST /api/v1/users/me/sync` - ドメインユーザー同期
 
 ### アクティビティ
 
-- `GET /api/v1/users/me/login-history` - ログイン履歴取得
+- `GET /api/v1/users/me/activity` - ユーザーアクティビティ取得
 
 ---
 
-## 自分のユーザー情報取得
+## 自分のドメインユーザー情報取得
 
 ### 概要
 
-認証されているユーザーの詳細情報を取得します。
+認証されているユーザーのドメインユーザー情報（プロフィール、設定等）を取得します。NextAuth情報とは別に管理されています。
 
 ### エンドポイント情報
 
 - **メソッド**: `GET`
 - **パス**: `/api/v1/users/me`
-- **認証**: 必要
+- **認証**: 必要（NextAuthセッション）
 
 ### レスポンス
 
 #### 成功時（200 OK）
 
 ```typescript
-interface UserResponse {
+interface DomainUserResponse {
   data: {
-    id: string
-    email: string
-    emailVerified: boolean
+    id: string // ドメインユーザーID
+    nextAuthId: string // NextAuthユーザーID
+    email: string // NextAuthと同期
+    status: 'ACTIVE' | 'DEACTIVATED' // アカウント状態
     profile: {
       displayName: string
-      firstName?: string
-      lastName?: string
+      timezone: string // デフォルト: "Asia/Tokyo"
+      language: string // デフォルト: "ja"
+    }
+    preferences: {
+      theme: 'light' | 'dark' | 'system' // UIテーマ
+      notifications: boolean // 通知有効/無効
+      emailFrequency: 'none' | 'weekly' | 'daily' // メール通知頻度
     }
     createdAt: string
     updatedAt: string
     lastLoginAt?: string
-    preferences: {
-      language: string // デフォルト: "ja"
-      timezone: string // デフォルト: "Asia/Tokyo"
-      notifications: {
-        email: boolean // デフォルト: true
-        expiringSoon: boolean // デフォルト: true
-        lowStock: boolean // デフォルト: true
-      }
-    }
-    stats: {
-      totalIngredients: number
-      activeIngredients: number
-      expiredIngredients: number
+    integration: {
+      status: 'INTEGRATED' | 'PENDING' | 'FAILED'
+      lastSyncedAt?: string
     }
   }
   meta: {
@@ -83,23 +79,55 @@ interface UserResponse {
 
 ### 実装例
 
-#### TypeScript (TanStack Query)
+#### TypeScript (サーバーサイド)
+
+```typescript
+// pages/api/v1/users/me.ts
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/pages/api/auth/[...nextauth]'
+import { userRepository } from '@/repositories/user'
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).end()
+  }
+
+  const session = await getServerSession(req, res, authOptions)
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const domainUser = await userRepository.findByNextAuthId(session.user.id)
+  if (!domainUser) {
+    return res.status(404).json({ error: 'Domain user not found' })
+  }
+
+  res.json({
+    data: domainUser.toJSON(),
+    meta: {
+      timestamp: new Date().toISOString(),
+    },
+  })
+}
+```
+
+#### TypeScript (クライアントサイド)
 
 ```typescript
 import { useQuery } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 
-const useCurrentUser = () => {
+const useDomainUser = () => {
+  const { data: session } = useSession()
+
   return useQuery({
-    queryKey: ['users', 'me'],
+    queryKey: ['domainUser', 'me'],
     queryFn: async () => {
-      const response = await fetch('/api/v1/users/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
+      const response = await fetch('/api/v1/users/me')
       if (!response.ok) throw new Error('Failed to fetch user')
       return response.json()
     },
+    enabled: !!session,
   })
 }
 ```
@@ -110,13 +138,13 @@ const useCurrentUser = () => {
 
 ### 概要
 
-ユーザーのプロフィール情報と設定を更新します。
+ドメインユーザーのプロフィール情報を更新します。メールアドレスはNextAuth側で管理されるため更新できません。
 
 ### エンドポイント情報
 
 - **メソッド**: `PUT`
 - **パス**: `/api/v1/users/me`
-- **認証**: 必要
+- **認証**: 必要（NextAuthセッション）
 
 ### リクエスト
 
@@ -126,17 +154,8 @@ const useCurrentUser = () => {
 interface UpdateProfileRequest {
   profile?: {
     displayName?: string // 1-50文字
-    firstName?: string // 0-50文字
-    lastName?: string // 0-50文字
-  }
-  preferences?: {
-    language?: string // "ja" | "en"
     timezone?: string // IANA timezone
-    notifications?: {
-      email?: boolean
-      expiringSoon?: boolean
-      lowStock?: boolean
-    }
+    language?: string // "ja" | "en"
   }
 }
 ```
@@ -144,7 +163,6 @@ interface UpdateProfileRequest {
 #### バリデーションルール
 
 - `displayName`: 1-50文字、特殊文字制限あり
-- `firstName`, `lastName`: 各0-50文字
 - `language`: サポートされている言語コードのみ
 - `timezone`: 有効なIANAタイムゾーン
 
@@ -161,49 +179,101 @@ interface UpdateProfileRequest {
 
 ### 実装例
 
-#### TypeScript (Fetch API)
+#### TypeScript (サーバーサイド)
 
 ```typescript
-const updateProfile = async (updates: UpdateProfileRequest) => {
-  const response = await fetch('/api/v1/users/me', {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(updates),
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to update profile')
+// pages/api/v1/users/me.ts
+export default async function handler(req, res) {
+  if (req.method !== 'PUT') {
+    return res.status(405).end()
   }
 
-  return response.json()
+  const session = await getServerSession(req, res, authOptions)
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const domainUser = await userRepository.findByNextAuthId(session.user.id)
+  if (!domainUser) {
+    return res.status(404).json({ error: 'Domain user not found' })
+  }
+
+  try {
+    const updatedUser = await userProfileService.updateProfile(domainUser.id, req.body.profile)
+
+    res.json({
+      data: updatedUser.toJSON(),
+      meta: {
+        timestamp: new Date().toISOString(),
+      },
+    })
+  } catch (error) {
+    res.status(400).json({
+      error: {
+        code: 'PROFILE_UPDATE_FAILED',
+        message: error.message,
+      },
+    })
+  }
 }
 ```
 
 ---
 
-## アカウント削除
+## ユーザー設定更新
 
 ### 概要
 
-ユーザーアカウントを削除します。この操作は取り消せません。
+ドメインユーザーの設定（テーマ、通知等）を更新します。
 
 ### エンドポイント情報
 
-- **メソッド**: `DELETE`
-- **パス**: `/api/v1/users/me`
-- **認証**: 必要
+- **メソッド**: `PUT`
+- **パス**: `/api/v1/users/me/preferences`
+- **認証**: 必要（NextAuthセッション）
 
 ### リクエスト
 
 #### リクエストボディ
 
 ```typescript
-interface DeleteAccountRequest {
-  password: string // 現在のパスワード（必須、確認用）
-  reason?: string // 削除理由（任意、最大200文字）
+interface UpdatePreferencesRequest {
+  theme?: 'light' | 'dark' | 'system'
+  notifications?: boolean
+  emailFrequency?: 'none' | 'weekly' | 'daily'
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+更新後の完全なユーザー情報を返します（GET /api/v1/users/meと同じ形式）。
+
+#### エラーレスポンス
+
+- `400 Bad Request`: バリデーションエラー
+- `401 Unauthorized`: 認証エラー
+
+## アカウント無効化
+
+### 概要
+
+ドメインユーザーを論理削除（無効化）します。NextAuthユーザーは残存しますが、ドメイン機能は使用できなくなります。
+
+### エンドポイント情報
+
+- **メソッド**: `DELETE`
+- **パス**: `/api/v1/users/me`
+- **認証**: 必要（NextAuthセッション）
+
+### リクエスト
+
+#### リクエストボディ
+
+```typescript
+interface DeactivateAccountRequest {
+  reason?: 'USER_REQUEST' | 'POLICY_VIOLATION' | 'OTHER' // 無効化理由
   feedback?: string // フィードバック（任意、最大500文字）
 }
 ```
@@ -213,136 +283,93 @@ interface DeleteAccountRequest {
 #### 成功時（200 OK）
 
 ```typescript
-interface DeleteAccountResponse {
+interface DeactivateAccountResponse {
   data: {
-    message: 'アカウントが削除されました'
-    deletedAt: string
+    message: 'アカウントが無効化されました'
+    deactivatedAt: string
   }
   meta: {
     timestamp: string
   }
 }
 ```
-
-#### エラーレスポンス
-
-- `401 Unauthorized`: パスワードが無効
-- `403 Forbidden`: 削除権限がない
 
 ### 注意事項
 
-- アカウント削除後、関連するすべてのデータが削除されます
-- 食材データ、履歴データもすべて削除されます
-- 削除は30日間の猶予期間後に実行されます（実装による）
+- ドメインユーザーのstatusがDEACTIVATEDに変更
+- NextAuthユーザーは残存し、再ログイン可能
+- 関連データ（食材等）の処理はアプリケーションポリシーに従う
 
 ---
 
-## アクティブセッション一覧
+## NextAuth統合状態確認
 
 ### 概要
 
-現在アクティブなすべてのセッションを取得します。複数デバイスからのログイン状況を確認できます。
+現在のユーザーのNextAuthとドメインユーザーの統合状態を確認します。
 
 ### エンドポイント情報
 
 - **メソッド**: `GET`
-- **パス**: `/api/v1/users/me/sessions`
-- **認証**: 必要
+- **パス**: `/api/v1/users/me/integration-status`
+- **認証**: 必要（NextAuthセッション）
 
 ### レスポンス
 
 #### 成功時（200 OK）
 
 ```typescript
-interface SessionsResponse {
-  data: Array<{
-    id: string
-    isCurrent: boolean // 現在のリクエストで使用中のセッション
-    createdAt: string // セッション作成日時
-    lastActiveAt: string // 最終アクティビティ日時
-    expiresAt: string // 有効期限
-    ipAddress: string // IPアドレス（一部マスク）
-    location?: {
-      // GeoIP情報（利用可能な場合）
-      country: string
-      city: string
+interface IntegrationStatusResponse {
+  data: {
+    status: 'INTEGRATED' | 'PENDING' | 'FAILED'
+    nextAuthUser: {
+      id: string
+      email: string
+      emailVerified: Date | null
     }
-    device: {
-      // ユーザーエージェントから解析
-      type: string // "desktop" | "mobile" | "tablet"
-      browser: string // "Chrome 120"
-      os: string // "Windows 11"
+    domainUser?: {
+      id: string
+      status: string
+      lastSyncedAt?: string
     }
-  }>
+    issues: string[] // 問題がある場合のリスト
+    recommendations: string[] // 推奨アクション
+  }
   meta: {
     timestamp: string
-    totalCount: number
   }
 }
 ```
 
 ---
 
-## 特定セッション無効化
+## ドメインユーザー同期
 
 ### 概要
 
-指定したセッションを無効化します。不審なセッションを個別に終了させることができます。
+NextAuthユーザーとドメインユーザーを手動で同期します。通常は自動で同期されますが、エラー復旧時に使用します。
 
 ### エンドポイント情報
 
-- **メソッド**: `DELETE`
-- **パス**: `/api/v1/users/me/sessions/:id`
-- **認証**: 必要
-
-### パスパラメータ
-
-- `id`: セッションID
+- **メソッド**: `POST`
+- **パス**: `/api/v1/users/me/sync`
+- **認証**: 必要（NextAuthセッション）
 
 ### レスポンス
 
 #### 成功時（200 OK）
 
 ```typescript
-interface RevokeSessionResponse {
+interface SyncUserResponse {
   data: {
-    message: 'セッションが無効化されました'
-    sessionId: string
-  }
-  meta: {
-    timestamp: string
-  }
-}
-```
-
-#### エラーレスポンス
-
-- `404 Not Found`: セッションが見つからない
-- `400 Bad Request`: 現在使用中のセッションは無効化できない
-
----
-
-## 全セッション無効化
-
-### 概要
-
-現在のセッション以外のすべてのセッションを無効化します。セキュリティ上の理由で全デバイスからログアウトさせる場合に使用します。
-
-### エンドポイント情報
-
-- **メソッド**: `DELETE`
-- **パス**: `/api/v1/users/me/sessions`
-- **認証**: 必要
-
-### レスポンス
-
-#### 成功時（200 OK）
-
-```typescript
-interface RevokeAllSessionsResponse {
-  data: {
-    message: 'すべてのセッションが無効化されました'
-    revokedCount: number // 無効化されたセッション数
+    message: 'ユーザー情報を同期しました'
+    domainUser: {
+      id: string
+      email: string
+      status: string
+    }
+    syncedFields: string[] // 同期されたフィールド
+    created: boolean // 新規作成か更新か
   }
   meta: {
     timestamp: string
@@ -352,17 +379,17 @@ interface RevokeAllSessionsResponse {
 
 ---
 
-## ログイン履歴取得
+## ユーザーアクティビティ取得
 
 ### 概要
 
-過去のログイン履歴を取得します。セキュリティ監査用途で使用できます。
+ユーザーのアクティビティ履歴を取得します。ログイン履歴はNextAuthが管理するため、ドメイン固有のアクティビティのみを返します。
 
 ### エンドポイント情報
 
 - **メソッド**: `GET`
-- **パス**: `/api/v1/users/me/login-history`
-- **認証**: 必要
+- **パス**: `/api/v1/users/me/activity`
+- **認証**: 必要（NextAuthセッション）
 
 ### クエリパラメータ
 
@@ -370,29 +397,22 @@ interface RevokeAllSessionsResponse {
 | ---------- | ------ | ---- | ---------- | ----------------------- |
 | page       | number | No   | 1          | ページ番号（1から開始） |
 | limit      | number | No   | 20         | 1ページあたりの件数     |
-| days       | number | No   | 30         | 過去何日分を取得するか  |
+| type       | string | No   | all        | アクティビティタイプ    |
 
 ### レスポンス
 
 #### 成功時（200 OK）
 
 ```typescript
-interface LoginHistoryResponse {
+interface UserActivityResponse {
   data: Array<{
     id: string
+    type: 'PROFILE_UPDATED' | 'PREFERENCES_CHANGED' | 'ACCOUNT_DEACTIVATED' | 'ACCOUNT_REACTIVATED'
     timestamp: string
-    success: boolean // ログイン成功/失敗
-    ipAddress: string // IPアドレス（一部マスク）
-    location?: {
-      country: string
-      city: string
+    details: {
+      changes?: any // 変更内容
+      reason?: string // 理由
     }
-    device: {
-      type: string
-      browser: string
-      os: string
-    }
-    failureReason?: string // 失敗時の理由
   }>
   pagination: {
     page: number
@@ -405,6 +425,8 @@ interface LoginHistoryResponse {
   }
 }
 ```
+
+---
 
 ---
 
@@ -432,32 +454,36 @@ interface ErrorResponse {
 
 ### ユーザー管理固有のエラーコード
 
-| コード                  | 説明                         |
-| ----------------------- | ---------------------------- |
-| `USER_NOT_FOUND`        | ユーザーが見つからない       |
-| `SESSION_NOT_FOUND`     | セッションが見つからない     |
-| `CANNOT_REVOKE_CURRENT` | 現在のセッションは無効化不可 |
-| `PROFILE_UPDATE_FAILED` | プロフィール更新失敗         |
+| コード                        | 説明                             |
+| ----------------------------- | -------------------------------- |
+| `DOMAIN_USER_NOT_FOUND`       | ドメインユーザーが見つからない   |
+| `INTEGRATION_FAILED`          | NextAuth統合エラー               |
+| `SYNC_FAILED`                 | 同期処理エラー                   |
+| `PROFILE_UPDATE_FAILED`       | プロフィール更新失敗             |
+| `ACCOUNT_ALREADY_DEACTIVATED` | アカウントは既に無効化されている |
 
 ## 実装上の注意事項
 
-1. **プライバシー保護**
+1. **NextAuthとの統合**
 
-   - IPアドレスは下位オクテットをマスク
-   - 位置情報は都市レベルまで
-   - ユーザーエージェントは一般化
+   - セッション管理はNextAuthに完全に委譲
+   - ドメインユーザーとNextAuthユーザーの1:1マッピングを維持
+   - 統合エラーはユーザー体験を阻害しない
 
 2. **パフォーマンス**
 
-   - ユーザー情報は5分間キャッシュ
-   - 統計情報は非同期で計算
+   - ドメインユーザー情報は適切にキャッシュ
+   - NextAuthセッションはCookieベースで高速
+   - 統合処理は非同期で実行
 
 3. **セキュリティ**
-   - アカウント削除は再認証必須
-   - セッション操作は監査ログ記録
+   - NextAuthのセキュリティベストプラクティスに従う
+   - ドメイン固有の操作は監査ログ記録
+   - 個人情報の最小限の取得と保護
 
 ## 更新履歴
 
-| 日付       | 内容     | 作成者 |
-| ---------- | -------- | ------ |
-| 2025-06-24 | 初版作成 | Claude |
+| 日付       | 内容                               | 作成者 |
+| ---------- | ---------------------------------- | ------ |
+| 2025-06-24 | 初版作成                           | Claude |
+| 2025-06-24 | NextAuth統合前提での全面再設計更新 | Claude |

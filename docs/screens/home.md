@@ -75,7 +75,7 @@
 | 食材一覧画面へ遷移   | 「食材一覧を見る」ボタンクリック | 食材一覧画面へ遷移         | /ingredients へ遷移        |
 | 食材追加画面へ遷移   | 「食材を追加する」ボタンクリック | 食材登録画面へ遷移         | /ingredients/create へ遷移 |
 | ユーザーメニュー表示 | ユーザー名クリック               | ドロップダウンメニュー表示 | メニュー表示               |
-| ログアウト           | 「ログアウト」クリック           | ログアウト処理             | /auth/login へ遷移         |
+| ログアウト           | 「ログアウト」クリック           | NextAuth signOut呼び出し   | /auth/login へ遷移         |
 
 ### フォーム仕様
 
@@ -93,30 +93,62 @@
 
 ### 使用するAPI
 
-#### 1. 現在のユーザー情報取得
+#### 1. セッション情報取得（NextAuth）
+
+- **使用方法**: NextAuthのuseSession()フック
+- **目的**: ログインユーザーのセッション情報取得
+- **呼び出しタイミング**: コンポーネントマウント時
+
+**実装例**
+
+```typescript
+import { useSession } from 'next-auth/react'
+
+const { data: session, status } = useSession()
+
+// セッションデータ構造
+interface Session {
+  user: {
+    email: string
+    id: string // NextAuthユーザーID
+    userId?: string // ドメインユーザーID（オプション）
+  }
+  expires: string
+}
+```
+
+#### 2. ドメインユーザー情報取得（オプション）
 
 - **エンドポイント**: `GET /api/v1/users/me`
-- **目的**: ログインユーザーの情報取得
-- **呼び出しタイミング**: 画面初期表示時
+- **目的**: ドメインユーザーの詳細情報取得
+- **呼び出しタイミング**: 必要に応じて
 
 **レスポンス**
 
 ```typescript
-interface CurrentUserResponse {
-  user: {
-    id: string
+interface DomainUserResponse {
+  data: {
+    id: string // ドメインユーザーID
+    nextAuthId: string // NextAuthユーザーID
     email: string
-    displayName: string
-    emailVerified: boolean
+    name: string | null
+    status: 'ACTIVE' | 'DEACTIVATED'
+    createdAt: string
+    updatedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
   }
 }
 ```
 
 **エラーハンドリング**
-| エラーコード | 処理 |
+| エラーケース | 処理 |
 |------------|------|
-| 401 | ログイン画面（/auth/login）へリダイレクト |
-| 500 | 「エラーが発生しました」をトースト表示 |
+| 未認証（status === 'unauthenticated'） | ログイン画面（/auth/login）へリダイレクト |
+| APIエラー (401) | NextAuth signIn()を呼び出し |
+| APIエラー (500) | 「エラーが発生しました」をトースト表示 |
 
 ## 6. 状態管理
 
@@ -128,9 +160,17 @@ interface HomeScreenState {
 }
 ```
 
-### サーバー状態（TanStack Query）
+### サーバー状態
 
-- **queryKey**: `['auth', 'me']`
+#### NextAuthセッション
+
+- useSession()フックで管理
+- 自動的にセッション状態を管理
+- 認証状態: 'authenticated' | 'loading' | 'unauthenticated'
+
+#### TanStack Query（ドメインユーザー情報）
+
+- **queryKey**: `['users', 'me']`
 - **キャッシュ戦略**: 5分間キャッシュ
 - **再検証タイミング**: ウィンドウフォーカス時
 
@@ -146,6 +186,10 @@ interface HomeScreenState {
   - Button（ナビゲーションボタン）
   - DropdownMenu（ユーザーメニュー）
   - Avatar（ユーザーアイコン）
+  - Skeleton（ローディング中）
+- **NextAuth**:
+  - useSessionフック
+  - signOut関数
 - **カスタムコンポーネント**:
   - UserMenu（ユーザー情報とドロップダウン）
 
@@ -162,18 +206,22 @@ src/
 - Next.js App RouterのLinkコンポーネントを使用
 - ボタンは大きめにしてモバイルでもタップしやすく
 - アイコンを使って視覚的にわかりやすく
-- 認証チェックはmiddlewareで実施
-- ユーザー名が長い場合は省略表示（最大20文字）
+- 認証チェックはNextAuthのmiddlewareで実施
+- セッションローディング中はSkeletonを表示
+- ユーザー名はメールアドレスを使用（名前がない場合）
+- メールアドレスが長い場合は省略表示（最大20文字）
 
 ### テスト観点
 
 - [ ] **正常系**:
   - 各ボタンから適切な画面へ遷移する
-  - ユーザー情報が正しく表示される
+  - セッション情報が正しく表示される
   - ログアウトが正常に動作する
 - [ ] **異常系**:
   - 未認証時のアクセス（ログイン画面へリダイレクト）
-  - ユーザー情報取得エラー
+  - セッションローディング中の表示
+  - ドメインユーザーAPIエラー時の処理
 - [ ] **エッジケース**:
   - セッション期限切れ時の処理
-  - 長いユーザー名の表示
+  - 長いメールアドレスの表示
+  - NextAuthユーザーは存在するがドメインユーザーが未作成の場合

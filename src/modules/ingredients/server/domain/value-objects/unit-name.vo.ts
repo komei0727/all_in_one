@@ -1,4 +1,5 @@
-import { ValueObject } from './value-object.base'
+import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
+
 import { RequiredFieldException, InvalidFieldException } from '../exceptions'
 
 /**
