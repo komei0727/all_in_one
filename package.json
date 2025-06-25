@@ -20,12 +20,17 @@
     "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "prepare": "husky",
     "postinstall": "prisma generate",
-    "db:up": "docker-compose up -d",
-    "db:down": "docker-compose down",
+    "db:up": "docker-compose up -d postgres",
+    "db:down": "docker-compose stop postgres",
+    "services:up": "docker-compose up -d",
+    "services:down": "docker-compose down",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:seed": "dotenv -e .env.local -- prisma db seed",
-    "db:studio": "dotenv -e .env.local -- prisma studio"
+    "db:studio": "dotenv -e .env.local -- prisma studio",
+    "mail:up": "docker-compose up -d mailhog",
+    "mail:down": "docker-compose stop mailhog",
+    "mail:logs": "docker-compose logs -f mailhog"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
