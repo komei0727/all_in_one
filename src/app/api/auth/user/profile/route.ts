@@ -114,13 +114,6 @@ export async function PUT(request: NextRequest) {
     }
 
     // プロフィール更新
-    console.log('Update request:', {
-      displayName: requestData.displayName,
-      timezone: requestData.timezone,
-      language: requestData.language,
-      languageType: typeof requestData.language,
-    })
-    
     const updatedUser = await userApplicationService.updateUserProfile(currentUser.id, {
       displayName: requestData.displayName,
       timezone: requestData.timezone,

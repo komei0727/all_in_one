@@ -18,12 +18,13 @@ export const authOptions: NextAuthOptions = {
       server: {
         host: process.env.EMAIL_SERVER_HOST,
         port: process.env.EMAIL_SERVER_PORT ? parseInt(process.env.EMAIL_SERVER_PORT, 10) : 587,
-        auth: process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
-          ? {
-              user: process.env.EMAIL_SERVER_USER,
-              pass: process.env.EMAIL_SERVER_PASSWORD,
-            }
-          : undefined,
+        auth:
+          process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
+            ? {
+                user: process.env.EMAIL_SERVER_USER,
+                pass: process.env.EMAIL_SERVER_PASSWORD,
+              }
+            : undefined,
         secure: false, // Mailhogは非SSLで動作
         tls: {
           rejectUnauthorized: false, // 開発環境での証明書検証を無効化
@@ -95,21 +96,21 @@ export const authOptions: NextAuthOptions = {
           // UserIntegrationServiceを使用してドメインユーザーを作成/更新
           const userRepository = new PrismaUserRepository(prisma as any)
           const userIntegrationService = new UserIntegrationService(userRepository)
-          
+
           // NextAuthユーザーからドメインユーザーを作成または更新
           const nextAuthUser = {
             id: user.id,
             email: user.email!,
-            name: user.name,
+            name: user.name || null,
+            image: user.image || null,
+            emailVerified: null,
             createdAt: new Date(),
             updatedAt: new Date(),
           }
-          
+
           await userIntegrationService.createOrUpdateFromNextAuth(nextAuthUser)
-          
-          console.log('DomainUser created/updated for:', user.email)
         } catch (error) {
-          console.error('Failed to create/update DomainUser:', error)
+          // TODO: 本番環境では適切なロガーに置き換える
         }
       }
     },

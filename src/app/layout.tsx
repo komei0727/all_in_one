@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+
 import './globals.css'
 import { Providers } from './providers'
 
@@ -10,11 +11,7 @@ export const metadata: Metadata = {
   description: '一人暮らしのための食材管理アプリケーション',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body className={inter.className}>

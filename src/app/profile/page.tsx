@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 type UserProfile = {
   id: string
@@ -101,7 +102,7 @@ export default function ProfilePage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">読み込み中...</p>
         </div>
@@ -116,8 +117,8 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between">
             <div className="flex items-center">
               <Link href="/" className="text-xl font-semibold">
                 食材管理アプリ
@@ -132,16 +133,14 @@ export default function ProfilePage() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="overflow-hidden rounded-lg bg-white shadow">
             <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">
-                プロフィール設定
-              </h2>
+              <h2 className="mb-6 text-lg font-medium text-gray-900">プロフィール設定</h2>
 
               {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-4">
                   <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
@@ -156,7 +155,7 @@ export default function ProfilePage() {
                     id="email"
                     value={profile.email}
                     disabled
-                    className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-gray-500 sm:text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500 shadow-sm sm:text-sm"
                   />
                 </div>
 
@@ -170,7 +169,7 @@ export default function ProfilePage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="山田太郎"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   />
                 </div>
 
@@ -182,7 +181,7 @@ export default function ProfilePage() {
                     id="language"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   >
                     <option value="ja">日本語</option>
                     <option value="en">English</option>
@@ -197,7 +196,7 @@ export default function ProfilePage() {
                     id="timezone"
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   >
                     <option value="Asia/Tokyo">Asia/Tokyo</option>
                     <option value="America/New_York">America/New_York</option>
@@ -212,7 +211,7 @@ export default function ProfilePage() {
                     <button
                       type="submit"
                       disabled={isUpdating}
-                      className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isUpdating ? '更新中...' : '更新'}
                     </button>
@@ -220,12 +219,12 @@ export default function ProfilePage() {
                 </div>
               </form>
 
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-900 mb-4">システム情報</h3>
+              <div className="mt-8 border-t border-gray-200 pt-8">
+                <h3 className="mb-4 text-sm font-medium text-gray-900">システム情報</h3>
                 <dl className="space-y-2">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">ユーザーID</dt>
-                    <dd className="text-sm text-gray-900 font-mono">{profile.id}</dd>
+                    <dd className="font-mono text-sm text-gray-900">{profile.id}</dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">ステータス</dt>
