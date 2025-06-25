@@ -101,7 +101,7 @@ export class UserApplicationService {
     const newProfile = new UserProfile({
       displayName: request.displayName,
       timezone: request.timezone,
-      language: request.language,
+      language: request.language as 'ja' | 'en',
       preferences: currentUser.getProfile().getPreferences(),
     })
 

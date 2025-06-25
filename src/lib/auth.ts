@@ -3,6 +3,8 @@ import { NextAuthOptions } from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
 
 import { prisma } from '@/lib/prisma'
+import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
+import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
 /**
  * NextAuth設定
@@ -16,16 +18,22 @@ export const authOptions: NextAuthOptions = {
       server: {
         host: process.env.EMAIL_SERVER_HOST,
         port: process.env.EMAIL_SERVER_PORT ? parseInt(process.env.EMAIL_SERVER_PORT, 10) : 587,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
+        auth: process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
+          ? {
+              user: process.env.EMAIL_SERVER_USER,
+              pass: process.env.EMAIL_SERVER_PASSWORD,
+            }
+          : undefined,
+        secure: false, // Mailhogは非SSLで動作
+        tls: {
+          rejectUnauthorized: false, // 開発環境での証明書検証を無効化
         },
       },
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || 'noreply@example.com',
     }),
   ],
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/auth/login',
     signOut: '/auth/signout',
     error: '/auth/error',
     verifyRequest: '/auth/verify-request',
@@ -85,12 +93,23 @@ export const authOptions: NextAuthOptions = {
         try {
           // ドメインユーザーとの連携処理
           // UserIntegrationServiceを使用してドメインユーザーを作成/更新
-          // TODO: イベントログは本番環境では適切なロガーに置き換える
-          // TODO: ここでUserIntegrationServiceを呼び出す
-          // const userIntegrationService = new UserIntegrationService(new PrismaUserRepository(prisma))
-          // await userIntegrationService.createOrUpdateFromNextAuth(user)
-        } catch (_error) {
-          // TODO: エラーログは本番環境では適切なロガーに置き換える
+          const userRepository = new PrismaUserRepository(prisma as any)
+          const userIntegrationService = new UserIntegrationService(userRepository)
+          
+          // NextAuthユーザーからドメインユーザーを作成または更新
+          const nextAuthUser = {
+            id: user.id,
+            email: user.email!,
+            name: user.name,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+          
+          await userIntegrationService.createOrUpdateFromNextAuth(nextAuthUser)
+          
+          console.log('DomainUser created/updated for:', user.email)
+        } catch (error) {
+          console.error('Failed to create/update DomainUser:', error)
         }
       }
     },
