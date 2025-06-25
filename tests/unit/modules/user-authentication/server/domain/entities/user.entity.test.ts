@@ -205,7 +205,7 @@ describe('Userエンティティ', () => {
 
       // Act（実行）
       const user = new User(userData)
-      user.deactivate()
+      user.deactivate('USER_REQUEST', user.getId().getValue())
 
       // Assert（検証）
       expect(user.isActive()).toBe(false)
@@ -230,7 +230,9 @@ describe('Userエンティティ', () => {
       const user = new User(userData)
 
       // Assert（検証）
-      expect(() => user.deactivate()).toThrow('既に無効化されたユーザーです')
+      expect(() => user.deactivate('USER_REQUEST', user.getId().getValue())).toThrow(
+        '既に無効化されたユーザーです'
+      )
     })
   })
 

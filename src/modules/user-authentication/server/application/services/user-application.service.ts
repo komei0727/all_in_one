@@ -114,7 +114,11 @@ export class UserApplicationService {
    */
   async deactivateUser(userId: string): Promise<UserDTO> {
     const userIdVO = new UserId(userId)
-    const deactivatedUser = await this.userIntegrationService.deactivateUser(userIdVO)
+    const deactivatedUser = await this.userIntegrationService.deactivateUser(
+      userIdVO,
+      'USER_REQUEST',
+      userId
+    )
     return this.mapToDTO(deactivatedUser)
   }
 

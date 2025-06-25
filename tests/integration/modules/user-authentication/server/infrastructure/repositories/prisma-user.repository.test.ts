@@ -339,7 +339,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
       const user1 = User.createFromNextAuth(activeUser1)
       const user2 = User.createFromNextAuth(activeUser2)
       const user3 = User.createFromNextAuth(deactivatedUser)
-      user3.deactivate() // 無効化
+      user3.deactivate('USER_REQUEST', user3.getId().getValue()) // 無効化
 
       await repository.save(user1)
       await repository.save(user2)

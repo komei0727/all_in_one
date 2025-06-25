@@ -264,7 +264,7 @@ describe('UserIntegrationService', () => {
 
       // Act（実行）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
-      const result = await service.deactivateUser(userId)
+      const result = await service.deactivateUser(userId, 'USER_REQUEST', userId.getValue())
 
       // Assert（検証）
       expect(result.isActive()).toBe(false)
@@ -280,7 +280,9 @@ describe('UserIntegrationService', () => {
 
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
-      await expect(service.deactivateUser(userId)).rejects.toThrow('ユーザーが見つかりません')
+      await expect(
+        service.deactivateUser(userId, 'USER_REQUEST', userId.getValue())
+      ).rejects.toThrow('ユーザーが見つかりません')
     })
 
     it('既に無効化されたユーザーの再無効化はエラーが発生する', async () => {
@@ -301,7 +303,9 @@ describe('UserIntegrationService', () => {
 
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
-      await expect(service.deactivateUser(userId)).rejects.toThrow('既に無効化されたユーザーです')
+      await expect(
+        service.deactivateUser(userId, 'USER_REQUEST', userId.getValue())
+      ).rejects.toThrow('既に無効化されたユーザーです')
     })
   })
 

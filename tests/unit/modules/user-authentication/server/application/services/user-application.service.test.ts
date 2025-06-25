@@ -186,7 +186,11 @@ describe('UserApplicationService', () => {
       // Assert（検証）
       expect(result.status).toBe('DEACTIVATED')
       expect(result.isActive).toBe(false)
-      expect(mockUserIntegrationService.deactivateUser).toHaveBeenCalledWith(userId)
+      expect(mockUserIntegrationService.deactivateUser).toHaveBeenCalledWith(
+        userId,
+        'USER_REQUEST',
+        userId.getValue()
+      )
     })
 
     it('IDでユーザーを取得できる', async () => {

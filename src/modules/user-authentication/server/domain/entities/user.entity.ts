@@ -1,6 +1,11 @@
+import { AggregateRoot } from '@/modules/shared/server/domain/aggregate-root.base'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 
+import { UserCreatedFromNextAuthEvent } from '../events/user-created-from-nextauth.event'
+import { UserDeactivatedEvent } from '../events/user-deactivated.event'
+import { UserProfileUpdatedEvent } from '../events/user-profile-updated.event'
+import { UserSyncedWithNextAuthEvent } from '../events/user-synced-with-nextauth.event'
 import { UserProfile } from '../value-objects/user-profile.vo'
 import { UserStatus } from '../value-objects/user-status.vo'
 
@@ -35,8 +40,7 @@ export interface NextAuthUser {
  * ユーザーエンティティ
  * ユーザーアカウントを表現するルートエンティティ
  */
-export class User {
-  private readonly _id: UserId
+export class User extends AggregateRoot<UserId> {
   private _nextAuthId: string
   private _email: Email
   private _profile: UserProfile
@@ -46,9 +50,9 @@ export class User {
   private _lastLoginAt: Date | null
 
   constructor(props: UserProps) {
+    super(props.id)
     this.validate(props)
 
-    this._id = props.id
     this._nextAuthId = props.nextAuthId
     this._email = props.email
     this._profile = props.profile
@@ -102,9 +106,10 @@ export class User {
    */
   static createFromNextAuth(nextAuthUser: NextAuthUser): User {
     const now = new Date()
+    const userId = new UserId(crypto.randomUUID())
 
-    return new User({
-      id: new UserId(crypto.randomUUID()),
+    const user = new User({
+      id: userId,
       nextAuthId: nextAuthUser.id,
       email: new Email(nextAuthUser.email),
       profile: UserProfile.createDefault(nextAuthUser.name || nextAuthUser.email),
@@ -113,6 +118,19 @@ export class User {
       updatedAt: now,
       lastLoginAt: null,
     })
+
+    // ドメインイベントを発行
+    user.addDomainEvent(
+      new UserCreatedFromNextAuthEvent(
+        userId.getValue(),
+        nextAuthUser.id,
+        nextAuthUser.email,
+        nextAuthUser.name || nextAuthUser.email,
+        true
+      )
+    )
+
+    return user
   }
 
   /**
@@ -137,7 +155,7 @@ export class User {
    * ユーザーIDを取得
    */
   getId(): UserId {
-    return this._id
+    return this.id
   }
 
   /**
@@ -206,13 +224,21 @@ export class User {
   /**
    * ユーザーを無効化
    */
-  deactivate(): void {
+  deactivate(
+    reason: 'USER_REQUEST' | 'ADMIN_ACTION' | 'POLICY_VIOLATION' | 'DATA_RETENTION',
+    deactivatedBy: string
+  ): void {
     if (this._status.isDeactivated()) {
       throw new Error('既に無効化されたユーザーです')
     }
 
     this._status = this._status.deactivate()
     this._updatedAt = new Date()
+
+    // ドメインイベントを発行
+    this.addDomainEvent(
+      new UserDeactivatedEvent(this.id.getValue(), reason, deactivatedBy, new Date())
+    )
   }
 
   /**
@@ -227,8 +253,31 @@ export class User {
       throw new Error('無効化されたユーザーのプロフィールは更新できません')
     }
 
+    const oldProfile = this._profile
     this._profile = profile
     this._updatedAt = new Date()
+
+    // 変更されたフィールドを特定
+    const updatedFields: string[] = []
+    if (oldProfile.getDisplayName() !== profile.getDisplayName()) {
+      updatedFields.push('displayName')
+    }
+    if (oldProfile.getTimezone() !== profile.getTimezone()) {
+      updatedFields.push('timezone')
+    }
+    if (oldProfile.getLanguage() !== profile.getLanguage()) {
+      updatedFields.push('language')
+    }
+    if (!oldProfile.getPreferences().equals(profile.getPreferences())) {
+      updatedFields.push('preferences')
+    }
+
+    // ドメインイベントを発行
+    if (updatedFields.length > 0) {
+      this.addDomainEvent(
+        new UserProfileUpdatedEvent(this.id.getValue(), oldProfile, profile, updatedFields)
+      )
+    }
   }
 
   /**
@@ -250,10 +299,28 @@ export class User {
       throw new Error('NextAuth IDが一致しません')
     }
 
+    const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
+    const syncedFields: ('email' | 'name' | 'lastLoginAt')[] = []
+
     // メールアドレスの同期
     if (this._email.getValue() !== nextAuthUser.email) {
+      const oldEmail = this._email.getValue()
       this._email = new Email(nextAuthUser.email)
       this._updatedAt = new Date()
+
+      changes.push({
+        field: 'email',
+        oldValue: oldEmail,
+        newValue: nextAuthUser.email,
+      })
+      syncedFields.push('email')
+    }
+
+    // 変更があった場合はイベントを発行
+    if (changes.length > 0) {
+      this.addDomainEvent(
+        new UserSyncedWithNextAuthEvent(this.id.getValue(), this._nextAuthId, syncedFields, changes)
+      )
     }
   }
 
@@ -266,6 +333,6 @@ export class User {
       return false
     }
 
-    return this._id.equals(other._id)
+    return this.id.equals(other.id)
   }
 }
