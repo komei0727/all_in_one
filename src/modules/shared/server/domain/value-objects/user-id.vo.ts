@@ -17,7 +17,7 @@ export class UserId extends ValueObject<string> {
     this.validate(value)
   }
 
-  private validate(value: string): void {
+  protected validate(value: string): void {
     // 必須チェック
     if (value === null || value === undefined) {
       throw new Error('ユーザーIDは必須です')
@@ -44,8 +44,8 @@ export class UserId extends ValueObject<string> {
   /**
    * 等価性を比較
    */
-  equals(other: UserId): boolean {
-    if (!(other instanceof UserId)) {
+  equals(other: ValueObject<string> | null | undefined): boolean {
+    if (!other || !(other instanceof UserId)) {
       return false
     }
     return this.value === other.value

@@ -30,7 +30,7 @@ describe('Userエンティティ', () => {
         nextAuthId: 'next-auth-123',
         email: new Email(emailData.value),
         profile: UserProfile.createDefault('テストユーザー'),
-        status: new UserStatus(statusData.status),
+        status: new UserStatus(statusData.status as any),
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-01T00:00:00Z'),
         lastLoginAt: null

@@ -12,6 +12,8 @@ export interface NextAuthUser {
   name?: string | null
   image?: string | null
   emailVerified?: Date | null
+  createdAt: Date
+  updatedAt: Date
 }
 
 /**
@@ -63,7 +65,14 @@ export class UserApplicationService {
    * NextAuthユーザーからドメインユーザーを作成または更新
    */
   async createOrUpdateFromNextAuth(nextAuthUser: NextAuthUser): Promise<UserDTO> {
-    const user = await this.userIntegrationService.createOrUpdateFromNextAuth(nextAuthUser)
+    // Convert to domain NextAuthUser type, ensuring optional fields are null not undefined
+    const domainNextAuthUser = {
+      ...nextAuthUser,
+      emailVerified: nextAuthUser.emailVerified ?? null,
+      name: nextAuthUser.name ?? null,
+      image: nextAuthUser.image ?? null
+    }
+    const user = await this.userIntegrationService.createOrUpdateFromNextAuth(domainNextAuthUser)
     return this.mapToDTO(user)
   }
 

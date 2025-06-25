@@ -2,15 +2,15 @@ import { BaseBuilder } from '../base.builder'
 import { faker } from '../faker.config'
 
 interface UserPreferencesProps {
-  theme: string
+  theme: 'light' | 'dark' | 'auto'
   notifications: boolean
-  emailFrequency: string
+  emailFrequency: 'daily' | 'weekly' | 'monthly' | 'never'
 }
 
 interface UserProfileProps {
   displayName: string
   timezone: string
-  language: string
+  language: 'ja' | 'en'
   preferences: UserPreferencesProps
 }
 
@@ -23,9 +23,9 @@ export class UserPreferencesBuilder extends BaseBuilder<UserPreferencesProps> {
     super()
     // デフォルト値を設定
     this.props = {
-      theme: faker.helpers.arrayElement(['light', 'dark', 'auto']),
+      theme: faker.helpers.arrayElement(['light', 'dark', 'auto'] as const),
       notifications: faker.datatype.boolean(),
-      emailFrequency: faker.helpers.arrayElement(['daily', 'weekly', 'monthly', 'never'])
+      emailFrequency: faker.helpers.arrayElement(['daily', 'weekly', 'monthly', 'never'] as const)
     }
   }
 
@@ -80,7 +80,7 @@ export class UserProfileBuilder extends BaseBuilder<UserProfileProps> {
     this.props = {
       displayName: faker.person.fullName(),
       timezone: 'Asia/Tokyo',
-      language: 'ja',
+      language: 'ja' as const,
       preferences: new UserPreferencesBuilder().build()
     }
   }

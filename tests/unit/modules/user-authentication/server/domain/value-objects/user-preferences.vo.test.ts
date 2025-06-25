@@ -9,9 +9,9 @@ describe('UserPreferences値オブジェクト', () => {
     it('有効な設定値で作成できる', () => {
       // Arrange（準備）
       const validPreferences = {
-        theme: 'light',
+        theme: 'light' as const,
         notifications: true,
-        emailFrequency: 'weekly'
+        emailFrequency: 'weekly' as const
       }
       
       // Act（実行）
@@ -64,9 +64,9 @@ describe('UserPreferences値オブジェクト', () => {
     it('無効なテーマで作成するとエラーが発生する', () => {
       // Arrange（準備）
       const invalidPreferences = {
-        theme: 'invalid-theme',
+        theme: 'invalid-theme' as any,
         notifications: true,
-        emailFrequency: 'weekly'
+        emailFrequency: 'weekly' as const
       }
       
       // Act & Assert（実行 & 検証）
@@ -77,9 +77,9 @@ describe('UserPreferences値オブジェクト', () => {
     it('無効なメール頻度で作成するとエラーが発生する', () => {
       // Arrange（準備）
       const invalidPreferences = {
-        theme: 'light',
+        theme: 'light' as const,
         notifications: true,
-        emailFrequency: 'invalid-frequency'
+        emailFrequency: 'invalid-frequency' as any
       }
       
       // Act & Assert（実行 & 検証）
@@ -111,9 +111,9 @@ describe('UserPreferences値オブジェクト', () => {
     it('通知設定がbooleanでない場合エラーが発生する', () => {
       // Arrange（準備）
       const invalidPreferences = {
-        theme: 'light',
+        theme: 'light' as const,
         notifications: 'yes' as any, // boolean以外
-        emailFrequency: 'weekly'
+        emailFrequency: 'weekly' as const
       }
       
       // Act & Assert（実行 & 検証）
@@ -126,9 +126,9 @@ describe('UserPreferences値オブジェクト', () => {
     it('各設定値を個別に取得できる', () => {
       // Arrange（準備）
       const preferencesData = {
-        theme: 'dark',
+        theme: 'dark' as const,
         notifications: false,
-        emailFrequency: 'never'
+        emailFrequency: 'never' as const
       }
       
       // Act（実行） - 実装後にコメントアウト解除
@@ -146,9 +146,9 @@ describe('UserPreferences値オブジェクト', () => {
     it('すべての設定値を一括で取得できる', () => {
       // Arrange（準備）
       const preferencesData = {
-        theme: 'auto',
+        theme: 'auto' as const,
         notifications: true,
-        emailFrequency: 'daily'
+        emailFrequency: 'daily' as const
       }
       
       // Act（実行） - 実装後にコメントアウト解除

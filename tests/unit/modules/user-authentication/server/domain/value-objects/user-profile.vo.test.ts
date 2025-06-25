@@ -12,11 +12,11 @@ describe('UserProfile値オブジェクト', () => {
       const validProfile = {
         displayName: '田中 健太',
         timezone: 'Asia/Tokyo',
-        language: 'ja',
+        language: 'ja' as const,
         preferences: new UserPreferences({
-          theme: 'light',
+          theme: 'light' as const,
           notifications: true,
-          emailFrequency: 'weekly'
+          emailFrequency: 'weekly' as const
         })
       }
       
@@ -78,7 +78,7 @@ describe('UserProfile値オブジェクト', () => {
       const invalidProfile = {
         displayName: '',
         timezone: 'Asia/Tokyo',
-        language: 'ja',
+        language: 'ja' as const,
         preferences: UserPreferences.createDefault()
       }
       
@@ -92,7 +92,7 @@ describe('UserProfile値オブジェクト', () => {
       const invalidProfile = {
         displayName: 'a'.repeat(101), // 100文字を超える
         timezone: 'Asia/Tokyo',
-        language: 'ja',
+        language: 'ja' as const,
         preferences: UserPreferences.createDefault()
       }
       
@@ -123,7 +123,7 @@ describe('UserProfile値オブジェクト', () => {
       const invalidProfile = {
         displayName: '田中 健太',
         timezone: 'Invalid/Timezone',
-        language: 'ja',
+        language: 'ja' as const,
         preferences: UserPreferences.createDefault()
       }
       

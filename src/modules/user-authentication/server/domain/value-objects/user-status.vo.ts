@@ -18,7 +18,7 @@ export class UserStatus extends ValueObject<UserStatusType> {
 
   protected validate(value: UserStatusType): void {
     // 必須チェック
-    if (value === null || value === undefined || value === '') {
+    if (value === null || value === undefined) {
       throw new Error('ユーザーステータスは必須です')
     }
 

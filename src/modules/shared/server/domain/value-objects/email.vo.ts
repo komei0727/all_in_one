@@ -24,7 +24,7 @@ export class Email extends ValueObject<string> {
     super(normalizedValue)
   }
 
-  private validate(value: string): void {
+  protected validate(value: string): void {
     // 空文字チェック
     if (value.trim() === '') {
       throw new Error('メールアドレスは必須です')
@@ -77,8 +77,8 @@ export class Email extends ValueObject<string> {
   /**
    * 等価性を比較（大文字小文字を区別しない）
    */
-  equals(other: Email): boolean {
-    if (!(other instanceof Email)) {
+  equals(other: ValueObject<string> | null | undefined): boolean {
+    if (!other || !(other instanceof Email)) {
       return false
     }
     return this.value === other.value

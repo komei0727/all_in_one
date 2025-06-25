@@ -39,7 +39,7 @@ describe('UserStatus値オブジェクト', () => {
       const testStatusData = new UserStatusBuilder().withActive().build()
       
       // Act（実行）
-      const status = new UserStatus(testStatusData.status)
+      const status = new UserStatus(testStatusData.status as any)
       
       // Assert（検証）
       expect(status.getValue()).toBe('ACTIVE')
@@ -63,7 +63,7 @@ describe('UserStatus値オブジェクト', () => {
       
       // Act & Assert（実行 & 検証）
       expect(() => new UserStatus(emptyStatus as any))
-        .toThrow('ユーザーステータスは必須です')
+        .toThrow('無効なユーザーステータスです')
     })
 
     it('nullで作成するとエラーが発生する', () => {
@@ -91,7 +91,7 @@ describe('UserStatus値オブジェクト', () => {
       const activeStatusData = new UserStatusBuilder().withActive().build()
       
       // Act（実行）
-      const status = new UserStatus(activeStatusData.status)
+      const status = new UserStatus(activeStatusData.status as any)
       
       // Assert（検証）
       expect(status.isActive()).toBe(true)
@@ -104,7 +104,7 @@ describe('UserStatus値オブジェクト', () => {
       const deactivatedStatusData = new UserStatusBuilder().withDeactivated().build()
       
       // Act（実行）
-      const status = new UserStatus(deactivatedStatusData.status)
+      const status = new UserStatus(deactivatedStatusData.status as any)
       
       // Assert（検証）
       expect(status.isActive()).toBe(false)
@@ -119,7 +119,7 @@ describe('UserStatus値オブジェクト', () => {
       const deactivatedStatusData = new UserStatusBuilder().withDeactivated().build()
       
       // Act（実行）
-      const original = new UserStatus(deactivatedStatusData.status)
+      const original = new UserStatus(deactivatedStatusData.status as any)
       const activated = original.activate()
       
       // Assert（検証）
@@ -133,7 +133,7 @@ describe('UserStatus値オブジェクト', () => {
       const activeStatusData = new UserStatusBuilder().withActive().build()
       
       // Act（実行）
-      const original = new UserStatus(activeStatusData.status)
+      const original = new UserStatus(activeStatusData.status as any)
       const deactivated = original.deactivate()
       
       // Assert（検証）

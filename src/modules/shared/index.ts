@@ -4,4 +4,4 @@
  */
 
 export * from './server'
-export * from './client'
+// export * from './client' // TODO: クライアントモジュール実装時に有効化

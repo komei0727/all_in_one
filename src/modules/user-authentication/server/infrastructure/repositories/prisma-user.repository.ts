@@ -14,7 +14,7 @@ import { UserStatus } from '@/modules/user-authentication/server/domain/value-ob
  * ドメインモデルのUserエンティティを永続化する
  */
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient | any) {}
 
   /**
    * ユーザーをIDで検索
@@ -150,7 +150,7 @@ export class PrismaUserRepository implements UserRepository {
       skip: offset
     })
 
-    return domainUsers.map(user => this.mapToDomainEntity(user))
+    return domainUsers.map((user: any) => this.mapToDomainEntity(user))
   }
 
   /**

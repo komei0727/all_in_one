@@ -170,7 +170,7 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
       status: this.props.status!,
       createdAt: this.props.createdAt!,
       updatedAt: this.props.updatedAt!,
-      lastLoginAt: this.props.lastLoginAt
+      lastLoginAt: this.props.lastLoginAt ?? null
     }
   }
 }

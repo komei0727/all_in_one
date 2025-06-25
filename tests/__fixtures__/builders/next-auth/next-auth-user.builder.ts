@@ -148,9 +148,9 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
     return {
       id: this.props.id!,
       email: this.props.email!,
-      emailVerified: this.props.emailVerified,
-      name: this.props.name,
-      image: this.props.image,
+      emailVerified: this.props.emailVerified ?? null,
+      name: this.props.name ?? null,
+      image: this.props.image ?? null,
       createdAt: this.props.createdAt!,
       updatedAt: this.props.updatedAt!
     }
