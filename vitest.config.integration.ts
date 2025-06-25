@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node', // 統合テストはNode環境で実行
     globals: true,
     setupFiles: ['./tests/setup/vitest.setup.ts'],
+    globalSetup: './tests/setup/database.setup.ts',
     pool: 'forks', // プロセスを分離してDBの競合を防ぐ
     poolOptions: {
       forks: {
