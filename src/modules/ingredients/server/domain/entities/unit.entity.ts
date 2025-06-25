@@ -1,4 +1,4 @@
-import { UnitId, UnitName, UnitSymbol, DisplayOrder } from '../value-objects'
+import { UnitId, UnitName, UnitSymbol, UnitType, DisplayOrder } from '../value-objects'
 
 /**
  * Unit Entity
@@ -10,13 +10,21 @@ export class Unit {
   readonly id: UnitId
   readonly name: UnitName
   readonly symbol: UnitSymbol
+  readonly type: UnitType
   readonly displayOrder: DisplayOrder
 
-  constructor(props: { id: string; name: string; symbol: string; displayOrder?: number }) {
+  constructor(props: {
+    id: string
+    name: string
+    symbol: string
+    type: string
+    displayOrder?: number
+  }) {
     // 値オブジェクトに変換（バリデーションは値オブジェクト内で実行される）
     this.id = new UnitId(props.id)
     this.name = new UnitName(props.name)
     this.symbol = new UnitSymbol(props.symbol)
+    this.type = new UnitType(props.type)
     this.displayOrder =
       props.displayOrder !== undefined
         ? new DisplayOrder(props.displayOrder)
@@ -45,6 +53,13 @@ export class Unit {
   }
 
   /**
+   * 単位タイプ取得
+   */
+  getType(): string {
+    return this.type.getValue()
+  }
+
+  /**
    * 表示順取得
    */
   getDisplayOrder(): number {
@@ -60,6 +75,7 @@ export class Unit {
       id: this.id.getValue(),
       name: this.name.getValue(),
       symbol: this.symbol.getValue(),
+      type: this.type.getValue(),
       displayOrder: this.displayOrder.getValue(),
     }
   }

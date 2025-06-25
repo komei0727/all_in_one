@@ -83,13 +83,15 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
   /**
    * IDで食材を検索
+   * @param userId ユーザーID
    * @param id 食材ID
    * @returns 食材（見つからない場合はnull）
    */
-  async findById(id: IngredientId): Promise<Ingredient | null> {
-    const result = await this.prisma.ingredient.findUnique({
+  async findById(userId: string, id: IngredientId): Promise<Ingredient | null> {
+    const result = await this.prisma.ingredient.findFirst({
       where: {
         id: id.getValue(),
+        userId,
         deletedAt: null, // 論理削除されていないもののみ
       },
     })
@@ -103,13 +105,15 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
   /**
    * 名前で食材を検索
+   * @param userId ユーザーID
    * @param name 食材名
    * @returns 食材（見つからない場合はnull）
    */
-  async findByName(name: IngredientName): Promise<Ingredient | null> {
+  async findByName(userId: string, name: IngredientName): Promise<Ingredient | null> {
     const result = await this.prisma.ingredient.findFirst({
       where: {
         name: name.getValue(),
+        userId,
         deletedAt: null, // 論理削除されていないもののみ
       },
     })
@@ -123,11 +127,13 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
   /**
    * すべての食材を取得
+   * @param userId ユーザーID
    * @returns 食材のリスト
    */
-  async findAll(): Promise<Ingredient[]> {
+  async findAll(userId: string): Promise<Ingredient[]> {
     const results = await this.prisma.ingredient.findMany({
       where: {
+        userId,
         deletedAt: null, // 論理削除されていないもののみ
       },
       orderBy: { createdAt: 'desc' },
@@ -138,10 +144,18 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
   /**
    * 食材を削除
+   * @param userId ユーザーID
    * @param id 削除する食材のID
    */
-  async delete(id: IngredientId): Promise<void> {
+  async delete(userId: string, id: IngredientId): Promise<void> {
     // 論理削除の実装
+    // まずユーザーが所有する食材か確認
+    const ingredient = await this.findById(userId, id)
+    if (!ingredient) {
+      // ユーザーが所有しない食材は削除できない
+      return
+    }
+
     await this.prisma.ingredient.update({
       where: { id: id.getValue() },
       data: {
@@ -165,6 +179,220 @@ export class PrismaIngredientRepository implements IngredientRepository {
     })
 
     return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 期限切れ間近の食材を検索
+   * @param userId ユーザーID
+   * @param days 期限切れまでの日数
+   * @returns 食材のリスト
+   */
+  async findExpiringSoon(userId: string, days: number): Promise<Ingredient[]> {
+    // 今日の開始時刻（00:00:00）
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // 指定日数後の終了時刻（23:59:59）
+    const expiryDate = new Date()
+    expiryDate.setDate(expiryDate.getDate() + days)
+    expiryDate.setHours(23, 59, 59, 999)
+
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        OR: [
+          {
+            bestBeforeDate: {
+              lte: expiryDate,
+              gte: today,
+            },
+          },
+          {
+            useByDate: {
+              lte: expiryDate,
+              gte: today,
+            },
+          },
+        ],
+      },
+      orderBy: [{ useByDate: 'asc' }, { bestBeforeDate: 'asc' }, { createdAt: 'desc' }],
+    })
+
+    return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 期限切れの食材を検索
+   * @param userId ユーザーID
+   * @returns 食材のリスト
+   */
+  async findExpired(userId: string): Promise<Ingredient[]> {
+    // 今日の開始時刻（00:00:00）
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        OR: [
+          {
+            bestBeforeDate: {
+              lt: today,
+            },
+          },
+          {
+            useByDate: {
+              lt: today,
+            },
+          },
+        ],
+      },
+      orderBy: [{ useByDate: 'asc' }, { bestBeforeDate: 'asc' }, { createdAt: 'desc' }],
+    })
+
+    return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * カテゴリーで食材を検索
+   * @param userId ユーザーID
+   * @param categoryId カテゴリーID
+   * @returns 食材のリスト
+   */
+  async findByCategory(userId: string, categoryId: string): Promise<Ingredient[]> {
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        categoryId,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 保存場所で食材を検索
+   * @param userId ユーザーID
+   * @param location 保存場所
+   * @returns 食材のリスト
+   */
+  async findByStorageLocation(userId: string, location: StorageType): Promise<Ingredient[]> {
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        storageLocationType: location,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 在庫切れの食材を検索
+   * @param userId ユーザーID
+   * @returns 食材のリスト
+   */
+  async findOutOfStock(userId: string): Promise<Ingredient[]> {
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        quantity: 0,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 在庫不足の食材を検索
+   * @param userId ユーザーID
+   * @param threshold 閾値（省略時はthresholdの値を使用）
+   * @returns 食材のリスト
+   */
+  async findLowStock(userId: string, threshold?: number): Promise<Ingredient[]> {
+    // thresholdが指定されている場合は、その値以下の在庫を検索
+    if (threshold !== undefined) {
+      const results = await this.prisma.ingredient.findMany({
+        where: {
+          userId,
+          quantity: {
+            lte: threshold,
+            gt: 0, // 在庫切れは除外
+          },
+          deletedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      return results.map((result) => this.toEntity(result as any))
+    }
+
+    // thresholdが指定されていない場合は、各食材のthreshold値を使用
+    const results = await this.prisma.ingredient.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        // Prismaの制約で、フィールド同士の比較は直接できないため、
+        // 全て取得してからフィルタリングする
+        threshold: {
+          not: null, // thresholdが設定されているもののみ
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // フィルタリング: quantity <= threshold かつ quantity > 0
+    const filteredResults = results.filter(
+      (result) =>
+        result.threshold !== null && result.quantity <= result.threshold && result.quantity > 0
+    )
+
+    return filteredResults.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 重複チェック（同じユーザー、名前、期限情報、保存場所）
+   * @param userId ユーザーID
+   * @param name 食材名
+   * @param expiryInfo 期限情報
+   * @param location 保存場所
+   * @returns 存在する場合はtrue
+   */
+  async existsByUserAndNameAndExpiryAndLocation(
+    userId: string,
+    name: IngredientName,
+    expiryInfo: ExpiryInfo | null,
+    location: StorageLocation
+  ): Promise<boolean> {
+    const where: Prisma.IngredientWhereInput = {
+      userId,
+      name: name.getValue(),
+      storageLocationType: location.getType(),
+      storageLocationDetail: location.getDetail() || null,
+      deletedAt: null,
+    }
+
+    // 期限情報がある場合の条件設定
+    if (expiryInfo) {
+      where.bestBeforeDate = expiryInfo.getBestBeforeDate() || null
+      where.useByDate = expiryInfo.getUseByDate() || null
+    } else {
+      // 期限情報がない場合は、両方nullの条件
+      where.bestBeforeDate = null
+      where.useByDate = null
+    }
+
+    const count = await this.prisma.ingredient.count({ where })
+
+    return count > 0
   }
 
   /**

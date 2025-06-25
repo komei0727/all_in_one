@@ -95,6 +95,14 @@ export class ExpiryInfo extends ValueObject<{
   }
 
   /**
+   * 残り日数を取得（エイリアス）
+   * @returns 期限までの日数（過ぎている場合は負の値）、期限がない場合は0
+   */
+  getRemainingDays(): number {
+    return this.getDaysUntilExpiry() ?? 0
+  }
+
+  /**
    * 有効な期限日を取得（賞味期限を優先）
    * @returns 賞味期限または消費期限、どちらもない場合はnull
    */

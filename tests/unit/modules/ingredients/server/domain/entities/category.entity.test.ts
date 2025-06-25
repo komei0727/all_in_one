@@ -45,6 +45,32 @@ describe('Category', () => {
       expect(category.getDisplayOrder()).toBe(displayOrder)
     })
 
+    it('説明付きでカテゴリーを作成できる', () => {
+      // 説明付きのカテゴリーを作成
+      const description = '新鮮な野菜類を管理するカテゴリーです'
+      const category = new CategoryBuilder().withName('野菜').withDescription(description).build()
+
+      // Assert
+      expect(category.getDescription()).toBe(description)
+    })
+
+    it('説明がnullのカテゴリーを作成できる', () => {
+      // 説明なしのカテゴリーを作成
+      const category = new CategoryBuilder().withName('野菜').withDescription(null).build()
+
+      // Assert
+      expect(category.getDescription()).toBeNull()
+    })
+
+    it('説明が100文字以内であることを確認', () => {
+      // 100文字以内の説明は許可される
+      const validDescription = 'あ'.repeat(100) // 100文字の説明
+      const category = new CategoryBuilder().withDescription(validDescription).build()
+
+      // Assert
+      expect(category.getDescription()).toBe(validDescription)
+    })
+
     it('displayOrderが指定されない場合はデフォルト値を使用する', () => {
       // Arrange & Act
       const category = new Category({
@@ -74,6 +100,7 @@ describe('Category', () => {
       expect(json).toEqual({
         id: 'cat1',
         name: '野菜',
+        description: null, // デフォルトはnull
         displayOrder: 5,
       })
     })

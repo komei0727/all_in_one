@@ -51,13 +51,16 @@ const createIngredientForIntegrationTest = () => {
       ) ?? null
     )
     .withExpiryInfo(
-      faker.helpers.maybe(
-        () =>
-          new ExpiryInfo({
-            bestBeforeDate: faker.date.future(),
-            useByDate: faker.helpers.maybe(() => faker.date.future()) ?? null,
-          })
-      ) ?? null
+      faker.helpers.maybe(() => {
+        const bestBeforeDate = faker.date.future()
+        const useByDate =
+          faker.helpers.maybe(() => faker.date.between({ from: new Date(), to: bestBeforeDate })) ??
+          null
+        return new ExpiryInfo({
+          bestBeforeDate,
+          useByDate,
+        })
+      }) ?? null
     )
     .build()
 }
@@ -217,7 +220,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: IDで検索
-      const found = await repository.findById(new IngredientId(ingredientId))
+      const found = await repository.findById(userId, new IngredientId(ingredientId))
 
       // Then: 食材が見つかる
       expect(found).toBeDefined()
@@ -232,8 +235,9 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('存在しないIDの場合nullを返す', async () => {
       // When: 存在しないIDで検索
+      const userId = 'test-user-123'
       const nonExistentId = faker.string.uuid()
-      const found = await repository.findById(new IngredientId(nonExistentId))
+      const found = await repository.findById(userId, new IngredientId(nonExistentId))
 
       // Then: nullが返される
       expect(found).toBeNull()
@@ -259,7 +263,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: 検索
-      const found = await repository.findById(new IngredientId(ingredientId))
+      const found = await repository.findById(userId, new IngredientId(ingredientId))
 
       // Then: 見つからない
       expect(found).toBeNull()
@@ -286,7 +290,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: 名前で検索
-      const found = await repository.findByName(new IngredientName(ingredientName))
+      const found = await repository.findByName(userId, new IngredientName(ingredientName))
 
       // Then: 食材が見つかる
       expect(found).toBeDefined()
@@ -325,7 +329,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: 名前で検索
-      const found = await repository.findByName(new IngredientName(duplicateName))
+      const found = await repository.findByName(userId, new IngredientName(duplicateName))
 
       // Then: 1件のみ返される
       expect(found).toBeDefined()
@@ -362,7 +366,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           },
           {
             id: faker.string.uuid(),
-            userId: 'test-user-456',
+            userId,
             name: names[2],
             categoryId: 'cat00003',
             purchaseDate: new Date(),
@@ -374,7 +378,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: すべて取得
-      const ingredients = await repository.findAll()
+      const ingredients = await repository.findAll(userId)
 
       // Then: 3件取得される
       expect(ingredients).toHaveLength(3)
@@ -416,7 +420,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: すべて取得
-      const ingredients = await repository.findAll()
+      const ingredients = await repository.findAll(userId)
 
       // Then: アクティブな食材のみ
       expect(ingredients).toHaveLength(1)
@@ -500,7 +504,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       // When: 削除
-      await repository.delete(new IngredientId(ingredientId))
+      await repository.delete(userId, new IngredientId(ingredientId))
 
       // Then: 論理削除されている
       const deleted = await prisma.ingredient.findUnique({
@@ -510,7 +514,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       expect(deleted?.deletedAt).toBeInstanceOf(Date)
 
       // 検索では見つからない
-      const found = await repository.findById(new IngredientId(ingredientId))
+      const found = await repository.findById(userId, new IngredientId(ingredientId))
       expect(found).toBeNull()
     })
   })
@@ -574,7 +578,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
       // When: 保存して取得
       await repository.save(ingredient)
-      const found = await repository.findById(ingredient.getId())
+      const found = await repository.findById(ingredient.getUserId(), ingredient.getId())
 
       // Then: 価格が正確に保持されている
       expect(found?.getPrice()?.getValue()).toBe(precisePrice)

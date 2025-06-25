@@ -28,6 +28,7 @@ export class PrismaUnitRepository implements UnitRepository {
         id: unit.id,
         name: unit.name,
         symbol: unit.symbol,
+        type: unit.type,
         displayOrder: unit.displayOrder,
       })
     })
@@ -50,6 +51,7 @@ export class PrismaUnitRepository implements UnitRepository {
       id: unit.id,
       name: unit.name,
       symbol: unit.symbol,
+      type: unit.type,
       displayOrder: unit.displayOrder,
     })
   }

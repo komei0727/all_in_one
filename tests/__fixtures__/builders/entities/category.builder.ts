@@ -6,6 +6,7 @@ import { faker, testDataHelpers } from '../faker.config'
 interface CategoryProps {
   id: string
   name: string
+  description?: string | null
   displayOrder: number
 }
 
@@ -19,6 +20,7 @@ export class CategoryBuilder extends BaseBuilder<CategoryProps, Category> {
     this.props = {
       id: testDataHelpers.cuid(),
       name: testDataHelpers.categoryName(),
+      description: null, // デフォルトはnull
       displayOrder: faker.number.int({ min: 1, max: 999 }),
     }
   }
@@ -49,6 +51,24 @@ export class CategoryBuilder extends BaseBuilder<CategoryProps, Category> {
    */
   withRandomName(): this {
     return this.with('name', testDataHelpers.categoryName())
+  }
+
+  /**
+   * 説明を設定
+   */
+  withDescription(description: string | null): this {
+    return this.with('description', description)
+  }
+
+  /**
+   * ランダムな説明を設定
+   */
+  withRandomDescription(): this {
+    const description = faker.lorem.sentence({ min: 5, max: 15 })
+    return this.with(
+      'description',
+      description.length <= 100 ? description : description.substring(0, 100)
+    )
   }
 
   /**
@@ -98,6 +118,7 @@ export const createTestCategory = (
   overrides?: Partial<{
     id: string
     name: string
+    description: string | null
     displayOrder: number
   }>
 ): Category => {
@@ -108,6 +129,9 @@ export const createTestCategory = (
   }
   if (overrides?.name) {
     builder.withName(overrides.name)
+  }
+  if (overrides?.description !== undefined) {
+    builder.withDescription(overrides.description)
   }
   if (overrides?.displayOrder !== undefined) {
     builder.withDisplayOrder(overrides.displayOrder)

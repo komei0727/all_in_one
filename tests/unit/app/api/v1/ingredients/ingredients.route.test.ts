@@ -139,9 +139,7 @@ describe('POST /api/v1/ingredients', () => {
       new Date().toISOString()
     )
 
-    vi.mocked(mockApiHandler.handle).mockResolvedValue({
-      ingredient: mockIngredientDto,
-    })
+    vi.mocked(mockApiHandler.handle).mockResolvedValue(mockIngredientDto.toJSON())
 
     // リクエストの作成
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {

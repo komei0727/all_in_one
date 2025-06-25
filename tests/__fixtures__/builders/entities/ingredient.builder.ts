@@ -145,8 +145,23 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
   /**
    * 期限情報を設定
    */
-  withExpiryInfo(expiryInfo: ExpiryInfo | null): this {
-    return this.with('expiryInfo', expiryInfo)
+  withExpiryInfo(
+    expiryInfo: { bestBeforeDate?: Date | null; useByDate?: Date | null } | ExpiryInfo | null
+  ): this {
+    if (!expiryInfo) {
+      return this.with('expiryInfo', null)
+    }
+
+    if (expiryInfo instanceof ExpiryInfo) {
+      return this.with('expiryInfo', expiryInfo)
+    }
+
+    // オブジェクトの場合はExpiryInfoに変換
+    const newExpiryInfo = new ExpiryInfo({
+      bestBeforeDate: expiryInfo.bestBeforeDate || null,
+      useByDate: expiryInfo.useByDate || null,
+    })
+    return this.with('expiryInfo', newExpiryInfo)
   }
 
   /**
@@ -238,6 +253,23 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
       quantity: 0,
       unitId: new UnitId('unit1'),
       storageLocation: new StorageLocation(StorageType.REFRIGERATED),
+    })
+    return this.with('ingredientStock', stock)
+  }
+
+  /**
+   * 在庫数量を設定（既存の単位とストレージ情報を保持）
+   */
+  withQuantity(quantity: number): this {
+    const currentStock = this.props.ingredientStock
+    if (!currentStock) {
+      throw new Error('ingredientStock must be set before calling withQuantity')
+    }
+    const stock = new IngredientStock({
+      quantity,
+      unitId: currentStock.getUnitId(),
+      storageLocation: currentStock.getStorageLocation(),
+      threshold: currentStock.getThreshold(),
     })
     return this.with('ingredientStock', stock)
   }

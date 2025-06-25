@@ -139,17 +139,19 @@ describe('PrismaIngredientRepository', () => {
   describe('findById', () => {
     it('IDで食材を検索できる', async () => {
       // モックの設定
-      vi.mocked(prismaClient.ingredient.findUnique).mockResolvedValue(mockIngredientData as any)
+      vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(mockIngredientData as any)
 
       // 実行
       const result = await repository.findById(
+        'user-123',
         new IngredientId('550e8400-e29b-41d4-a716-446655440000')
       )
 
       // 検証
-      expect(prismaClient.ingredient.findUnique).toHaveBeenCalledWith({
+      expect(prismaClient.ingredient.findFirst).toHaveBeenCalledWith({
         where: {
           id: '550e8400-e29b-41d4-a716-446655440000',
+          userId: 'user-123',
           deletedAt: null,
         },
       })
@@ -162,10 +164,11 @@ describe('PrismaIngredientRepository', () => {
 
     it('存在しない場合はnullを返す', async () => {
       // モックの設定
-      vi.mocked(prismaClient.ingredient.findUnique).mockResolvedValue(null)
+      vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(null)
 
       // 実行
       const result = await repository.findById(
+        'user-123',
         new IngredientId('550e8400-e29b-41d4-a716-446655440999')
       )
 
@@ -180,12 +183,13 @@ describe('PrismaIngredientRepository', () => {
       vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(mockIngredientData as any)
 
       // 実行
-      const result = await repository.findByName(new IngredientName('トマト'))
+      const result = await repository.findByName('user-123', new IngredientName('トマト'))
 
       // 検証
       expect(prismaClient.ingredient.findFirst).toHaveBeenCalledWith({
         where: {
           name: 'トマト',
+          userId: 'user-123',
           deletedAt: null,
         },
       })
@@ -201,11 +205,12 @@ describe('PrismaIngredientRepository', () => {
       vi.mocked(prismaClient.ingredient.findMany).mockResolvedValue([mockIngredientData] as any)
 
       // 実行
-      const results = await repository.findAll()
+      const results = await repository.findAll('user-123')
 
       // 検証
       expect(prismaClient.ingredient.findMany).toHaveBeenCalledWith({
         where: {
+          userId: 'user-123',
           deletedAt: null,
         },
         orderBy: { createdAt: 'desc' },
@@ -243,21 +248,40 @@ describe('PrismaIngredientRepository', () => {
   describe('delete', () => {
     it('食材を論理削除できる', async () => {
       // モックの設定
+      vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(mockIngredientData as any)
       vi.mocked(prismaClient.ingredient.update).mockResolvedValue({
         ...mockIngredientData,
         deletedAt: new Date(),
       } as any)
 
       // 実行
-      await repository.delete(new IngredientId('550e8400-e29b-41d4-a716-446655440000'))
+      await repository.delete('user-123', new IngredientId('550e8400-e29b-41d4-a716-446655440000'))
 
       // 検証
+      expect(prismaClient.ingredient.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          userId: 'user-123',
+          deletedAt: null,
+        },
+      })
       expect(prismaClient.ingredient.update).toHaveBeenCalledWith({
         where: { id: '550e8400-e29b-41d4-a716-446655440000' },
         data: {
           deletedAt: expect.any(Date),
         },
       })
+    })
+
+    it('他のユーザーの食材は削除できない', async () => {
+      // モックの設定 - 食材が見つからない
+      vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(null)
+
+      // 実行
+      await repository.delete('user-123', new IngredientId('550e8400-e29b-41d4-a716-446655440000'))
+
+      // 検証 - updateが呼ばれないことを確認
+      expect(prismaClient.ingredient.update).not.toHaveBeenCalled()
     })
   })
 })
