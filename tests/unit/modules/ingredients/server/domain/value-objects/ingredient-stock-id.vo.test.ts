@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { ValidationException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
+import { ValidationException } from '@/modules/ingredients/server/domain/exceptions'
 import { IngredientStockId } from '@/modules/ingredients/server/domain/value-objects/ingredient-stock-id.vo'
 
 import { testDataHelpers, faker } from '../../../../../../__fixtures__/builders/faker.config'

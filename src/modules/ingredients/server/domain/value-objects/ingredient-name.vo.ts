@@ -1,6 +1,6 @@
 import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
 
-import { ValidationException } from '../exceptions/validation.exception'
+import { ValidationException } from '../exceptions'
 
 /**
  * 食材名値オブジェクト

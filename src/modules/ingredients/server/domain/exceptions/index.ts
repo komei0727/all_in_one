@@ -1,16 +1,14 @@
-export { DomainException } from './domain.exception'
+// 共有カーネルから再エクスポート
 export {
+  DomainException,
   NotFoundException,
-  CategoryNotFoundException,
-  UnitNotFoundException,
-} from './not-found.exception'
-export {
   ValidationException,
   RequiredFieldException,
   InvalidFieldException,
-} from './validation.exception'
-export {
   BusinessRuleException,
   DuplicateException,
   OperationNotAllowedException,
-} from './business-rule.exception'
+} from '@/modules/shared/server/domain/exceptions'
+
+// ドメイン固有の例外
+export { CategoryNotFoundException, UnitNotFoundException } from './not-found.exception'

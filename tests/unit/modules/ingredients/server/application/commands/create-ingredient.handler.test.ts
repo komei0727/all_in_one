@@ -2,7 +2,10 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
+import {
+  CategoryNotFoundException,
+  UnitNotFoundException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
@@ -84,7 +87,7 @@ describe('CreateIngredientHandler', () => {
       vi.mocked(categoryRepository.findById).mockResolvedValue(null)
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(NotFoundException)
+      await expect(handler.execute(command)).rejects.toThrow(CategoryNotFoundException)
       await expect(handler.execute(command)).rejects.toThrow('Category not found')
     })
 
@@ -101,7 +104,7 @@ describe('CreateIngredientHandler', () => {
       vi.mocked(unitRepository.findById).mockResolvedValue(null)
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(NotFoundException)
+      await expect(handler.execute(command)).rejects.toThrow(UnitNotFoundException)
       await expect(handler.execute(command)).rejects.toThrow('Unit not found')
     })
 

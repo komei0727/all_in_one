@@ -1,6 +1,6 @@
 import { StorageLocation } from './storage-location.vo'
 import { UnitId } from './unit-id.vo'
-import { ValidationException } from '../exceptions/validation.exception'
+import { ValidationException } from '../exceptions'
 
 /**
  * 食材在庫値オブジェクト
