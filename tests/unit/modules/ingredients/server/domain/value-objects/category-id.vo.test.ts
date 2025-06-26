@@ -1,64 +1,83 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
-import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
+import {
+  RequiredFieldException,
+  InvalidFieldException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+// createIdのモック
+vi.mock('@paralleldrive/cuid2', () => ({
+  createId: vi.fn(() => 'clh7qp8kg0000qzrm5b8j5n8k'),
+}))
 
 describe('CategoryId', () => {
-  describe('create', () => {
+  describe('constructor', () => {
     // 正常系のテスト
-    it('有効なIDでインスタンスを生成できる', () => {
+    it('有効なプレフィックス付きCUIDでインスタンスを生成できる', () => {
       // Arrange
-      const id = testDataHelpers.cuid()
+      const id = 'cat_clh7qp8kg0000qzrm5b8j5n8k'
 
       // Act
-      const categoryId = CategoryId.create(id)
+      const categoryId = new CategoryId(id)
 
       // Assert
       expect(categoryId.getValue()).toBe(id)
     })
 
-    it('CUID形式のIDを許可する', () => {
+    it('プレフィックスが異なる場合エラーをスローする', () => {
       // Arrange
-      const id = testDataHelpers.cuid()
+      const wrongPrefixId = 'unt_clh7qp8kg0000qzrm5b8j5n8k'
 
-      // Act
-      const categoryId = CategoryId.create(id)
+      // Act & Assert
+      expect(() => new CategoryId(wrongPrefixId)).toThrow(InvalidFieldException)
+      expect(() => new CategoryId(wrongPrefixId)).toThrow('cat_で始まる必要があります')
+    })
 
-      // Assert
-      expect(categoryId.getValue()).toBe(id)
-      // CUIDは英数字で構成される
-      expect(categoryId.getValue()).toMatch(/^[a-zA-Z0-9]+$/)
+    it('プレフィックスがない場合エラーをスローする', () => {
+      // Arrange
+      const noPrefixId = 'clh7qp8kg0000qzrm5b8j5n8k'
+
+      // Act & Assert
+      expect(() => new CategoryId(noPrefixId)).toThrow(InvalidFieldException)
+      expect(() => new CategoryId(noPrefixId)).toThrow('cat_で始まる必要があります')
     })
 
     // 異常系のテスト
     it('空文字の場合はRequiredFieldExceptionをスローする', () => {
-      expect(() => CategoryId.create('')).toThrow(RequiredFieldException)
-      expect(() => CategoryId.create('')).toThrow('カテゴリーIDは必須です')
+      expect(() => new CategoryId('')).toThrow(RequiredFieldException)
+      expect(() => new CategoryId('')).toThrow('カテゴリーIDは必須です')
     })
 
     it('空白のみの場合はRequiredFieldExceptionをスローする', () => {
-      expect(() => CategoryId.create('   ')).toThrow(RequiredFieldException)
+      expect(() => new CategoryId('   ')).toThrow(RequiredFieldException)
     })
 
-    it('undefinedの場合はRequiredFieldExceptionをスローする', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(() => CategoryId.create(undefined as any)).toThrow(RequiredFieldException)
+    it('CUID形式でない場合エラーをスローする', () => {
+      const invalidCuid = 'cat_invalid-format'
+      expect(() => new CategoryId(invalidCuid)).toThrow(InvalidFieldException)
+      expect(() => new CategoryId(invalidCuid)).toThrow('CUID v2形式で入力してください')
     })
+  })
 
-    it('nullの場合はRequiredFieldExceptionをスローする', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(() => CategoryId.create(null as any)).toThrow(RequiredFieldException)
+  describe('generate', () => {
+    it('新しいカテゴリーIDを生成できる', () => {
+      // Act
+      const categoryId = CategoryId.generate()
+
+      // Assert
+      expect(categoryId).toBeInstanceOf(CategoryId)
+      expect(categoryId.getValue()).toBe('cat_clh7qp8kg0000qzrm5b8j5n8k')
+      expect(categoryId.getValue().startsWith('cat_')).toBe(true)
     })
   })
 
   describe('equals', () => {
     it('同じ値の場合はtrueを返す', () => {
       // Arrange
-      const id = testDataHelpers.cuid()
-      const id1 = CategoryId.create(id)
-      const id2 = CategoryId.create(id)
+      const id = 'cat_clh7qp8kg0000qzrm5b8j5n8k'
+      const id1 = new CategoryId(id)
+      const id2 = new CategoryId(id)
 
       // Act & Assert
       expect(id1.equals(id2)).toBe(true)
@@ -66,11 +85,25 @@ describe('CategoryId', () => {
 
     it('異なる値の場合はfalseを返す', () => {
       // Arrange
-      const id1 = CategoryId.create(testDataHelpers.cuid())
-      const id2 = CategoryId.create(testDataHelpers.cuid())
+      const id1 = new CategoryId('cat_clh7qp8kg0000qzrm5b8j5n8k')
+      const id2 = new CategoryId('cat_clh7qp8kg0001qzrm5b8j5n8l')
 
       // Act & Assert
       expect(id1.equals(id2)).toBe(false)
+    })
+  })
+
+  describe('getCoreId', () => {
+    it('プレフィックスを除いたCUID部分を取得できる', () => {
+      // Arrange
+      const fullId = 'cat_clh7qp8kg0000qzrm5b8j5n8k'
+      const id = new CategoryId(fullId)
+
+      // Act
+      const coreId = id.getCoreId()
+
+      // Assert
+      expect(coreId).toBe('clh7qp8kg0000qzrm5b8j5n8k')
     })
   })
 })

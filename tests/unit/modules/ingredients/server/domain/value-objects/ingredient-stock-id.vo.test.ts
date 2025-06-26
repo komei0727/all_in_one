@@ -1,112 +1,112 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
-import { ValidationException } from '@/modules/ingredients/server/domain/exceptions'
+import {
+  InvalidFieldException,
+  RequiredFieldException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { IngredientStockId } from '@/modules/ingredients/server/domain/value-objects/ingredient-stock-id.vo'
 
-import { testDataHelpers, faker } from '../../../../../../__fixtures__/builders/faker.config'
+import { faker } from '../../../../../../__fixtures__/builders/faker.config'
+
+// createIdのモック
+vi.mock('@paralleldrive/cuid2', () => ({
+  createId: vi.fn(() => 'clh7qp8kg0000qzrm5b8j5n8k'),
+}))
 
 describe('IngredientStockId', () => {
   describe('constructor', () => {
-    it('有効なCUID形式のIDで作成できる', () => {
-      // 最小8文字の英数字
-      const cuid = testDataHelpers.cuid()
-      const id = new IngredientStockId(cuid)
-      expect(id.getValue()).toBe(cuid)
-    })
-
-    it('8文字の英数字で作成できる', () => {
-      // 最小文字数のテスト
-      const validId = faker.string.alphanumeric(8)
+    it('有効なプレフィックス付きCUID形式のIDで作成できる', () => {
+      // プレフィックス付きCUID
+      const validId = 'stk_clh7qp8kg0000qzrm5b8j5n8k'
       const id = new IngredientStockId(validId)
       expect(id.getValue()).toBe(validId)
     })
 
-    it('大文字を含むIDで作成できる', () => {
-      // 大文字小文字混在のテスト
-      const validId = faker.string.alphanumeric({ length: 9, casing: 'mixed' })
-      const id = new IngredientStockId(validId)
-      expect(id.getValue()).toBe(validId)
+    it('プレフィックスが異なる場合エラーをスローする', () => {
+      // 他のIDのプレフィックス
+      const wrongPrefixId = 'ing_clh7qp8kg0000qzrm5b8j5n8k'
+      expect(() => new IngredientStockId(wrongPrefixId)).toThrow(InvalidFieldException)
+      expect(() => new IngredientStockId(wrongPrefixId)).toThrow('stk_で始まる必要があります')
+    })
+
+    it('プレフィックスがない場合エラーをスローする', () => {
+      // プレフィックスなし
+      const noPrefixId = 'clh7qp8kg0000qzrm5b8j5n8k'
+      expect(() => new IngredientStockId(noPrefixId)).toThrow(InvalidFieldException)
+      expect(() => new IngredientStockId(noPrefixId)).toThrow('stk_で始まる必要があります')
     })
   })
 
   describe('validation', () => {
     it('空文字の場合はエラーを投げる', () => {
       // 空文字のバリデーション
-      expect(() => new IngredientStockId('')).toThrow(ValidationException)
+      expect(() => new IngredientStockId('')).toThrow(RequiredFieldException)
       expect(() => new IngredientStockId('')).toThrow('食材在庫IDは必須です')
     })
 
     it('空白文字のみの場合はエラーを投げる', () => {
       // 空白文字のバリデーション
-      expect(() => new IngredientStockId('   ')).toThrow(ValidationException)
+      expect(() => new IngredientStockId('   ')).toThrow(RequiredFieldException)
       expect(() => new IngredientStockId('   ')).toThrow('食材在庫IDは必須です')
     })
 
-    it('7文字以下の場合はエラーを投げる', () => {
-      // 最小文字数未満のバリデーション
-      const shortId = faker.string.alphanumeric(6)
-      expect(() => new IngredientStockId(shortId)).toThrow(ValidationException)
-      expect(() => new IngredientStockId(shortId)).toThrow('食材在庫IDの形式が正しくありません')
+    it('CUID形式でない場合はエラーを投げる', () => {
+      // プレフィックス付きでもCUID部分が無効
+      const invalidCuid = 'stk_' + faker.lorem.word()
+      expect(() => new IngredientStockId(invalidCuid)).toThrow(InvalidFieldException)
+      expect(() => new IngredientStockId(invalidCuid)).toThrow('CUID v2形式で入力してください')
     })
 
-    it('英数字以外を含む場合はエラーを投げる', () => {
-      // 特殊文字を含む場合のバリデーション
-      const invalidIds = [
-        faker.string.alphanumeric(5) + '-' + faker.string.alphanumeric(3),
-        faker.string.alphanumeric(5) + '_' + faker.string.alphanumeric(3),
-        faker.string.alphanumeric(5) + '@' + faker.string.alphanumeric(3),
-        faker.string.alphanumeric(5) + '/' + faker.string.alphanumeric(3),
-      ]
-
-      invalidIds.forEach((invalidId) => {
-        expect(() => new IngredientStockId(invalidId)).toThrow(ValidationException)
-        expect(() => new IngredientStockId(invalidId)).toThrow('食材在庫IDの形式が正しくありません')
-      })
+    it('プレフィックスのみの場合はエラーを投げる', () => {
+      // プレフィックスのみ
+      expect(() => new IngredientStockId('stk_')).toThrow(InvalidFieldException)
+      expect(() => new IngredientStockId('stk_')).toThrow('CUID v2形式で入力してください')
     })
   })
 
   describe('generate', () => {
-    it('新しいCUID形式のIDを生成できる', () => {
+    it('新しいプレフィックス付きCUID形式のIDを生成できる', () => {
       // ID生成のテスト
-      const id1 = IngredientStockId.generate()
-      const id2 = IngredientStockId.generate()
+      const id = IngredientStockId.generate()
 
       // 生成されたIDが有効であることを確認
-      expect(id1).toBeInstanceOf(IngredientStockId)
-      expect(id2).toBeInstanceOf(IngredientStockId)
-
-      // IDがユニークであることを確認
-      expect(id1.getValue()).not.toBe(id2.getValue())
-
-      // 生成されたIDがCUID形式に準拠していることを確認
-      expect(id1.getValue()).toMatch(/^c[a-zA-Z0-9]+$/)
-      expect(id1.getValue().length).toBeGreaterThanOrEqual(8)
-      expect(id1.getValue().length).toBeLessThanOrEqual(25)
+      expect(id).toBeInstanceOf(IngredientStockId)
+      expect(id.getValue()).toBe('stk_clh7qp8kg0000qzrm5b8j5n8k')
+      expect(id.getValue().startsWith('stk_')).toBe(true)
     })
 
-    it('生成されたIDは常に"c"で始まる', () => {
-      // CUID形式のプレフィックス確認
-      for (let i = 0; i < 10; i++) {
-        const id = IngredientStockId.generate()
-        expect(id.getValue()).toMatch(/^c/)
-      }
+    it('生成されたIDは正しいプレフィックスを持つ', () => {
+      // プレフィックス確認
+      const id = IngredientStockId.generate()
+      expect(id.getValue().startsWith('stk_')).toBe(true)
+      expect(id).toBeInstanceOf(IngredientStockId)
     })
   })
 
   describe('equals', () => {
     it('同じ値のIDは等しいと判定される', () => {
       // 等価性のテスト
-      const cuid = testDataHelpers.cuid()
-      const id1 = new IngredientStockId(cuid)
-      const id2 = new IngredientStockId(cuid)
+      const id = 'stk_clh7qp8kg0000qzrm5b8j5n8k'
+      const id1 = new IngredientStockId(id)
+      const id2 = new IngredientStockId(id)
       expect(id1.equals(id2)).toBe(true)
     })
 
     it('異なる値のIDは等しくないと判定される', () => {
       // 非等価性のテスト
-      const id1 = new IngredientStockId(testDataHelpers.cuid())
-      const id2 = new IngredientStockId(testDataHelpers.cuid())
+      const id1 = new IngredientStockId('stk_clh7qp8kg0000qzrm5b8j5n8k')
+      const id2 = new IngredientStockId('stk_clh7qp8kg0001qzrm5b8j5n8l')
       expect(id1.equals(id2)).toBe(false)
+    })
+  })
+
+  describe('getCoreId', () => {
+    it('プレフィックスを除いたCUID部分を取得できる', () => {
+      // CUID部分の取得
+      const fullId = 'stk_clh7qp8kg0000qzrm5b8j5n8k'
+      const id = new IngredientStockId(fullId)
+      const coreId = id.getCoreId()
+      expect(coreId).toBe('clh7qp8kg0000qzrm5b8j5n8k')
     })
   })
 })

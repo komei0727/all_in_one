@@ -43,16 +43,14 @@ describe('CategoryName', () => {
 
     it('nullの場合、RequiredFieldExceptionをスローする', () => {
       expect(() => CategoryName.create(null as unknown as string)).toThrow(RequiredFieldException)
-      expect(() => CategoryName.create(null as unknown as string)).toThrow('カテゴリー名は必須です')
+      expect(() => CategoryName.create(null as unknown as string)).toThrow('値は必須です')
     })
 
     it('undefinedの場合、RequiredFieldExceptionをスローする', () => {
       expect(() => CategoryName.create(undefined as unknown as string)).toThrow(
         RequiredFieldException
       )
-      expect(() => CategoryName.create(undefined as unknown as string)).toThrow(
-        'カテゴリー名は必須です'
-      )
+      expect(() => CategoryName.create(undefined as unknown as string)).toThrow('値は必須です')
     })
 
     it('21文字以上の場合、InvalidFieldExceptionをスローする', () => {
