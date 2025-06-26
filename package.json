@@ -61,6 +61,8 @@
   "devDependencies": {
     "@faker-js/faker": "^9.8.0",
     "@paralleldrive/cuid2": "^2.2.2",
+    "@playwright/mcp": "^0.0.29",
+    "@playwright/test": "^1.53.1",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
@@ -79,6 +81,7 @@
     "husky": "9.1.7",
     "jsdom": "^26.1.0",
     "lint-staged": "15.3.0",
+    "playwright": "^1.53.1",
     "postcss": "^8",
     "prettier": "3.2.5",
     "prettier-plugin-tailwindcss": "0.6.10",

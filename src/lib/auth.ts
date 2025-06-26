@@ -1,5 +1,4 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { PrismaClient } from '@prisma/client'
 import { NextAuthOptions } from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
 
@@ -12,13 +11,10 @@ import { PrismaUserRepository } from '@/modules/user-authentication/server/infra
  *
  * マジックリンク認証を使用し、ドメインユーザーとの連携を行う
  */
-// PrismaAdapter用のクライアントを作成
-const prismaForAdapter = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-})
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prismaForAdapter),
+  // PrismaAdapterは@prisma/clientの型を期待するため、型アサーションを使用
+  adapter: PrismaAdapter(prisma as any),
   debug: true,
   providers: [
     EmailProvider({
