@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { GetIngredientsApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-ingredients.handler'
 import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions/business-rule.exception'
 import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
@@ -17,7 +16,7 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
 export async function POST(request: NextRequest) {
   try {
     // 認証チェック
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.domainUserId) {
       return NextResponse.json(
         {
@@ -115,7 +114,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // 認証チェック
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.domainUserId) {
       return NextResponse.json(
         {

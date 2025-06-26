@@ -2,27 +2,17 @@ import { NextRequest } from 'next/server'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { POST } from '@/app/api/v1/ingredients/route'
+import { auth } from '@/auth'
 import { CreateIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/create-ingredient.handler'
 import { IngredientDto } from '@/modules/ingredients/server/application/dtos/ingredient.dto'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 // モジュールのモック
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}))
-
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}))
-
 vi.mock('@/modules/ingredients/server/infrastructure/composition-root', () => ({
   CompositionRoot: {
     getInstance: vi.fn(),
   },
 }))
-
-// NextAuthのインポート
-const { getServerSession } = vi.mocked(await import('next-auth'))
 
 describe('POST /api/v1/ingredients', () => {
   let mockApiHandler: CreateIngredientApiHandler
@@ -51,7 +41,7 @@ describe('POST /api/v1/ingredients', () => {
 
   it('認証されていない場合は401エラーを返す', async () => {
     // 認証されていない状態をモック
-    getServerSession.mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as any)
 
     // リクエストの作成
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
@@ -78,12 +68,12 @@ describe('POST /api/v1/ingredients', () => {
 
   it('正常に食材を作成できる', async () => {
     // 認証済みユーザーをモック
-    getServerSession.mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: {
         domainUserId: 'test-user-123',
         email: 'test@example.com',
       },
-    })
+    } as any)
     // テストデータの準備
     const requestBody = {
       name: 'トマト',
@@ -196,12 +186,12 @@ describe('POST /api/v1/ingredients', () => {
 
   it('バリデーションエラーの場合は400エラーを返す', async () => {
     // 認証済みユーザーをモック
-    getServerSession.mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: {
         domainUserId: 'test-user-123',
         email: 'test@example.com',
       },
-    })
+    } as any)
 
     // ValidationExceptionをインポート
     const { ValidationException } = await import(
@@ -252,12 +242,12 @@ describe('POST /api/v1/ingredients', () => {
 
   it('予期しないエラーの場合は500エラーを返す', async () => {
     // 認証済みユーザーをモック
-    getServerSession.mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: {
         domainUserId: 'test-user-123',
         email: 'test@example.com',
       },
-    })
+    } as any)
 
     // モックの設定（予期しないエラー）
     vi.mocked(mockApiHandler.handle).mockRejectedValue(new Error('データベース接続エラー'))
@@ -300,12 +290,12 @@ describe('POST /api/v1/ingredients', () => {
 
   it('不正なJSONの場合は500エラーを返す', async () => {
     // 認証済みユーザーをモック
-    getServerSession.mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: {
         domainUserId: 'test-user-123',
         email: 'test@example.com',
       },
-    })
+    } as any)
     // リクエストの作成（不正なJSON）
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
       method: 'POST',
