@@ -1,5 +1,5 @@
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { NextAuthOptions } from 'next-auth'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import NextAuth from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
 
 import { prisma } from '@/lib/prisma'
@@ -7,32 +7,22 @@ import { UserIntegrationService } from '@/modules/user-authentication/server/dom
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
 /**
- * NextAuth設定
+ * NextAuth v5設定
  *
  * マジックリンク認証を使用し、ドメインユーザーとの連携を行う
  */
 
-export const authOptions: NextAuthOptions = {
-  // PrismaAdapterは@prisma/clientの型を期待するため、型アサーションを使用
-  adapter: PrismaAdapter(prisma as any),
+export const { auth, handlers, signIn, signOut } = NextAuth({
+  // Prismaアダプターの設定
+  adapter: PrismaAdapter(prisma) as any,
   debug: true,
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
     EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: process.env.EMAIL_SERVER_PORT ? parseInt(process.env.EMAIL_SERVER_PORT, 10) : 587,
-        auth:
-          process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
-            ? {
-                user: process.env.EMAIL_SERVER_USER,
-                pass: process.env.EMAIL_SERVER_PASSWORD,
-              }
-            : undefined,
-        secure: false, // Mailhogは非SSLで動作
-        tls: {
-          rejectUnauthorized: false, // 開発環境での証明書検証を無効化
-        },
-      },
+      // MailHog用の設定（認証なし）
+      server: `smtp://${process.env.EMAIL_SERVER_HOST || 'localhost'}:${
+        process.env.EMAIL_SERVER_PORT || '1025'
+      }`,
       from: process.env.EMAIL_FROM || 'noreply@example.com',
     }),
   ],
@@ -102,7 +92,7 @@ export const authOptions: NextAuthOptions = {
 
           // NextAuthユーザーからドメインユーザーを作成または更新
           const nextAuthUser = {
-            id: user.id,
+            id: user.id!,
             email: user.email!,
             name: user.name || null,
             image: user.image || null,
@@ -127,7 +117,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30日
     updateAge: 24 * 60 * 60, // 24時間
   },
-}
+})
 
 /**
  * NextAuthのセッション型を拡張

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
 
+// Next.js 15でキャッシュを有効にするための設定
+// 単位マスターは頻繁に変更されないため、キャッシュを有効化
+// ただし、データベース接続が必要なため、動的にする
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/v1/ingredients/units
  *

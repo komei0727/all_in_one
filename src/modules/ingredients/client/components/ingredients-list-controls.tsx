@@ -37,7 +37,7 @@ export function IngredientsListControls({
 }: IngredientsListControlsProps) {
   // ローカル状態（即座にUIに反映）
   const [searchValue, setSearchValue] = useState(currentParams.search || '')
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>()
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // 検索値が変更されたらパラメータを更新（デバウンス付き）
   useEffect(() => {

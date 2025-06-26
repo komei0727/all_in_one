@@ -1,5 +1,6 @@
-import { defineConfig } from 'vitest/config'
 import path from 'path'
+
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -19,13 +20,14 @@ export default defineConfig({
     hookTimeout: 30000,
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@/app': path.resolve(__dirname, './src/app'),
-      '@/modules': path.resolve(__dirname, './src/modules'),
-      '@/lib': path.resolve(__dirname, './src/lib'),
-      '@ingredients': path.resolve(__dirname, './src/modules/ingredients'),
-      '@shared': path.resolve(__dirname, './src/modules/shared'),
-    },
+    alias: [
+      { find: '@/auth', replacement: path.resolve(__dirname, './tests/__mocks__/auth.ts') },
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+      { find: '@/app', replacement: path.resolve(__dirname, './src/app') },
+      { find: '@/modules', replacement: path.resolve(__dirname, './src/modules') },
+      { find: '@/lib', replacement: path.resolve(__dirname, './src/lib') },
+      { find: '@ingredients', replacement: path.resolve(__dirname, './src/modules/ingredients') },
+      { find: '@shared', replacement: path.resolve(__dirname, './src/modules/shared') },
+    ],
   },
 })

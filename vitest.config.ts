@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   plugins: [react()],
@@ -30,14 +33,15 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@/app': path.resolve(__dirname, './src/app'),
-      '@/modules': path.resolve(__dirname, './src/modules'),
-      '@/lib': path.resolve(__dirname, './src/lib'),
-      '@/tests': path.resolve(__dirname, './tests'),
-      '@ingredients': path.resolve(__dirname, './src/modules/ingredients'),
-      '@shared': path.resolve(__dirname, './src/modules/shared'),
-    },
+    alias: [
+      { find: '@/auth', replacement: resolve(__dirname, './tests/__mocks__/auth.ts') },
+      { find: '@', replacement: resolve(__dirname, './src') },
+      { find: '@/app', replacement: resolve(__dirname, './src/app') },
+      { find: '@/modules', replacement: resolve(__dirname, './src/modules') },
+      { find: '@/lib', replacement: resolve(__dirname, './src/lib') },
+      { find: '@/tests', replacement: resolve(__dirname, './tests') },
+      { find: '@ingredients', replacement: resolve(__dirname, './src/modules/ingredients') },
+      { find: '@shared', replacement: resolve(__dirname, './src/modules/shared') },
+    ],
   },
 })

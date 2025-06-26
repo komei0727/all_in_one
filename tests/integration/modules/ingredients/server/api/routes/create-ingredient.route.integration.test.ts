@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest'
 
 import { POST } from '@/app/api/v1/ingredients/route'
+import { auth } from '@/auth'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
@@ -18,15 +19,7 @@ import {
   cleanupPrismaClient,
 } from '../../../../../../helpers/database.helper'
 
-// NextAuthのモック
-const mockGetServerSession = vi.fn()
-vi.mock('next-auth', () => ({
-  getServerSession: () => mockGetServerSession(),
-}))
-
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}))
+// @/auth はvitest configでモック済み
 
 /**
  * POST /api/v1/ingredients APIの統合テスト
@@ -47,7 +40,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
     CompositionRoot.getInstance(prisma as any)
 
     // 認証モックのリセット
-    mockGetServerSession.mockReset()
+    vi.mocked(auth).mockReset()
   })
 
   afterEach(async () => {
@@ -67,13 +60,13 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
     it('有効なリクエストで食材を作成できる', async () => {
       // 認証済みユーザーのモック
       const testUserId = faker.string.uuid()
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + testUserId,
           email: faker.internet.email(),
           domainUserId: testUserId,
         },
-      })
+      } as any)
 
       // Given: 有効なリクエストボディ
       const command = new CreateIngredientCommandBuilder()
@@ -131,12 +124,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
     it('最小限の必須フィールドで食材を作成できる', async () => {
       // 認証済みユーザーのモック
       const testUserId = faker.string.uuid()
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + testUserId,
           domainUserId: testUserId,
         },
-      })
+      } as any)
 
       // Given: 最小限の必須フィールドのみのリクエスト
       const minimalCommand = {
@@ -174,12 +167,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
     it('全てのオプションフィールドを含めて食材を作成できる', async () => {
       // 認証済みユーザーのモック
       const testUserId = faker.string.uuid()
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + testUserId,
           domainUserId: testUserId,
         },
-      })
+      } as any)
 
       // Given: 全フィールドを含むリクエスト
       const fullCommand = new CreateIngredientCommandBuilder()
@@ -225,12 +218,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
   describe('バリデーションエラー', () => {
     it('必須フィールドが欠けている場合400エラーを返す', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: 必須フィールドが欠けているリクエスト
       const invalidCommand = {
         // nameがない
@@ -266,12 +259,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
     it('食材名が長すぎる場合400エラーを返す', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: 50文字を超える食材名
       const longName = faker.string.alphanumeric(51)
       const command = new CreateIngredientCommandBuilder()
@@ -302,12 +295,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
     it('数量が0以下の場合400エラーを返す', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: 無効な数量
       const command = new CreateIngredientCommandBuilder()
         .withCategoryId('cat00001')
@@ -338,12 +331,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
   describe('存在しないリソース', () => {
     it('存在しないカテゴリーIDの場合404エラーを返す', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: 存在しないカテゴリーID
       const nonExistentCategoryId = faker.string.uuid()
       const command = new CreateIngredientCommandBuilder()
@@ -373,12 +366,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
     it('存在しない単位IDの場合404エラーを返す', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: 存在しない単位ID
       const nonExistentUnitId = faker.string.uuid()
       const command = new CreateIngredientCommandBuilder()
@@ -410,7 +403,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
   describe('認証', () => {
     it('認証されていない場合401エラーを返す', async () => {
       // 認証なしのモック
-      mockGetServerSession.mockResolvedValue(null)
+      vi.mocked(auth).mockResolvedValue(null as any)
 
       // Given: 有効なリクエストボディ
       const command = new CreateIngredientCommandBuilder()
@@ -440,13 +433,13 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
     it('domainUserIdがない場合401エラーを返す', async () => {
       // domainUserIdがないセッションのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           email: faker.internet.email(),
           // domainUserIdがない
         },
-      })
+      } as any)
 
       // Given: 有効なリクエストボディ
       const command = new CreateIngredientCommandBuilder()
@@ -477,12 +470,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
   describe('不正なリクエスト', () => {
     it('JSONパースエラーの場合500エラーを返す', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: 不正なJSON
       const request = new NextRequest('http://localhost:3000/api/v1/ingredients', {
         method: 'POST',
@@ -503,12 +496,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
     it('Content-Typeが不正でも処理できる', async () => {
       // 認証済みユーザーのモック
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + faker.string.uuid(),
           domainUserId: faker.string.uuid(),
         },
-      })
+      } as any)
       // Given: Content-Typeが不正だが有効なJSON
       const command = new CreateIngredientCommandBuilder()
         .withCategoryId('cat00001')
@@ -537,12 +530,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
     it('同時に複数の食材を作成できる', async () => {
       // 認証済みユーザーのモック
       const testUserId = faker.string.uuid()
-      mockGetServerSession.mockResolvedValue({
+      vi.mocked(auth).mockResolvedValue({
         user: {
           id: 'nextauth-' + testUserId,
           domainUserId: testUserId,
         },
-      })
+      } as any)
       // Given: 3つの異なる食材作成リクエスト（SQLiteの制限を考慮して数を減らす）
       const commands = Array.from({ length: 3 }, (_, i) =>
         new CreateIngredientCommandBuilder()

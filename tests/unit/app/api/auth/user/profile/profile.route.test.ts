@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // モッククラス - アプリケーションサービス
 const mockUserApplicationService = {
@@ -12,9 +12,6 @@ const mockProfileApiHandler = {
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
 }
-
-// モッククラス - NextAuth session
-const mockGetServerSession = vi.fn()
 
 // モック設定
 vi.mock(
@@ -35,16 +32,9 @@ vi.mock('@/modules/user-authentication/server/api/error-handler', () => ({
   },
 }))
 
-vi.mock('next-auth', () => ({
-  getServerSession: () => mockGetServerSession(),
-}))
-
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}))
-
 // テスト対象のAPIハンドラーをインポート（モック設定後）
 import { GET, PUT } from '@/app/api/auth/user/profile/route'
+import { auth } from '@/auth'
 import { ApiErrorHandler } from '@/modules/user-authentication/server/api/error-handler'
 
 describe('User Profile API', () => {
@@ -122,7 +112,7 @@ describe('User Profile API', () => {
         updatedAt: new Date('2024-01-01T10:00:00Z'),
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
       mockProfileApiHandler.getProfile.mockResolvedValue(userProfile)
 
       // Act（実行）
@@ -140,7 +130,7 @@ describe('User Profile API', () => {
 
     it('未認証の場合は401エラーを返す', async () => {
       // Arrange（準備）
-      mockGetServerSession.mockResolvedValue(null)
+      vi.mocked(auth).mockResolvedValue(null as any)
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile')
@@ -162,7 +152,7 @@ describe('User Profile API', () => {
         },
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
       mockProfileApiHandler.getProfile.mockRejectedValue(new Error('ユーザーが見つかりません'))
 
       // Act（実行）
@@ -185,7 +175,7 @@ describe('User Profile API', () => {
         },
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
       mockProfileApiHandler.getProfile.mockRejectedValue(new Error('Database error'))
 
       // Act（実行）
@@ -237,7 +227,7 @@ describe('User Profile API', () => {
         updatedAt: new Date('2024-01-01T11:00:00Z'),
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
       mockProfileApiHandler.updateProfile.mockResolvedValue(updatedProfile)
 
       // Act（実行）
@@ -261,7 +251,7 @@ describe('User Profile API', () => {
 
     it('未認証の場合は401エラーを返す', async () => {
       // Arrange（準備）
-      mockGetServerSession.mockResolvedValue(null)
+      vi.mocked(auth).mockResolvedValue(null as any)
 
       const requestBody = {
         displayName: '更新されたユーザー',
@@ -301,7 +291,7 @@ describe('User Profile API', () => {
         language: 'en',
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
       mockProfileApiHandler.updateProfile.mockRejectedValue(new Error('表示名は必須です'))
 
       // Act（実行）
@@ -330,7 +320,7 @@ describe('User Profile API', () => {
         },
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
 
       // Act（実行）
       const request = new NextRequest('http://localhost:3000/api/auth/user/profile', {
@@ -364,7 +354,7 @@ describe('User Profile API', () => {
         language: 'en',
       }
 
-      mockGetServerSession.mockResolvedValue(session)
+      vi.mocked(auth).mockResolvedValue(session as any)
       mockProfileApiHandler.updateProfile.mockRejectedValue(new Error('Database connection failed'))
 
       // Act（実行）
