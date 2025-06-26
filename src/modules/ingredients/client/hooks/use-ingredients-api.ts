@@ -2,6 +2,28 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import type { Category, CreateIngredientRequest, IngredientResponse, Unit } from '../types'
 
+// 食材一覧取得のパラメータ型
+export interface IngredientsParams {
+  page?: number
+  limit?: number
+  search?: string
+  categoryId?: string
+  expiryStatus?: 'all' | 'expired' | 'expiring' | 'fresh'
+  sortBy?: 'name' | 'purchaseDate' | 'expiryDate' | 'createdAt'
+  sortOrder?: 'asc' | 'desc'
+}
+
+// 食材一覧レスポンス型
+export interface IngredientsListResponse {
+  ingredients: IngredientResponse['ingredient'][]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
 /**
  * 食材API関連のカスタムフック
  */
@@ -57,6 +79,39 @@ export function useCreateIngredient() {
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error?.message || '食材の登録に失敗しました')
+      }
+
+      return response.json()
+    },
+  })
+}
+
+/**
+ * 食材一覧を取得するフック
+ */
+export function useIngredients(params: IngredientsParams = {}) {
+  // URLSearchParamsを構築
+  const searchParams = new URLSearchParams()
+
+  if (params.page) searchParams.set('page', params.page.toString())
+  if (params.limit) searchParams.set('limit', params.limit.toString())
+  if (params.search) searchParams.set('search', params.search)
+  if (params.categoryId) searchParams.set('categoryId', params.categoryId)
+  if (params.expiryStatus) searchParams.set('expiryStatus', params.expiryStatus)
+  if (params.sortBy) searchParams.set('sortBy', params.sortBy)
+  if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder)
+
+  const queryString = searchParams.toString()
+
+  return useQuery<IngredientsListResponse>({
+    queryKey: ['ingredients', params],
+    queryFn: async () => {
+      const url = queryString ? `/api/v1/ingredients?${queryString}` : '/api/v1/ingredients'
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error?.message || '食材の取得に失敗しました')
       }
 
       return response.json()

@@ -1,26 +1,49 @@
-import { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
+'use client'
 
-import { authOptions } from '@/lib/auth'
+import { useState } from 'react'
+
+import { Loader2 } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+
 import { CreateIngredientForm } from '@/modules/ingredients/client/components/create-ingredient-form'
 import { IngredientsList } from '@/modules/ingredients/client/components/ingredients-list'
+import { IngredientsListControls } from '@/modules/ingredients/client/components/ingredients-list-controls'
+import {
+  useIngredients,
+  useCategories,
+  type IngredientsParams,
+} from '@/modules/ingredients/client/hooks/use-ingredients-api'
 
-export const metadata: Metadata = {
-  title: '食材管理',
-  description: '食材の登録と管理',
-}
-
-export default async function IngredientsPage() {
+export default function IngredientsPage() {
   // 認証チェック
-  const session = await getServerSession(authOptions)
+  const { data: session, status } = useSession()
+
+  // 検索パラメータの状態管理
+  const [params, setParams] = useState<IngredientsParams>({
+    page: 1,
+    limit: 20,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  })
+
+  // 食材一覧を取得
+  const { data, isLoading, error, refetch } = useIngredients(params)
+
+  // カテゴリー一覧を取得
+  const { data: categories } = useCategories()
+
+  if (status === 'loading') {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
 
   if (!session?.user?.domainUserId) {
     redirect('/auth/login')
   }
-
-  // TODO: 食材一覧を取得する処理を実装
-  const ingredients: never[] = []
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -31,7 +54,7 @@ export default async function IngredientsPage() {
         <div className="lg:col-span-1">
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="mb-4 text-xl font-semibold">新規食材登録</h2>
-            <CreateIngredientForm />
+            <CreateIngredientForm onSuccess={() => refetch()} />
           </div>
         </div>
 
@@ -39,7 +62,29 @@ export default async function IngredientsPage() {
         <div className="lg:col-span-2">
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="mb-4 text-xl font-semibold">登録済み食材</h2>
-            <IngredientsList ingredients={ingredients} />
+
+            {/* 検索・フィルター・ソート・ページネーション */}
+            <IngredientsListControls
+              categories={categories || []}
+              currentParams={params}
+              onParamsChange={setParams}
+              totalPages={data?.pagination.totalPages || 1}
+              currentPage={data?.pagination.page || 1}
+              isLoading={isLoading}
+            />
+
+            {/* 食材リスト */}
+            <div className="mt-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : error ? (
+                <div className="py-8 text-center text-red-500">食材の取得に失敗しました</div>
+              ) : (
+                <IngredientsList ingredients={data?.ingredients || []} />
+              )}
+            </div>
           </div>
         </div>
       </div>

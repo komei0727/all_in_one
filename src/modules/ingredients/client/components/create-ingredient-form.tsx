@@ -77,7 +77,11 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
-export function CreateIngredientForm() {
+interface CreateIngredientFormProps {
+  onSuccess?: () => void
+}
+
+export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = {}) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -116,6 +120,11 @@ export function CreateIngredientForm() {
         description: `${data.name}を登録しました`,
       })
       form.reset()
+
+      // 成功時のコールバックを実行
+      if (onSuccess) {
+        onSuccess()
+      }
       router.refresh()
     } catch (error) {
       toast({
