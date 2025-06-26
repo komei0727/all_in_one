@@ -69,7 +69,7 @@ describe('UserStatus値オブジェクト', () => {
       const nullStatus = null as any
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserStatus(nullStatus)).toThrow('ユーザーステータスは必須です')
+      expect(() => new UserStatus(nullStatus)).toThrow('statusは必須です')
     })
 
     it('undefinedで作成するとエラーが発生する', () => {
@@ -77,7 +77,7 @@ describe('UserStatus値オブジェクト', () => {
       const undefinedStatus = undefined as any
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserStatus(undefinedStatus)).toThrow('ユーザーステータスは必須です')
+      expect(() => new UserStatus(undefinedStatus)).toThrow('statusは必須です')
     })
   })
 

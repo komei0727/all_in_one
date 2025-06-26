@@ -88,7 +88,7 @@ describe('UserPreferences値オブジェクト', () => {
       const nullPreferences = null as any
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserPreferences(nullPreferences)).toThrow('ユーザー設定は必須です')
+      expect(() => new UserPreferences(nullPreferences)).toThrow('preferencesは必須です')
     })
 
     it('undefinedで作成するとエラーが発生する', () => {
@@ -96,7 +96,7 @@ describe('UserPreferences値オブジェクト', () => {
       const undefinedPreferences = undefined as any
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserPreferences(undefinedPreferences)).toThrow('ユーザー設定は必須です')
+      expect(() => new UserPreferences(undefinedPreferences)).toThrow('preferencesは必須です')
     })
 
     it('通知設定がbooleanでない場合エラーが発生する', () => {

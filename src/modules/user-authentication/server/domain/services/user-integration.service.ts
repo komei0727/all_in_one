@@ -4,6 +4,13 @@ import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 
 import { User, NextAuthUser } from '../entities/user.entity'
 import { NextAuthIntegrationFailedEvent } from '../events/nextauth-integration-failed.event'
+import {
+  UserNotFoundException,
+  EmailAlreadyExistsException,
+  AccountDeactivatedException,
+  AlreadyDeactivatedException,
+  ProfileUpdateNotAllowedException,
+} from '../exceptions'
 import { UserRepository } from '../repositories/user.repository'
 import { UserProfile } from '../value-objects/user-profile.vo'
 
@@ -41,7 +48,7 @@ export class UserIntegrationService {
       // 新規ユーザーの場合、メールアドレスの重複チェック
       const emailExists = await this.userRepository.existsByEmail(new Email(nextAuthUser.email))
       if (emailExists) {
-        throw new Error('メールアドレスが既に使用されています')
+        throw new EmailAlreadyExistsException(nextAuthUser.email)
       }
 
       // 新規ドメインユーザーを作成
@@ -78,11 +85,11 @@ export class UserIntegrationService {
     const user = await this.userRepository.findByNextAuthId(nextAuthId)
 
     if (!user) {
-      throw new Error('ユーザーが見つかりません')
+      throw new UserNotFoundException({ nextAuthId })
     }
 
     if (!user.canLogin()) {
-      throw new Error('アカウントが無効化されています')
+      throw new AccountDeactivatedException(user.getId().getValue())
     }
 
     // ログインを記録
@@ -106,11 +113,11 @@ export class UserIntegrationService {
     const user = await this.userRepository.findById(userId)
 
     if (!user) {
-      throw new Error('ユーザーが見つかりません')
+      throw new UserNotFoundException({ userId: userId.getValue() })
     }
 
     if (!user.isActive()) {
-      throw new Error('無効化されたユーザーのプロフィールは更新できません')
+      throw new ProfileUpdateNotAllowedException(userId.getValue())
     }
 
     user.updateProfile(profile)
@@ -138,11 +145,11 @@ export class UserIntegrationService {
     const user = await this.userRepository.findById(userId)
 
     if (!user) {
-      throw new Error('ユーザーが見つかりません')
+      throw new UserNotFoundException({ userId: userId.getValue() })
     }
 
     if (!user.isActive()) {
-      throw new Error('既に無効化されたユーザーです')
+      throw new AlreadyDeactivatedException(userId.getValue())
     }
 
     user.deactivate(reason, deactivatedBy)

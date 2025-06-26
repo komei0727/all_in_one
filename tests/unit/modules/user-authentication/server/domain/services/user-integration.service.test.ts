@@ -1,12 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import {
-  UserIdBuilder,
-  EmailBuilder,
-  UserProfileBuilder,
-  UserStatusBuilder,
-  NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
-
+import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
 // テスト対象のUserIntegrationService
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 
@@ -109,7 +102,7 @@ describe('UserIntegrationService', () => {
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
       await expect(service.createOrUpdateFromNextAuth(nextAuthUser)).rejects.toThrow(
-        'メールアドレスが既に使用されています'
+        "User with email 'duplicate@example.com' already exists"
       )
     })
   })
@@ -164,7 +157,7 @@ describe('UserIntegrationService', () => {
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
       await expect(service.handleSuccessfulAuthentication(nonExistentNextAuthId)).rejects.toThrow(
-        'ユーザーが見つかりません'
+        'User not found: {"nextAuthId":"non-existent-user"}'
       )
     })
   })
@@ -214,7 +207,7 @@ describe('UserIntegrationService', () => {
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
       await expect(service.updateUserProfile(userId, newProfile)).rejects.toThrow(
-        'ユーザーが見つかりません'
+        'User not found: {"userId":"non-existent-user"}'
       )
     })
 
@@ -282,7 +275,7 @@ describe('UserIntegrationService', () => {
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
       await expect(
         service.deactivateUser(userId, 'USER_REQUEST', userId.getValue())
-      ).rejects.toThrow('ユーザーが見つかりません')
+      ).rejects.toThrow('User not found: {"userId":"non-existent-user"}')
     })
 
     it('既に無効化されたユーザーの再無効化はエラーが発生する', async () => {

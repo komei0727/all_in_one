@@ -1,5 +1,12 @@
 import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
 
+import {
+  RequiredFieldException,
+  InvalidDisplayNameException,
+  InvalidTimezoneException,
+  InvalidLanguageException,
+  InvalidFieldException,
+} from '../exceptions'
 import { UserPreferences } from './user-preferences.vo'
 
 /**
@@ -36,31 +43,34 @@ export class UserProfile extends ValueObject<UserProfileProps> {
   protected validate(value: UserProfileProps): void {
     // 必須チェック
     if (value === null || value === undefined) {
-      throw new Error('ユーザープロフィールは必須です')
+      throw new RequiredFieldException('userProfile')
     }
 
     // 表示名のバリデーション
     if (!value.displayName || value.displayName.trim() === '') {
-      throw new Error('表示名は必須です')
+      throw new RequiredFieldException('displayName')
     }
 
     if (value.displayName.length > UserProfile.MAX_DISPLAY_NAME_LENGTH) {
-      throw new Error('表示名は100文字以内で入力してください')
+      throw new InvalidDisplayNameException(
+        value.displayName,
+        '表示名は100文字以内で入力してください'
+      )
     }
 
     // 言語のバリデーション
     if (!UserProfile.VALID_LANGUAGES.includes(value.language)) {
-      throw new Error('サポートされていない言語です')
+      throw new InvalidLanguageException(value.language)
     }
 
     // タイムゾーンのバリデーション
     if (!UserProfile.VALID_TIMEZONES.includes(value.timezone)) {
-      throw new Error('無効なタイムゾーンです')
+      throw new InvalidTimezoneException(value.timezone)
     }
 
     // 設定のバリデーション（UserPreferencesが独自にバリデーション済み）
     if (!(value.preferences instanceof UserPreferences)) {
-      throw new Error('無効なユーザー設定です')
+      throw new InvalidFieldException('preferences', value.preferences, '無効なユーザー設定です')
     }
   }
 

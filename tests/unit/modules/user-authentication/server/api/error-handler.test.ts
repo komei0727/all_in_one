@@ -2,6 +2,15 @@ import { describe, it, expect, vi } from 'vitest'
 import { ZodError } from 'zod'
 
 import { ApiErrorHandler } from '@/modules/user-authentication/server/api/error-handler'
+import {
+  UserNotFoundException,
+  RequiredFieldException,
+  InvalidFieldException,
+  InvalidLanguageException,
+  AccountDeactivatedException,
+  AlreadyDeactivatedException,
+  EmailAlreadyExistsException,
+} from '@/modules/user-authentication/server/domain/exceptions'
 
 describe('ApiErrorHandler', () => {
   describe('handleError', () => {
@@ -28,7 +37,7 @@ describe('ApiErrorHandler', () => {
 
     it('ユーザーが見つからないエラーを404に変換する', () => {
       // Arrange
-      const error = new Error('ユーザーが見つかりません')
+      const error = new UserNotFoundException({ userId: 'test-user-123' })
 
       // Act
       const response = ApiErrorHandler.handleError(error)
@@ -40,9 +49,13 @@ describe('ApiErrorHandler', () => {
     it('バリデーションエラーを400に変換する', () => {
       // Arrange
       const validationErrors = [
-        new Error('表示名は必須です'),
-        new Error('表示名は100文字以内で入力してください'),
-        new Error('サポートされていない言語です'),
+        new RequiredFieldException('displayName'),
+        new InvalidFieldException(
+          'displayName',
+          'test-name',
+          '表示名は100文字以内で入力してください'
+        ),
+        new InvalidLanguageException('invalid-lang'),
       ]
 
       validationErrors.forEach((error) => {
@@ -56,7 +69,7 @@ describe('ApiErrorHandler', () => {
 
     it('アカウント無効化エラーを403に変換する', () => {
       // Arrange
-      const error = new Error('アカウントが無効化されています')
+      const error = new AccountDeactivatedException('test-user-123')
 
       // Act
       const response = ApiErrorHandler.handleError(error)
@@ -65,26 +78,26 @@ describe('ApiErrorHandler', () => {
       expect(response.status).toBe(403)
     })
 
-    it('既に無効化されたユーザーエラーを400に変換する', () => {
+    it('既に無効化されたユーザーエラーを422に変換する', () => {
       // Arrange
-      const error = new Error('既に無効化されたユーザーです')
+      const error = new AlreadyDeactivatedException('test-user-123')
 
       // Act
       const response = ApiErrorHandler.handleError(error)
 
       // Assert
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(422)
     })
 
-    it('メールアドレス重複エラーを409に変換する', () => {
+    it('メールアドレス重複エラーを422に変換する', () => {
       // Arrange
-      const error = new Error('メールアドレスが既に使用されています')
+      const error = new EmailAlreadyExistsException('test@example.com')
 
       // Act
       const response = ApiErrorHandler.handleError(error)
 
       // Assert
-      expect(response.status).toBe(409)
+      expect(response.status).toBe(422)
     })
 
     it('未知のエラーを500に変換する', () => {
