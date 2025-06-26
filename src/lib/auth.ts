@@ -11,8 +11,11 @@ import { PrismaUserRepository } from '@/modules/user-authentication/server/infra
  *
  * マジックリンク認証を使用し、ドメインユーザーとの連携を行う
  */
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // PrismaAdapterは@prisma/clientの型を期待するため、型アサーションを使用
+  adapter: PrismaAdapter(prisma as any),
+  debug: true,
   providers: [
     EmailProvider({
       server: {
@@ -94,7 +97,7 @@ export const authOptions: NextAuthOptions = {
         try {
           // ドメインユーザーとの連携処理
           // UserIntegrationServiceを使用してドメインユーザーを作成/更新
-          const userRepository = new PrismaUserRepository(prisma as any)
+          const userRepository = new PrismaUserRepository(prisma)
           const userIntegrationService = new UserIntegrationService(userRepository)
 
           // NextAuthユーザーからドメインユーザーを作成または更新
@@ -124,7 +127,6 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30日
     updateAge: 24 * 60 * 60, // 24時間
   },
-  debug: process.env.NODE_ENV === 'development',
 }
 
 /**

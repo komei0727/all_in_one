@@ -7,6 +7,7 @@ import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
+import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
 import { CategoryRepository } from '../domain/repositories/category-repository.interface'
 import { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
@@ -111,5 +112,12 @@ export class CompositionRoot {
       this.getCategoryRepository(),
       this.getUnitRepository()
     )
+  }
+
+  /**
+   * Get GetIngredientsHandler instance (new instance each time)
+   */
+  public getGetIngredientsHandler(): GetIngredientsHandler {
+    return new GetIngredientsHandler(this.getIngredientRepository())
   }
 }

@@ -396,6 +396,193 @@ export class PrismaIngredientRepository implements IngredientRepository {
   }
 
   /**
+   * 条件付きで食材を検索
+   * @param criteria 検索条件
+   * @returns 食材のリスト
+   */
+  async findMany(criteria: {
+    userId?: string
+    page: number
+    limit: number
+    search?: string
+    categoryId?: string
+    expiryStatus?: 'all' | 'expired' | 'expiring' | 'fresh'
+    sortBy?: 'name' | 'purchaseDate' | 'expiryDate' | 'createdAt'
+    sortOrder?: 'asc' | 'desc'
+  }): Promise<Ingredient[]> {
+    const where: Prisma.IngredientWhereInput = {
+      deletedAt: null,
+    }
+
+    // ユーザーIDフィルター
+    if (criteria.userId) {
+      where.userId = criteria.userId
+    }
+
+    // 検索条件
+    if (criteria.search) {
+      where.name = {
+        contains: criteria.search,
+        mode: 'insensitive',
+      }
+    }
+
+    // カテゴリーフィルター
+    if (criteria.categoryId) {
+      where.categoryId = criteria.categoryId
+    }
+
+    // 期限状態フィルター
+    if (criteria.expiryStatus && criteria.expiryStatus !== 'all') {
+      const now = new Date()
+      const threeDaysFromNow = new Date()
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+
+      switch (criteria.expiryStatus) {
+        case 'expired':
+          where.OR = [{ bestBeforeDate: { lt: now } }, { useByDate: { lt: now } }]
+          break
+        case 'expiring':
+          where.OR = [
+            {
+              bestBeforeDate: {
+                gte: now,
+                lte: threeDaysFromNow,
+              },
+            },
+            {
+              useByDate: {
+                gte: now,
+                lte: threeDaysFromNow,
+              },
+            },
+          ]
+          break
+        case 'fresh':
+          where.AND = [
+            {
+              OR: [{ bestBeforeDate: { gt: threeDaysFromNow } }, { bestBeforeDate: null }],
+            },
+            {
+              OR: [{ useByDate: { gt: threeDaysFromNow } }, { useByDate: null }],
+            },
+          ]
+          break
+      }
+    }
+
+    // ソート設定
+    const orderBy: Prisma.IngredientOrderByWithRelationInput = {}
+    switch (criteria.sortBy) {
+      case 'name':
+        orderBy.name = criteria.sortOrder || 'asc'
+        break
+      case 'purchaseDate':
+        orderBy.purchaseDate = criteria.sortOrder || 'desc'
+        break
+      case 'expiryDate':
+        // 賞味期限でソート（nullは最後）
+        orderBy.bestBeforeDate = criteria.sortOrder || 'asc'
+        break
+      case 'createdAt':
+      default:
+        orderBy.createdAt = criteria.sortOrder || 'desc'
+        break
+    }
+
+    // ページネーション
+    const skip = (criteria.page - 1) * criteria.limit
+
+    const results = await this.prisma.ingredient.findMany({
+      where,
+      orderBy,
+      skip,
+      take: criteria.limit,
+      include: {
+        category: true,
+        unit: true,
+      },
+    })
+
+    return results.map((result) => this.toEntity(result as any))
+  }
+
+  /**
+   * 条件に一致する食材の総数を取得
+   * @param criteria カウント条件
+   * @returns 食材の総数
+   */
+  async count(criteria: {
+    userId?: string
+    search?: string
+    categoryId?: string
+    expiryStatus?: 'all' | 'expired' | 'expiring' | 'fresh'
+  }): Promise<number> {
+    const where: Prisma.IngredientWhereInput = {
+      deletedAt: null,
+    }
+
+    // ユーザーIDフィルター
+    if (criteria.userId) {
+      where.userId = criteria.userId
+    }
+
+    // 検索条件
+    if (criteria.search) {
+      where.name = {
+        contains: criteria.search,
+        mode: 'insensitive',
+      }
+    }
+
+    // カテゴリーフィルター
+    if (criteria.categoryId) {
+      where.categoryId = criteria.categoryId
+    }
+
+    // 期限状態フィルター（findManyと同じロジック）
+    if (criteria.expiryStatus && criteria.expiryStatus !== 'all') {
+      const now = new Date()
+      const threeDaysFromNow = new Date()
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+
+      switch (criteria.expiryStatus) {
+        case 'expired':
+          where.OR = [{ bestBeforeDate: { lt: now } }, { useByDate: { lt: now } }]
+          break
+        case 'expiring':
+          where.OR = [
+            {
+              bestBeforeDate: {
+                gte: now,
+                lte: threeDaysFromNow,
+              },
+            },
+            {
+              useByDate: {
+                gte: now,
+                lte: threeDaysFromNow,
+              },
+            },
+          ]
+          break
+        case 'fresh':
+          where.AND = [
+            {
+              OR: [{ bestBeforeDate: { gt: threeDaysFromNow } }, { bestBeforeDate: null }],
+            },
+            {
+              OR: [{ useByDate: { gt: threeDaysFromNow } }, { useByDate: null }],
+            },
+          ]
+          break
+      }
+    }
+
+    return await this.prisma.ingredient.count({ where })
+  }
+
+  /**
    * Prismaの結果をエンティティに変換
    */
   private toEntity(data: {

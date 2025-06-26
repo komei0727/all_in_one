@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
@@ -15,12 +17,26 @@ import {
 } from '@/modules/shared/client/components/ui/table'
 
 import type { IngredientResponse } from '../types'
+import { IngredientsListMobile } from './ingredients-list-mobile'
 
 interface IngredientsListProps {
   ingredients: IngredientResponse['ingredient'][]
 }
 
 export function IngredientsList({ ingredients }: IngredientsListProps) {
+  // レスポンシブ対応のための画面サイズ検出
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768) // md breakpoint
+    }
+
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
   // 保管場所の表示名を取得
   const getStorageLocationLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -56,6 +72,12 @@ export function IngredientsList({ ingredients }: IngredientsListProps) {
     return <div className="py-8 text-center text-gray-500">登録されている食材がありません</div>
   }
 
+  // モバイル表示の場合
+  if (isMobile) {
+    return <IngredientsListMobile ingredients={ingredients} />
+  }
+
+  // デスクトップ表示の場合
   return (
     <Table>
       <TableCaption>登録済みの食材一覧</TableCaption>

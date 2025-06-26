@@ -116,4 +116,32 @@ export interface IngredientRepository {
     expiryInfo: ExpiryInfo | null,
     location: StorageLocation
   ): Promise<boolean>
+
+  /**
+   * 条件付きで食材を検索
+   * @param criteria 検索条件
+   * @returns 食材のリスト
+   */
+  findMany(criteria: {
+    userId?: string
+    page: number
+    limit: number
+    search?: string
+    categoryId?: string
+    expiryStatus?: 'all' | 'expired' | 'expiring' | 'fresh'
+    sortBy?: 'name' | 'purchaseDate' | 'expiryDate' | 'createdAt'
+    sortOrder?: 'asc' | 'desc'
+  }): Promise<Ingredient[]>
+
+  /**
+   * 条件に一致する食材の総数を取得
+   * @param criteria カウント条件
+   * @returns 食材の総数
+   */
+  count(criteria: {
+    userId?: string
+    search?: string
+    categoryId?: string
+    expiryStatus?: 'all' | 'expired' | 'expiring' | 'fresh'
+  }): Promise<number>
 }
