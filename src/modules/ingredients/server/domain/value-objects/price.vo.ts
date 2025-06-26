@@ -33,4 +33,57 @@ export class Price extends ValueObject<number> {
       throw new ValidationException('価格は小数点第2位までで入力してください')
     }
   }
+
+  /**
+   * 価格が0円かどうか
+   */
+  isZero(): boolean {
+    return this.value === 0
+  }
+
+  /**
+   * 価格を加算
+   */
+  add(other: Price): Price {
+    return new Price(this.value + other.getValue())
+  }
+
+  /**
+   * 価格を乗算
+   */
+  multiply(multiplier: number): Price {
+    // 乗算結果を小数点第2位で丸める
+    const result = Math.round(this.value * multiplier * 100) / 100
+    return new Price(result)
+  }
+
+  /**
+   * 通貨フォーマットされた文字列を返す
+   */
+  toString(): string {
+    // 整数部分にカンマを追加
+    const formatter = new Intl.NumberFormat('ja-JP', {
+      minimumFractionDigits: this.value % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    })
+    // 手動で半角円記号を追加
+    return `¥${formatter.format(this.value)}`
+  }
+
+  /**
+   * プレーンオブジェクト（数値）に変換
+   */
+  toObject(): number {
+    return this.value
+  }
+
+  /**
+   * プレーンオブジェクトから作成
+   */
+  static fromObject(value: number | null | undefined): Price | null {
+    if (value === null || value === undefined) {
+      return null
+    }
+    return new Price(value)
+  }
 }

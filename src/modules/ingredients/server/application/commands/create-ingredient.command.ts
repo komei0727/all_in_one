@@ -5,6 +5,7 @@ import { StorageType } from '../../domain/value-objects'
  * 食材の新規登録に必要な情報を保持する
  */
 export class CreateIngredientCommand {
+  readonly userId: string
   readonly name: string
   readonly categoryId: string
   readonly quantity: {
@@ -15,6 +16,7 @@ export class CreateIngredientCommand {
     type: StorageType
     detail?: string
   }
+  readonly threshold?: number
   readonly expiryInfo?: {
     bestBeforeDate?: string | null
     useByDate?: string | null
@@ -24,6 +26,7 @@ export class CreateIngredientCommand {
   readonly memo?: string
 
   constructor(params: {
+    userId: string
     name: string
     categoryId: string
     quantity: {
@@ -34,6 +37,7 @@ export class CreateIngredientCommand {
       type: StorageType
       detail?: string
     }
+    threshold?: number
     expiryInfo?: {
       bestBeforeDate?: string | null
       useByDate?: string | null
@@ -42,10 +46,12 @@ export class CreateIngredientCommand {
     price?: number
     memo?: string
   }) {
+    this.userId = params.userId
     this.name = params.name
     this.categoryId = params.categoryId
     this.quantity = params.quantity
     this.storageLocation = params.storageLocation
+    this.threshold = params.threshold
     this.expiryInfo = params.expiryInfo
     this.purchaseDate = params.purchaseDate
     this.price = params.price

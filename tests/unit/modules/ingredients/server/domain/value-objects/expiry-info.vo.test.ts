@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { ValidationException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
+import { ExpiryInfo } from '@/modules/ingredients/server/domain/value-objects'
 
 import { ExpiryInfoBuilder } from '../../../../../../__fixtures__/builders'
 
@@ -241,6 +242,128 @@ describe('ExpiryInfo', () => {
       const expiryInfo2 = new ExpiryInfoBuilder().build()
 
       expect(expiryInfo1.equals(expiryInfo2)).toBe(true)
+    })
+  })
+
+  describe('isExpiringSoon', () => {
+    it('期限が指定日数以内の場合はtrue', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDaysFromNow(3)
+        .withUseByDate(null)
+        .build()
+
+      expect(expiryInfo.isExpiringSoon(7)).toBe(true)
+      expect(expiryInfo.isExpiringSoon(3)).toBe(true)
+      expect(expiryInfo.isExpiringSoon(2)).toBe(false)
+    })
+
+    it('期限が過ぎている場合もtrue', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDaysFromNow(-1)
+        .withUseByDate(null)
+        .build()
+
+      expect(expiryInfo.isExpiringSoon(7)).toBe(true)
+    })
+
+    it('期限が設定されていない場合はfalse', () => {
+      const expiryInfo = new ExpiryInfoBuilder().build()
+
+      expect(expiryInfo.isExpiringSoon(7)).toBe(false)
+    })
+
+    it('消費期限で判定（賞味期限がない場合）', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDate(null)
+        .withUseByDaysFromNow(2)
+        .build()
+
+      expect(expiryInfo.isExpiringSoon(3)).toBe(true)
+      expect(expiryInfo.isExpiringSoon(1)).toBe(false)
+    })
+  })
+
+  describe('getDisplayDate', () => {
+    it('消費期限を優先して返す（両方ある場合）', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDaysFromNow(10)
+        .withUseByDaysFromNow(5)
+        .build()
+
+      expect(expiryInfo.getDisplayDate()).toEqual(expiryInfo.getUseByDate())
+    })
+
+    it('賞味期限を返す（賞味期限のみの場合）', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withRandomFutureBestBeforeDate()
+        .withUseByDate(null)
+        .build()
+
+      expect(expiryInfo.getDisplayDate()).toEqual(expiryInfo.getBestBeforeDate())
+    })
+
+    it('消費期限を返す（消費期限のみの場合）', () => {
+      const expiryInfo = new ExpiryInfoBuilder()
+        .withBestBeforeDate(null)
+        .withRandomFutureUseByDate()
+        .build()
+
+      expect(expiryInfo.getDisplayDate()).toEqual(expiryInfo.getUseByDate())
+    })
+
+    it('期限が設定されていない場合はnullを返す', () => {
+      const expiryInfo = new ExpiryInfoBuilder().build()
+
+      expect(expiryInfo.getDisplayDate()).toBeNull()
+    })
+  })
+
+  describe('toObject/fromObject', () => {
+    it('toObject()でプレーンオブジェクトに変換できる', () => {
+      const builder = new ExpiryInfoBuilder().withValidDates(10, 5)
+      const expiryInfo = builder.build()
+
+      const obj = expiryInfo.toObject()
+
+      expect(obj.bestBeforeDate).toEqual(expiryInfo.getBestBeforeDate()?.toISOString() ?? null)
+      expect(obj.useByDate).toEqual(expiryInfo.getUseByDate()?.toISOString() ?? null)
+    })
+
+    it('toObject()でnull値も正しく変換される', () => {
+      const expiryInfo = new ExpiryInfoBuilder().build()
+
+      const obj = expiryInfo.toObject()
+
+      expect(obj.bestBeforeDate).toBeNull()
+      expect(obj.useByDate).toBeNull()
+    })
+
+    it('fromObject()でプレーンオブジェクトから復元できる', () => {
+      const now = new Date()
+      const bestBeforeDate = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000)
+      const useByDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000)
+
+      const obj = {
+        bestBeforeDate: bestBeforeDate.toISOString(),
+        useByDate: useByDate.toISOString(),
+      }
+
+      const expiryInfo = ExpiryInfo.fromObject(obj)
+
+      expect(expiryInfo.getBestBeforeDate()?.toISOString()).toBe(bestBeforeDate.toISOString())
+      expect(expiryInfo.getUseByDate()?.toISOString()).toBe(useByDate.toISOString())
+    })
+
+    it('fromObject()でnull値も復元できる', () => {
+      const obj = {
+        bestBeforeDate: null,
+        useByDate: null,
+      }
+
+      const expiryInfo = ExpiryInfo.fromObject(obj)
+
+      expect(expiryInfo.getBestBeforeDate()).toBeNull()
+      expect(expiryInfo.getUseByDate()).toBeNull()
     })
   })
 })

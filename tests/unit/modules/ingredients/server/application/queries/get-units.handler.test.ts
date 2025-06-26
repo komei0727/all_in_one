@@ -91,9 +91,27 @@ describe('GetUnitsQueryHandler', () => {
       // sortBy: 'symbol'の場合のソート処理を確認
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-        new Unit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
+        new UnitBuilder()
+          .withId('unit1')
+          .withName('グラム')
+          .withSymbol('g')
+          .withType('WEIGHT')
+          .withDisplayOrder(1)
+          .build(),
+        new UnitBuilder()
+          .withId('unit2')
+          .withName('キログラム')
+          .withSymbol('kg')
+          .withType('WEIGHT')
+          .withDisplayOrder(2)
+          .build(),
+        new UnitBuilder()
+          .withId('unit3')
+          .withName('ミリリットル')
+          .withSymbol('ml')
+          .withType('VOLUME')
+          .withDisplayOrder(3)
+          .build(),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -118,11 +136,41 @@ describe('GetUnitsQueryHandler', () => {
       // groupByType: trueの場合のグルーピング処理を確認
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-        new Unit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
-        new Unit({ id: 'unit4', name: 'リットル', symbol: 'L', displayOrder: 4 }),
-        new Unit({ id: 'unit5', name: '個', symbol: '個', displayOrder: 5 }),
+        new UnitBuilder()
+          .withId('unit1')
+          .withName('グラム')
+          .withSymbol('g')
+          .withType('WEIGHT')
+          .withDisplayOrder(1)
+          .build(),
+        new UnitBuilder()
+          .withId('unit2')
+          .withName('キログラム')
+          .withSymbol('kg')
+          .withType('WEIGHT')
+          .withDisplayOrder(2)
+          .build(),
+        new UnitBuilder()
+          .withId('unit3')
+          .withName('ミリリットル')
+          .withSymbol('ml')
+          .withType('VOLUME')
+          .withDisplayOrder(3)
+          .build(),
+        new UnitBuilder()
+          .withId('unit4')
+          .withName('リットル')
+          .withSymbol('L')
+          .withType('VOLUME')
+          .withDisplayOrder(4)
+          .build(),
+        new UnitBuilder()
+          .withId('unit5')
+          .withName('個')
+          .withSymbol('個')
+          .withType('COUNT')
+          .withDisplayOrder(5)
+          .build(),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -151,10 +199,34 @@ describe('GetUnitsQueryHandler', () => {
       // groupByType: true かつ sortBy: 'name' の場合
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'キログラム', symbol: 'kg', displayOrder: 2 }),
-        new Unit({ id: 'unit2', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit3', name: 'リットル', symbol: 'L', displayOrder: 4 }),
-        new Unit({ id: 'unit4', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }),
+        new UnitBuilder()
+          .withId('unit1')
+          .withName('キログラム')
+          .withSymbol('kg')
+          .withType('WEIGHT')
+          .withDisplayOrder(2)
+          .build(),
+        new UnitBuilder()
+          .withId('unit2')
+          .withName('グラム')
+          .withSymbol('g')
+          .withType('WEIGHT')
+          .withDisplayOrder(1)
+          .build(),
+        new UnitBuilder()
+          .withId('unit3')
+          .withName('リットル')
+          .withSymbol('L')
+          .withType('VOLUME')
+          .withDisplayOrder(4)
+          .build(),
+        new UnitBuilder()
+          .withId('unit4')
+          .withName('ミリリットル')
+          .withSymbol('ml')
+          .withType('VOLUME')
+          .withDisplayOrder(3)
+          .build(),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
@@ -182,10 +254,34 @@ describe('GetUnitsQueryHandler', () => {
       // 分類できない単位が'other'グループに分類されることを確認
       // Arrange
       const mockUnits = [
-        new Unit({ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }),
-        new Unit({ id: 'unit2', name: 'センチメートル', symbol: 'cm', displayOrder: 2 }),
-        new Unit({ id: 'unit3', name: 'メートル', symbol: 'm', displayOrder: 3 }),
-        new Unit({ id: 'unit4', name: '個', symbol: '個', displayOrder: 4 }),
+        new UnitBuilder()
+          .withId('unit1')
+          .withName('グラム')
+          .withSymbol('g')
+          .withType('WEIGHT')
+          .withDisplayOrder(1)
+          .build(),
+        new UnitBuilder()
+          .withId('unit2')
+          .withName('センチメートル')
+          .withSymbol('cm')
+          .withType('COUNT')
+          .withDisplayOrder(2)
+          .build(),
+        new UnitBuilder()
+          .withId('unit3')
+          .withName('メートル')
+          .withSymbol('m')
+          .withType('COUNT')
+          .withDisplayOrder(3)
+          .build(),
+        new UnitBuilder()
+          .withId('unit4')
+          .withName('個')
+          .withSymbol('個')
+          .withType('COUNT')
+          .withDisplayOrder(4)
+          .build(),
       ]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 

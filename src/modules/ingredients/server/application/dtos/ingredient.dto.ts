@@ -5,12 +5,19 @@
 export class IngredientDto {
   constructor(
     public readonly id: string,
+    public readonly userId: string,
     public readonly name: string,
     public readonly category: {
       id: string
       name: string
     } | null,
-    public readonly currentStock: {
+    public readonly price: number | null,
+    public readonly purchaseDate: string,
+    public readonly expiryInfo: {
+      bestBeforeDate: string | null
+      useByDate: string | null
+    } | null,
+    public readonly stock: {
       quantity: number
       unit: {
         id: string
@@ -21,12 +28,8 @@ export class IngredientDto {
         type: string
         detail: string | null
       }
-      bestBeforeDate: string | null
-      useByDate: string | null
-      purchaseDate: string
-      price: number | null
-      isInStock: boolean
-    } | null,
+      threshold: number | null
+    },
     public readonly memo: string | null,
     public readonly createdAt: string,
     public readonly updatedAt: string
@@ -40,9 +43,13 @@ export class IngredientDto {
     return {
       ingredient: {
         id: this.id,
+        userId: this.userId,
         name: this.name,
         category: this.category,
-        currentStock: this.currentStock,
+        price: this.price,
+        purchaseDate: this.purchaseDate,
+        expiryInfo: this.expiryInfo,
+        stock: this.stock,
         memo: this.memo,
         createdAt: this.createdAt,
         updatedAt: this.updatedAt,

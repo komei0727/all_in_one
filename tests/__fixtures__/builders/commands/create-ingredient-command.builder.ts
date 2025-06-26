@@ -5,6 +5,7 @@ import { BaseBuilder } from '../base.builder'
 import { testDataHelpers, faker } from '../faker.config'
 
 interface CreateIngredientCommandProps {
+  userId: string
   name: string
   categoryId: string
   quantity: {
@@ -15,6 +16,7 @@ interface CreateIngredientCommandProps {
     type: StorageType
     detail?: string
   }
+  threshold?: number
   expiryInfo?: {
     bestBeforeDate?: string | null
     useByDate?: string | null
@@ -35,6 +37,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
     super()
     // デフォルト値を設定
     this.props = {
+      userId: testDataHelpers.cuid(),
       name: testDataHelpers.ingredientName(),
       categoryId: testDataHelpers.cuid(),
       quantity: {
@@ -45,6 +48,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
         type: StorageType.REFRIGERATED,
         detail: undefined,
       },
+      threshold: undefined,
       purchaseDate: testDataHelpers.todayString(),
       price: undefined,
       memo: undefined,
@@ -143,6 +147,20 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
    */
   withPrice(price?: number): this {
     return this.with('price', price)
+  }
+
+  /**
+   * ユーザーIDを設定
+   */
+  withUserId(userId: string): this {
+    return this.with('userId', userId)
+  }
+
+  /**
+   * 閾値を設定
+   */
+  withThreshold(threshold?: number): this {
+    return this.with('threshold', threshold)
   }
 
   /**

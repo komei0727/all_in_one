@@ -15,11 +15,17 @@ export enum StorageType {
  */
 export class StorageLocation {
   private readonly type: StorageType
-  private readonly detail: string
+  private readonly detail: string | null
 
-  constructor(type: StorageType, detail: string = '') {
+  constructor(type: StorageType, detail?: string) {
+    // タイプの検証
+    if (!Object.values(StorageType).includes(type)) {
+      throw new ValidationException('無効な保存場所タイプです')
+    }
+
     this.type = type
-    this.detail = detail.trim()
+    // 詳細が未定義、空文字、空白のみの場合はnullにする
+    this.detail = detail && detail.trim() ? detail.trim() : null
     this.validate()
   }
 
@@ -28,7 +34,7 @@ export class StorageLocation {
    * @throws {ValidationException} 無効な値の場合
    */
   private validate(): void {
-    if (this.detail.length > 50) {
+    if (this.detail && this.detail.length > 50) {
       throw new ValidationException('保管場所の詳細は50文字以内で入力してください')
     }
   }
@@ -43,8 +49,29 @@ export class StorageLocation {
   /**
    * 保管場所の詳細を取得
    */
-  getDetail(): string {
+  getDetail(): string | null {
     return this.detail
+  }
+
+  /**
+   * 冷蔵保存かどうか
+   */
+  isRefrigerated(): boolean {
+    return this.type === StorageType.REFRIGERATED
+  }
+
+  /**
+   * 冷凍保存かどうか
+   */
+  isFrozen(): boolean {
+    return this.type === StorageType.FROZEN
+  }
+
+  /**
+   * 常温保存かどうか
+   */
+  isRoomTemperature(): boolean {
+    return this.type === StorageType.ROOM_TEMPERATURE
   }
 
   /**
@@ -60,6 +87,23 @@ export class StorageLocation {
   toString(): string {
     const typeLabel = this.getTypeLabel()
     return this.detail ? `${typeLabel}（${this.detail}）` : typeLabel
+  }
+
+  /**
+   * プレーンオブジェクトに変換
+   */
+  toObject(): { type: StorageType; detail: string | null } {
+    return {
+      type: this.type,
+      detail: this.detail,
+    }
+  }
+
+  /**
+   * プレーンオブジェクトから作成
+   */
+  static fromObject(obj: { type: StorageType; detail?: string }): StorageLocation {
+    return new StorageLocation(obj.type, obj.detail)
   }
 
   /**

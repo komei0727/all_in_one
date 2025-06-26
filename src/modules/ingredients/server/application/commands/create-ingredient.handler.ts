@@ -1,5 +1,4 @@
 import { CreateIngredientCommand } from './create-ingredient.command'
-import { IngredientStock } from '../../domain/entities/ingredient-stock.entity'
 import { Ingredient } from '../../domain/entities/ingredient.entity'
 import {
   CategoryNotFoundException,
@@ -14,10 +13,10 @@ import {
   IngredientName,
   Memo,
   Price,
-  Quantity,
   StorageLocation,
   UnitId,
   ExpiryInfo,
+  IngredientStock,
 } from '../../domain/value-objects'
 
 /**
@@ -52,37 +51,39 @@ export class CreateIngredientHandler {
       throw new UnitNotFoundException(unitId.getValue())
     }
 
-    // 期限情報の作成
-    const expiryInfo = new ExpiryInfo({
-      bestBeforeDate: command.expiryInfo?.bestBeforeDate
-        ? new Date(command.expiryInfo.bestBeforeDate)
-        : null,
-      useByDate: command.expiryInfo?.useByDate ? new Date(command.expiryInfo.useByDate) : null,
-    })
-
-    // 在庫情報の作成
-    const stock = new IngredientStock({
-      quantity: new Quantity(command.quantity.amount),
+    // 在庫情報の作成（値オブジェクト）
+    const ingredientStock = new IngredientStock({
+      quantity: command.quantity.amount,
       unitId,
       storageLocation: new StorageLocation(
         command.storageLocation.type,
         command.storageLocation.detail
       ),
-      expiryInfo,
-      purchaseDate: new Date(command.purchaseDate),
-      price: command.price !== undefined ? new Price(command.price) : null,
+      threshold: command.threshold,
     })
+
+    // 期限情報の作成（値オブジェクト）
+    const expiryInfo = command.expiryInfo
+      ? new ExpiryInfo({
+          bestBeforeDate: command.expiryInfo.bestBeforeDate
+            ? new Date(command.expiryInfo.bestBeforeDate)
+            : null,
+          useByDate: command.expiryInfo.useByDate ? new Date(command.expiryInfo.useByDate) : null,
+        })
+      : null
 
     // 食材エンティティの作成
     const ingredient = new Ingredient({
       id: IngredientId.generate(),
+      userId: command.userId,
       name: new IngredientName(command.name),
       categoryId,
+      purchaseDate: new Date(command.purchaseDate),
+      ingredientStock,
       memo: command.memo ? new Memo(command.memo) : null,
+      price: command.price !== undefined ? new Price(command.price) : null,
+      expiryInfo,
     })
-
-    // 在庫を設定
-    ingredient.setStock(stock)
 
     // 永続化
     const savedIngredient = await this.ingredientRepository.save(ingredient)

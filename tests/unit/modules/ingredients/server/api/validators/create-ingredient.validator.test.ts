@@ -11,8 +11,27 @@ describe('createIngredientSchema', () => {
   describe('正常系', () => {
     it('すべての項目を含む有効なデータをパースできる', () => {
       // Arrange
-      // ビルダーを使用して完全なデータを作成
-      const validData = new CreateIngredientCommandBuilder().withFullData().build()
+      // APIリクエストデータを作成（userIdを含まない）
+      const validData = {
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
+        quantity: {
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
+        },
+        storageLocation: {
+          type: 'REFRIGERATED' as const,
+          detail: '野菜室',
+        },
+        threshold: 5,
+        expiryInfo: {
+          bestBeforeDate: testDataHelpers.dateStringFromNow(7),
+          useByDate: testDataHelpers.dateStringFromNow(10),
+        },
+        purchaseDate: testDataHelpers.todayString(),
+        price: testDataHelpers.price(),
+        memo: '新鮮な食材です',
+      }
 
       // Act
       const result = createIngredientSchema.parse(validData)
@@ -23,8 +42,19 @@ describe('createIngredientSchema', () => {
 
     it('必須項目のみの有効なデータをパースできる', () => {
       // Arrange
-      // ビルダーを使用して必須項目のみのデータを作成
-      const validData = new CreateIngredientCommandBuilder().build()
+      // 必須項目のみのAPIリクエストデータ
+      const validData = {
+        name: testDataHelpers.ingredientName(),
+        categoryId: testDataHelpers.cuid(),
+        quantity: {
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
+        },
+        storageLocation: {
+          type: 'REFRIGERATED' as const,
+        },
+        purchaseDate: testDataHelpers.todayString(),
+      }
 
       // Act
       const result = createIngredientSchema.parse(validData)
@@ -35,11 +65,22 @@ describe('createIngredientSchema', () => {
 
     it('保管場所のすべてのタイプを受け入れる', () => {
       // Arrange
-      const types = ['REFRIGERATED', 'FROZEN', 'ROOM_TEMPERATURE']
+      const types = ['REFRIGERATED', 'FROZEN', 'ROOM_TEMPERATURE'] as const
 
       types.forEach((type) => {
-        // 各保管場所タイプでコマンドを作成
-        const validData = new CreateIngredientCommandBuilder().withStorageLocation({ type }).build()
+        // 各保管場所タイプでデータを作成
+        const validData = {
+          name: testDataHelpers.ingredientName(),
+          categoryId: testDataHelpers.cuid(),
+          quantity: {
+            amount: testDataHelpers.quantity(),
+            unitId: testDataHelpers.cuid(),
+          },
+          storageLocation: {
+            type,
+          },
+          purchaseDate: testDataHelpers.todayString(),
+        }
 
         // Act & Assert
         expect(() => createIngredientSchema.parse(validData)).not.toThrow()
@@ -93,8 +134,19 @@ describe('createIngredientSchema', () => {
   describe('異常系 - name', () => {
     it('nameが空文字の場合エラー', () => {
       // Arrange
-      // 空の名前でコマンドを作成
-      const invalidData = new CreateIngredientCommandBuilder().withName('').build()
+      // 空の名前でデータを作成
+      const invalidData = {
+        name: '',
+        categoryId: testDataHelpers.cuid(),
+        quantity: {
+          amount: testDataHelpers.quantity(),
+          unitId: testDataHelpers.cuid(),
+        },
+        storageLocation: {
+          type: 'REFRIGERATED' as const,
+        },
+        purchaseDate: testDataHelpers.todayString(),
+      }
 
       // Act & Assert
       expect(() => createIngredientSchema.parse(invalidData)).toThrow()

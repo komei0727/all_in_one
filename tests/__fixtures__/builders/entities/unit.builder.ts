@@ -7,6 +7,7 @@ interface UnitProps {
   id: string
   name: string
   symbol: string
+  type: string
   displayOrder: number
 }
 
@@ -22,6 +23,7 @@ export class UnitBuilder extends BaseBuilder<UnitProps, Unit> {
       id: testDataHelpers.cuid(),
       name: unit.name,
       symbol: unit.symbol,
+      type: 'WEIGHT', // デフォルトは重量タイプ
       displayOrder: faker.number.int({ min: 1, max: 999 }),
     }
   }
@@ -55,6 +57,13 @@ export class UnitBuilder extends BaseBuilder<UnitProps, Unit> {
   }
 
   /**
+   * 単位タイプを設定
+   */
+  withType(type: string): this {
+    return this.with('type', type)
+  }
+
+  /**
    * ランダムな単位を設定
    */
   withRandomUnit(): this {
@@ -80,35 +89,35 @@ export class UnitBuilder extends BaseBuilder<UnitProps, Unit> {
    * グラムとして設定
    */
   asGram(): this {
-    return this.withName('グラム').withSymbol('g').withDisplayOrder(1)
+    return this.withName('グラム').withSymbol('g').withType('WEIGHT').withDisplayOrder(1)
   }
 
   /**
    * キログラムとして設定
    */
   asKilogram(): this {
-    return this.withName('キログラム').withSymbol('kg').withDisplayOrder(2)
+    return this.withName('キログラム').withSymbol('kg').withType('WEIGHT').withDisplayOrder(2)
   }
 
   /**
    * 個として設定
    */
   asPiece(): this {
-    return this.withName('個').withSymbol('個').withDisplayOrder(3)
+    return this.withName('個').withSymbol('個').withType('COUNT').withDisplayOrder(3)
   }
 
   /**
    * リットルとして設定
    */
   asLiter(): this {
-    return this.withName('リットル').withSymbol('L').withDisplayOrder(4)
+    return this.withName('リットル').withSymbol('L').withType('VOLUME').withDisplayOrder(4)
   }
 
   /**
    * ミリリットルとして設定
    */
   asMilliliter(): this {
-    return this.withName('ミリリットル').withSymbol('ml').withDisplayOrder(5)
+    return this.withName('ミリリットル').withSymbol('ml').withType('VOLUME').withDisplayOrder(5)
   }
 
   /**
@@ -145,6 +154,7 @@ export const createTestUnit = (
     id: string
     name: string
     symbol: string
+    type: string
     displayOrder: number
   }>
 ): Unit => {
@@ -158,6 +168,9 @@ export const createTestUnit = (
   }
   if (overrides?.symbol) {
     builder.withSymbol(overrides.symbol)
+  }
+  if (overrides?.type) {
+    builder.withType(overrides.type)
   }
   if (overrides?.displayOrder !== undefined) {
     builder.withDisplayOrder(overrides.displayOrder)

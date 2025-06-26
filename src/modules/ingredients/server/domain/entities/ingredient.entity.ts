@@ -1,45 +1,135 @@
+import { AggregateRoot } from '@/modules/shared/server/domain/entities/aggregate-root.base'
+
+import {
+  IngredientCreated,
+  StockConsumed,
+  StockReplenished,
+  IngredientUpdated,
+  IngredientDeleted,
+  IngredientExpired,
+} from '../events'
 import { BusinessRuleException } from '../exceptions/business-rule.exception'
-import { IngredientId, IngredientName, CategoryId, Memo, Quantity } from '../value-objects'
-import { IngredientStock } from './ingredient-stock.entity'
+import {
+  IngredientId,
+  IngredientName,
+  CategoryId,
+  Memo,
+  Price,
+  ExpiryInfo,
+  IngredientStock,
+  UnitId,
+  StorageLocation,
+  StorageType,
+} from '../value-objects'
 
 /**
  * 食材エンティティ
  * 食材の基本情報と在庫情報を管理する集約ルート
  */
-export class Ingredient {
+export class Ingredient extends AggregateRoot {
   private readonly id: IngredientId
+  private readonly userId: string
   private name: IngredientName
   private categoryId: CategoryId
   private memo: Memo | null
-  private currentStock: IngredientStock | null
+  private price: Price | null
+  private purchaseDate: Date
+  private expiryInfo: ExpiryInfo | null
+  private ingredientStock: IngredientStock
   private readonly createdAt: Date
   private updatedAt: Date
   private deletedAt: Date | null
-  private createdBy: string | null
-  private updatedBy: string | null
 
   constructor(params: {
     id: IngredientId
+    userId: string
     name: IngredientName
     categoryId: CategoryId
+    purchaseDate: Date
+    ingredientStock: IngredientStock
     memo?: Memo | null
-    currentStock?: IngredientStock | null
+    price?: Price | null
+    expiryInfo?: ExpiryInfo | null
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
-    createdBy?: string | null
-    updatedBy?: string | null
   }) {
+    super()
     this.id = params.id
+    this.userId = params.userId
     this.name = params.name
     this.categoryId = params.categoryId
+    this.purchaseDate = params.purchaseDate
+    this.ingredientStock = params.ingredientStock
     this.memo = params.memo ?? null
-    this.currentStock = params.currentStock ?? null
+    this.price = params.price ?? null
+    this.expiryInfo = params.expiryInfo ?? null
     this.createdAt = params.createdAt ?? new Date()
     this.updatedAt = params.updatedAt ?? new Date()
     this.deletedAt = params.deletedAt ?? null
-    this.createdBy = params.createdBy ?? null
-    this.updatedBy = params.updatedBy ?? null
+  }
+
+  /**
+   * 食材を新規作成（ファクトリメソッド）
+   */
+  static create(params: {
+    userId: string
+    name: string
+    categoryId: string
+    unitId: string
+    quantity: number
+    purchaseDate: Date
+    storageLocation: { type: StorageType; detail?: string }
+    threshold?: number | null
+    memo?: string | null
+    price?: number | null
+    expiryInfo?: { bestBeforeDate: Date; useByDate?: Date | null } | null
+  }): Ingredient {
+    const id = IngredientId.generate()
+    const ingredientName = new IngredientName(params.name)
+    const categoryId = new CategoryId(params.categoryId)
+    const unitId = new UnitId(params.unitId)
+    const ingredientStock = new IngredientStock({
+      quantity: params.quantity,
+      unitId,
+      storageLocation: new StorageLocation(
+        params.storageLocation.type,
+        params.storageLocation.detail
+      ),
+      threshold: params.threshold,
+    })
+
+    const ingredient = new Ingredient({
+      id,
+      userId: params.userId,
+      name: ingredientName,
+      categoryId,
+      purchaseDate: params.purchaseDate,
+      ingredientStock,
+      memo: params.memo ? new Memo(params.memo) : null,
+      price: params.price ? new Price(params.price) : null,
+      expiryInfo: params.expiryInfo
+        ? new ExpiryInfo({
+            bestBeforeDate: params.expiryInfo.bestBeforeDate,
+            useByDate: params.expiryInfo.useByDate || null,
+          })
+        : null,
+    })
+
+    // 作成イベントを発行
+    ingredient.addDomainEvent(
+      new IngredientCreated(
+        id.getValue(),
+        params.userId,
+        params.name,
+        params.categoryId,
+        params.quantity,
+        params.unitId,
+        { userId: params.userId }
+      )
+    )
+
+    return ingredient
   }
 
   /**
@@ -71,10 +161,38 @@ export class Ingredient {
   }
 
   /**
-   * 現在の在庫を取得
+   * ユーザーIDを取得
    */
-  getCurrentStock(): IngredientStock | null {
-    return this.currentStock
+  getUserId(): string {
+    return this.userId
+  }
+
+  /**
+   * 価格を取得
+   */
+  getPrice(): Price | null {
+    return this.price
+  }
+
+  /**
+   * 購入日を取得
+   */
+  getPurchaseDate(): Date {
+    return this.purchaseDate
+  }
+
+  /**
+   * 期限情報を取得
+   */
+  getExpiryInfo(): ExpiryInfo | null {
+    return this.expiryInfo
+  }
+
+  /**
+   * 在庫情報を取得
+   */
+  getIngredientStock(): IngredientStock {
+    return this.ingredientStock
   }
 
   /**
@@ -99,20 +217,6 @@ export class Ingredient {
   }
 
   /**
-   * 作成者を取得
-   */
-  getCreatedBy(): string | null {
-    return this.createdBy
-  }
-
-  /**
-   * 更新者を取得
-   */
-  getUpdatedBy(): string | null {
-    return this.updatedBy
-  }
-
-  /**
    * 削除済みかどうか
    */
   isDeleted(): boolean {
@@ -123,46 +227,66 @@ export class Ingredient {
    * 在庫があるかどうか
    */
   isInStock(): boolean {
-    return this.currentStock !== null
+    return !this.ingredientStock.isOutOfStock()
   }
 
   /**
    * 在庫を設定
    * @param stock 新しい在庫情報
-   * @param userId 更新者ID
    */
-  setStock(stock: IngredientStock, userId?: string): void {
-    this.currentStock = stock
-    this.updateTimestamp(userId)
-  }
-
-  /**
-   * 在庫を削除
-   * @param userId 更新者ID
-   */
-  removeStock(userId?: string): void {
-    this.currentStock = null
-    this.updateTimestamp(userId)
+  setStock(stock: IngredientStock): void {
+    this.ingredientStock = stock
+    this.updateTimestamp()
   }
 
   /**
    * 在庫を消費
    * @param quantity 消費する数量
-   * @param userId 更新者ID
-   * @throws {DomainException} 在庫がない場合
-   * @throws {DomainException} 在庫が不足している場合
+   * @throws {BusinessRuleException} 在庫が不足している場合
    */
-  consume(quantity: Quantity, userId?: string): void {
-    if (!this.currentStock) {
-      throw new BusinessRuleException('在庫がありません')
-    }
-
-    try {
-      this.currentStock.consume(quantity, userId)
-      this.updateTimestamp(userId)
-    } catch (error) {
+  consume(quantity: number): void {
+    const currentQuantity = this.ingredientStock.getQuantity()
+    if (currentQuantity < quantity) {
       throw new BusinessRuleException('在庫が不足しています')
     }
+
+    this.ingredientStock = this.ingredientStock.subtract(quantity)
+    this.updateTimestamp()
+
+    // 在庫消費イベントを発行
+    this.addDomainEvent(
+      new StockConsumed(
+        this.id.getValue(),
+        this.userId,
+        quantity,
+        this.ingredientStock.getQuantity(),
+        this.ingredientStock.getUnitId().getValue(),
+        { userId: this.userId }
+      )
+    )
+  }
+
+  /**
+   * 在庫を補充
+   * @param quantity 補充する数量
+   */
+  replenish(quantity: number): void {
+    const previousQuantity = this.ingredientStock.getQuantity()
+    this.ingredientStock = this.ingredientStock.add(quantity)
+    this.updateTimestamp()
+
+    // 在庫補充イベントを発行
+    this.addDomainEvent(
+      new StockReplenished(
+        this.id.getValue(),
+        this.userId,
+        quantity,
+        previousQuantity,
+        this.ingredientStock.getQuantity(),
+        this.ingredientStock.getUnitId().getValue(),
+        { userId: this.userId }
+      )
+    )
   }
 
   /**
@@ -171,11 +295,20 @@ export class Ingredient {
    * @param userId 更新者ID
    */
   updateName(newName: IngredientName, userId?: string): void {
-    if (this.isDeleted()) {
-      throw new BusinessRuleException('削除済みの食材は更新できません')
-    }
+    this.checkUpdatePermission(userId)
+    const previousName = this.name.getValue()
     this.name = newName
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
+
+    // 食材更新イベントを発行
+    this.addDomainEvent(
+      new IngredientUpdated(
+        this.id.getValue(),
+        userId || this.userId,
+        { name: { from: previousName, to: newName.getValue() } },
+        { userId: userId || this.userId }
+      )
+    )
   }
 
   /**
@@ -184,11 +317,20 @@ export class Ingredient {
    * @param userId 更新者ID
    */
   updateCategory(newCategoryId: CategoryId, userId?: string): void {
-    if (this.isDeleted()) {
-      throw new BusinessRuleException('削除済みの食材は更新できません')
-    }
+    this.checkUpdatePermission(userId)
+    const previousCategoryId = this.categoryId.getValue()
     this.categoryId = newCategoryId
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
+
+    // 食材更新イベントを発行
+    this.addDomainEvent(
+      new IngredientUpdated(
+        this.id.getValue(),
+        userId || this.userId,
+        { categoryId: { from: previousCategoryId, to: newCategoryId.getValue() } },
+        { userId: userId || this.userId }
+      )
+    )
   }
 
   /**
@@ -197,43 +339,97 @@ export class Ingredient {
    * @param userId 更新者ID
    */
   updateMemo(newMemo: Memo | null, userId?: string): void {
-    if (this.isDeleted()) {
-      throw new BusinessRuleException('削除済みの食材は更新できません')
-    }
+    this.checkUpdatePermission(userId)
     this.memo = newMemo
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
   }
 
   /**
    * 期限切れかどうか
    */
   isExpired(): boolean {
-    if (!this.currentStock) {
+    if (!this.expiryInfo) {
       return false
     }
-    return this.currentStock.isExpired()
+    return this.expiryInfo.isExpired()
   }
 
   /**
    * 論理削除
    * @param userId 削除するユーザーID
+   * @param reason 削除理由
    */
-  delete(userId?: string): void {
+  delete(userId?: string, reason: string = 'user-action'): void {
     if (this.isDeleted()) {
       throw new BusinessRuleException('すでに削除されています')
     }
+    if (userId && userId !== this.userId) {
+      throw new BusinessRuleException('他のユーザーの食材は削除できません')
+    }
+
     this.deletedAt = new Date()
-    this.updateTimestamp(userId)
+    this.updateTimestamp()
+
+    // 削除イベントを発行
+    this.addDomainEvent(
+      new IngredientDeleted(
+        this.id.getValue(),
+        userId || this.userId,
+        this.name.getValue(),
+        this.categoryId.getValue(),
+        this.ingredientStock.getQuantity(),
+        this.ingredientStock.getUnitId().getValue(),
+        reason,
+        { userId: userId || this.userId }
+      )
+    )
+  }
+
+  /**
+   * 期限切れをチェックして通知
+   * @returns 期限切れを検出した場合true
+   */
+  checkAndNotifyExpiry(): boolean {
+    if (!this.expiryInfo || !this.isExpired()) {
+      return false
+    }
+
+    const remainingDays = this.expiryInfo.getRemainingDays()
+
+    // 期限切れイベントを発行
+    this.addDomainEvent(
+      new IngredientExpired(
+        this.id.getValue(),
+        this.name.getValue(),
+        this.categoryId.getValue(),
+        this.expiryInfo.getBestBeforeDate() || this.expiryInfo.getUseByDate()!,
+        remainingDays,
+        this.ingredientStock.getQuantity(),
+        this.ingredientStock.getUnitId().getValue(),
+        { systemCheck: true }
+      )
+    )
+
+    return true
   }
 
   /**
    * 更新日時を更新
+   */
+  private updateTimestamp(): void {
+    this.updatedAt = new Date()
+  }
+
+  /**
+   * 更新権限をチェック
    * @param userId 更新者ID
    */
-  private updateTimestamp(userId?: string): void {
-    this.updatedAt = new Date()
-    if (userId) {
-      this.updatedBy = userId
+  private checkUpdatePermission(userId?: string): void {
+    if (this.isDeleted()) {
+      throw new BusinessRuleException('削除済みの食材は更新できません')
+    }
+    if (userId && userId !== this.userId) {
+      throw new BusinessRuleException('他のユーザーの食材は更新できません')
     }
   }
 }

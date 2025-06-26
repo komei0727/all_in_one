@@ -16,10 +16,12 @@ export class IngredientMapper {
    * @returns 食材DTO
    */
   static toDto(ingredient: Ingredient, category?: Category, unit?: Unit): IngredientDto {
-    const stock = ingredient.getCurrentStock()
+    const stock = ingredient.getIngredientStock()
+    const expiryInfo = ingredient.getExpiryInfo()
 
     return new IngredientDto(
       ingredient.getId().getValue(),
+      ingredient.getUserId(),
       ingredient.getName().getValue(),
       category
         ? {
@@ -27,9 +29,17 @@ export class IngredientMapper {
             name: category.name.getValue(),
           }
         : null,
-      stock && unit
+      ingredient.getPrice()?.getValue() || null,
+      ingredient.getPurchaseDate().toISOString().split('T')[0],
+      expiryInfo
         ? {
-            quantity: stock.getQuantity().getValue(),
+            bestBeforeDate: expiryInfo.getBestBeforeDate()?.toISOString().split('T')[0] || null,
+            useByDate: expiryInfo.getUseByDate()?.toISOString().split('T')[0] || null,
+          }
+        : null,
+      unit
+        ? {
+            quantity: stock.getQuantity(),
             unit: {
               id: unit.id.getValue(),
               name: unit.name.getValue(),
@@ -39,14 +49,21 @@ export class IngredientMapper {
               type: stock.getStorageLocation().getType(),
               detail: stock.getStorageLocation().getDetail() || null,
             },
-            bestBeforeDate:
-              stock.getExpiryInfo().getBestBeforeDate()?.toISOString().split('T')[0] || null,
-            useByDate: stock.getExpiryInfo().getUseByDate()?.toISOString().split('T')[0] || null,
-            purchaseDate: stock.getPurchaseDate().toISOString().split('T')[0],
-            price: stock.getPrice()?.getValue() || null,
-            isInStock: true,
+            threshold: stock.getThreshold(),
           }
-        : null,
+        : {
+            quantity: stock.getQuantity(),
+            unit: {
+              id: stock.getUnitId().getValue(),
+              name: '',
+              symbol: '',
+            },
+            storageLocation: {
+              type: stock.getStorageLocation().getType(),
+              detail: stock.getStorageLocation().getDetail() || null,
+            },
+            threshold: stock.getThreshold(),
+          },
       ingredient.getMemo()?.getValue() || null,
       ingredient.getCreatedAt().toISOString(),
       ingredient.getUpdatedAt().toISOString()

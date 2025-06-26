@@ -26,16 +26,18 @@ export class CreateIngredientApiHandler {
   /**
    * 食材作成リクエストを処理
    * @param request 食材作成リクエスト
+   * @param userId 認証されたユーザーのID
    * @returns 作成された食材のDTO
    * @throws {ValidationException} バリデーションエラー
    */
-  async handle(request: CreateIngredientRequest) {
+  async handle(request: CreateIngredientRequest, userId: string) {
     try {
       // リクエストのバリデーション
       const validatedRequest = createIngredientSchema.parse(request)
 
       // コマンドの作成
       const command = new CreateIngredientCommand({
+        userId, // 認証されたユーザーのIDを使用
         name: validatedRequest.name,
         categoryId: validatedRequest.categoryId,
         quantity: {
@@ -46,6 +48,7 @@ export class CreateIngredientApiHandler {
           type: validatedRequest.storageLocation.type as StorageType,
           detail: validatedRequest.storageLocation.detail,
         },
+        threshold: validatedRequest.threshold,
         expiryInfo: validatedRequest.expiryInfo,
         purchaseDate: validatedRequest.purchaseDate,
         price: validatedRequest.price,
@@ -59,11 +62,9 @@ export class CreateIngredientApiHandler {
       const category = await this.categoryRepository.findById(
         CategoryId.create(validatedRequest.categoryId)
       )
-      const unit = ingredient.getCurrentStock()
-        ? await this.unitRepository.findById(
-            UnitId.create(ingredient.getCurrentStock()!.getUnitId().getValue())
-          )
-        : null
+      const unit = await this.unitRepository.findById(
+        UnitId.create(ingredient.getIngredientStock().getUnitId().getValue())
+      )
 
       // DTOへの変換
       const dto = IngredientMapper.toDto(ingredient, category || undefined, unit || undefined)

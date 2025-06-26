@@ -2,4 +2,5 @@
 export * from './mocks/repositories'
 
 // Factories
-export * from './factories/entities'
+// entities.tsは削除されたためコメントアウト
+// export * from './factories/entities'

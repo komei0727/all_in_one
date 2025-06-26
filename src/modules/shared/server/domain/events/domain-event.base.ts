@@ -8,12 +8,15 @@ export abstract class DomainEvent {
   public readonly occurredAt: Date
   public readonly aggregateId: string
   public readonly version: number
+  public readonly metadata: Record<string, any>
 
-  constructor(aggregateId: string, version: number = 1) {
+  constructor(aggregateId: string, metadata: Record<string, any> = {}, version: number = 1) {
     this.id = crypto.randomUUID()
     this.occurredAt = new Date()
     this.aggregateId = aggregateId
     this.version = version
+    // メタデータの不変性を保つため、ディープコピーを作成
+    this.metadata = metadata ? JSON.parse(JSON.stringify(metadata)) : {}
   }
 
   /**
@@ -33,6 +36,7 @@ export abstract class DomainEvent {
       aggregateId: this.aggregateId,
       version: this.version,
       occurredAt: this.occurredAt.toISOString(),
+      metadata: this.metadata,
       payload: this.getPayload(),
     }
   }
