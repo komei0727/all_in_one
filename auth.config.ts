@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer'
-
 /**
  * 環境別メールサーバー設定
  */
@@ -43,20 +41,19 @@ export function getEmailConfig() {
  * NextAuth設定の環境別調整
  */
 export function getAuthConfig() {
-  const isDevelopment = process.env.NODE_ENV === 'development'
   const isProduction = process.env.NEXT_PUBLIC_ENVIRONMENT === 'production'
-  
+
   return {
     // デバッグモードは開発環境と検証環境のみ
     debug: !isProduction,
-    
+
     // セッション設定
     session: {
       strategy: 'database' as const,
       maxAge: isProduction ? 30 * 24 * 60 * 60 : 24 * 60 * 60, // 本番: 30日、その他: 1日
       updateAge: 24 * 60 * 60, // 24時間
     },
-    
+
     // CSRFトークンの設定
     cookies: {
       sessionToken: {

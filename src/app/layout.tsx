@@ -9,10 +9,11 @@ import { Providers } from './providers'
 
 // サーバーサイドでのみ環境変数を検証
 if (typeof window === 'undefined') {
-  import('@/lib/env').then(({ validateEnv }) => {
+  void import('@/lib/env').then(({ validateEnv }) => {
     try {
       validateEnv()
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Environment validation failed:', error)
       // 本番環境では起動を停止
       if (process.env.NODE_ENV === 'production') {

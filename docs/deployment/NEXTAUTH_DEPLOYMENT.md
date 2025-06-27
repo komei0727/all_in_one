@@ -23,6 +23,7 @@ NextAuth v5のメール認証機能を、開発・検証・本番の各環境で
 ## 📝 環境変数の設定
 
 ### 開発環境（.env.local）
+
 ```bash
 # NextAuth設定
 NEXTAUTH_URL="http://localhost:3000"
@@ -36,6 +37,7 @@ EMAIL_FROM="noreply@localhost"
 ```
 
 ### 検証環境（Vercel Preview）
+
 ```bash
 # NextAuth設定
 NEXTAUTH_URL="https://app-deploy-xxx.vercel.app"
@@ -54,6 +56,7 @@ NEXT_PUBLIC_APP_URL="https://app-deploy-xxx.vercel.app"
 ```
 
 ### 本番環境（Vercel Production）
+
 ```bash
 # NextAuth設定
 NEXTAUTH_URL="https://app.vercel.app"
@@ -90,6 +93,7 @@ openssl rand -base64 32
 ### 3. メール送信テスト
 
 #### 開発環境
+
 ```bash
 # MailHogを起動
 pnpm mail:up
@@ -99,10 +103,12 @@ open http://localhost:8025
 ```
 
 #### 検証環境
+
 - Mailtrapのダッシュボードで受信確認
 - メール内の【検証環境】表示を確認
 
 #### 本番環境
+
 - 実際のメールアドレスで受信確認
 - SPF/DKIM設定の確認
 
@@ -137,17 +143,20 @@ cookies: {
 ### チェックリスト
 
 #### 開発環境
+
 - [ ] MailHogでメール受信確認
 - [ ] ログインリンクが`http://localhost:3000`を指している
 - [ ] デバッグログが表示される
 
 #### 検証環境
+
 - [ ] Mailtrapでメール受信確認
 - [ ] メールに【検証環境】が表示される
 - [ ] ログインリンクが検証環境URLを指している
 - [ ] HTTPSで動作している
 
 #### 本番環境
+
 - [ ] 実際のメールアドレスで受信確認
 - [ ] メールに環境表示がない
 - [ ] ログインリンクが本番URLを指している
@@ -159,34 +168,41 @@ cookies: {
 ### メールが届かない
 
 1. **環境変数の確認**
+
 ```bash
 # Vercelで確認
 vercel env ls
 ```
 
 2. **SMTPエラーの場合**
+
 - ポート番号（587 for TLS, 465 for SSL）
 - 認証情報の確認
 - ファイアウォール設定
 
 3. **スパムフォルダの確認**
+
 - 特に本番環境でSPF/DKIM未設定の場合
 
 ### ログインリンクが無効
 
 1. **NEXTAUTH_URLの確認**
+
 - 各環境で正しいURLが設定されているか
 
 2. **リンクの有効期限**
+
 - デフォルト24時間
 - データベースの`VerificationToken`テーブルを確認
 
 ### セッションが保持されない
 
 1. **Cookieドメインの確認**
+
 - サブドメイン間でのCookie共有設定
 
 2. **HTTPSの確認**
+
 - 本番環境でHTTPSが有効か
 
 ## 📚 参考リンク

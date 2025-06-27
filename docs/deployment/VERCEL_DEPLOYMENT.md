@@ -33,62 +33,64 @@ Vercel Dashboard → Settings → Git で以下を設定：
 
 #### 共通設定（両環境に適用）
 
-| 変数名 | 説明 | Production | Preview |
-|--------|------|------------|---------|
+| 変数名     | 説明     | Production   | Preview      |
+| ---------- | -------- | ------------ | ------------ |
 | `NODE_ENV` | 実行環境 | `production` | `production` |
 
 #### データベース設定
 
-| 変数名 | Production | Preview |
-|--------|------------|---------|
+| 変数名         | Production             | Preview                |
+| -------------- | ---------------------- | ---------------------- |
 | `DATABASE_URL` | 本番Supabase接続文字列 | 検証Supabase接続文字列 |
-| `DIRECT_URL` | 本番Supabase直接接続 | 検証Supabase直接接続 |
+| `DIRECT_URL`   | 本番Supabase直接接続   | 検証Supabase直接接続   |
 
 #### Supabase設定
 
-| 変数名 | Production | Preview |
-|--------|------------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | 本番SupabaseのURL | 検証SupabaseのURL |
+| 変数名                          | Production         | Preview            |
+| ------------------------------- | ------------------ | ------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | 本番SupabaseのURL  | 検証SupabaseのURL  |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 本番Supabaseのキー | 検証Supabaseのキー |
 
 #### アプリケーション設定
 
-| 変数名 | Production | Preview |
-|--------|------------|---------|
+| 変数名                | Production               | Preview                             |
+| --------------------- | ------------------------ | ----------------------------------- |
 | `NEXT_PUBLIC_APP_URL` | `https://app.vercel.app` | `https://app-deploy-xxx.vercel.app` |
-| `NEXTAUTH_URL` | `https://app.vercel.app` | `https://app-deploy-xxx.vercel.app` |
-| `AUTH_SECRET` | 本番用シークレット | 検証用シークレット |
+| `NEXTAUTH_URL`        | `https://app.vercel.app` | `https://app-deploy-xxx.vercel.app` |
+| `AUTH_SECRET`         | 本番用シークレット       | 検証用シークレット                  |
 
 #### メール設定
 
-| 変数名 | Production | Preview |
-|--------|------------|---------|
-| `EMAIL_SERVER_HOST` | `smtp.sendgrid.net` | `smtp.mailtrap.io` |
-| `EMAIL_SERVER_PORT` | `587` | `2525` |
-| `EMAIL_SERVER_USER` | `apikey` | Mailtrapユーザー |
-| `EMAIL_SERVER_PASSWORD` | SendGrid APIキー | Mailtrapパスワード |
-| `EMAIL_FROM` | `noreply@yourdomain.com` | `staging@example.com` |
+| 変数名                  | Production               | Preview               |
+| ----------------------- | ------------------------ | --------------------- |
+| `EMAIL_SERVER_HOST`     | `smtp.sendgrid.net`      | `smtp.mailtrap.io`    |
+| `EMAIL_SERVER_PORT`     | `587`                    | `2525`                |
+| `EMAIL_SERVER_USER`     | `apikey`                 | Mailtrapユーザー      |
+| `EMAIL_SERVER_PASSWORD` | SendGrid APIキー         | Mailtrapパスワード    |
+| `EMAIL_FROM`            | `noreply@yourdomain.com` | `staging@example.com` |
 
 #### フィーチャーフラグ
 
-| 変数名 | Production | Preview |
-|--------|------------|---------|
-| `NEXT_PUBLIC_ENVIRONMENT` | `production` | `staging` |
-| `NEXT_PUBLIC_ENABLE_DEBUG` | `false` | `true` |
+| 変数名                     | Production   | Preview   |
+| -------------------------- | ------------ | --------- |
+| `NEXT_PUBLIC_ENVIRONMENT`  | `production` | `staging` |
+| `NEXT_PUBLIC_ENABLE_DEBUG` | `false`      | `true`    |
 
 ## 📝 vercel.json の設定説明
 
 ### 基本設定
+
 ```json
 {
   "framework": "nextjs",
   "buildCommand": "pnpm build",
   "installCommand": "pnpm install",
-  "regions": ["hnd1"]  // 東京リージョン
+  "regions": ["hnd1"] // 東京リージョン
 }
 ```
 
 ### Functions設定
+
 ```json
 "functions": {
   "src/app/api/**/*": {
@@ -99,6 +101,7 @@ Vercel Dashboard → Settings → Git で以下を設定：
 ```
 
 ### セキュリティヘッダー
+
 ```json
 "headers": [
   {
@@ -117,10 +120,12 @@ Vercel Dashboard → Settings → Git で以下を設定：
 ### 自動デプロイ
 
 1. **deployブランチへのプッシュ**
+
    - Preview環境に自動デプロイ
    - 固定URL: `https://all-in-one-deploy.vercel.app`
 
 2. **mainブランチへのマージ**
+
    - Production環境に自動デプロイ
    - URL: `https://all-in-one.vercel.app`
 
@@ -158,7 +163,7 @@ export const config = {
     analytics: process.env.NEXT_PUBLIC_ENVIRONMENT === 'production',
     // 検証環境で有効
     debugPanel: process.env.NEXT_PUBLIC_ENVIRONMENT === 'staging',
-  }
+  },
 }
 ```
 
@@ -167,6 +172,7 @@ export const config = {
 ### 環境変数の管理
 
 1. **シークレット値**
+
    - Vercel UIで直接入力
    - 絶対にコミットしない
 
@@ -177,6 +183,7 @@ export const config = {
 ### ドメイン設定
 
 1. **カスタムドメイン（本番）**
+
    - Settings → Domains
    - DNSレコードを設定
 
@@ -189,10 +196,12 @@ export const config = {
 ### Vercel Analytics
 
 1. **有効化**
+
    - Analytics タブから有効化
    - `@vercel/analytics`をインストール
 
 2. **実装**
+
 ```tsx
 // src/app/layout.tsx
 import { Analytics } from '@vercel/analytics/react'
@@ -219,6 +228,7 @@ export default function RootLayout({ children }) {
 ### ビルドエラー
 
 1. **Prismaエラー**
+
    ```bash
    # postinstallスクリプトを確認
    "postinstall": "prisma generate"
@@ -231,6 +241,7 @@ export default function RootLayout({ children }) {
 ### 環境変数エラー
 
 1. **未定義エラー**
+
    - Vercel UIで設定確認
    - 環境選択を確認
 
