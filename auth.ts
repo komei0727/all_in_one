@@ -2,6 +2,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import NextAuth from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
 
+import { getAuthConfig, getEmailConfig } from './auth.config'
 import { prisma } from '@/lib/prisma'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
@@ -12,18 +13,52 @@ import { PrismaUserRepository } from '@/modules/user-authentication/server/infra
  * マジックリンク認証を使用し、ドメインユーザーとの連携を行う
  */
 
+// 環境別の設定を取得
+const authConfig = getAuthConfig()
+const emailConfig = getEmailConfig()
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   // Prismaアダプターの設定
   adapter: PrismaAdapter(prisma as any),
-  debug: true,
+  debug: authConfig.debug,
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
     EmailProvider({
-      // MailHog用の設定（認証なし）
-      server: `smtp://${process.env.EMAIL_SERVER_HOST || 'localhost'}:${
-        process.env.EMAIL_SERVER_PORT || '1025'
-      }`,
-      from: process.env.EMAIL_FROM || 'noreply@example.com',
+      server: emailConfig.server,
+      from: emailConfig.from,
+      // メール送信設定
+      sendVerificationRequest: async ({ identifier: email, url, provider }) => {
+        // Nodemailerトランスポーターの作成
+        const transport = require('nodemailer').createTransport(provider.server)
+        const result = await transport.sendMail({
+          to: email,
+          from: provider.from,
+          subject: '食材管理アプリへのログイン',
+          text: `以下のリンクをクリックしてログインしてください: ${url}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>食材管理アプリへのログイン</h2>
+              <p>以下のボタンをクリックしてログインしてください。</p>
+              <div style="margin: 30px 0;">
+                <a href="${url}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                  ログインする
+                </a>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                このリンクは24時間有効です。心当たりがない場合は、このメールを無視してください。
+              </p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px;">
+                ${process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' ? '' : '【検証環境】'}
+                食材管理アプリ - ${process.env.NEXT_PUBLIC_APP_URL}
+              </p>
+            </div>
+          `,
+        })
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📧 認証メール送信:', { to: email, messageId: result.messageId })
+        }
+      },
     }),
   ],
   pages: {
@@ -112,11 +147,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       // TODO: ユーザー作成ログは本番環境では適切なロガーに置き換える
     },
   },
-  session: {
-    strategy: 'database',
-    maxAge: 30 * 24 * 60 * 60, // 30日
-    updateAge: 24 * 60 * 60, // 24時間
-  },
+  session: authConfig.session,
+  cookies: authConfig.cookies,
 })
 
 /**

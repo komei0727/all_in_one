@@ -1,0 +1,45 @@
+# Vercelビルド時に除外するファイル
+
+# 開発関連
+.env.local
+.env.local.example
+.env.staging.example
+.env.test
+
+# テスト関連
+tests/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+vitest.config.*
+playwright.config.*
+
+# ドキュメント
+docs/
+*.md
+!README.md
+
+# 開発ツール
+.husky/
+.vscode/
+.idea/
+*.log
+
+# Docker関連
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# データベース関連
+prisma/migrations/
+prisma/seed.ts
+*.db
+*.db-journal
+
+# その他
+.git/
+.github/
+node_modules/
+.DS_Store
