@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 import { PrismaClient } from '@/generated/prisma-test'
-
 // テスト対象のPrismaUserRepository
 // ドメインオブジェクト
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
@@ -10,10 +9,7 @@ import { User } from '@/modules/user-authentication/server/domain/entities/user.
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
-import {
-  NextAuthUserBuilder,
-  testDataHelpers,
-} from '../../../../../../__fixtures__/builders'
+import { NextAuthUserBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
 
 describe('PrismaUserRepository（統合テスト）', () => {
   let prisma: PrismaClient
@@ -22,7 +18,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
   beforeEach(async () => {
     // テスト用のPrismaクライアントを作成
     prisma = new PrismaClient()
-    repository = new PrismaUserRepository(prisma as any)
+    repository = new PrismaUserRepository(prisma as unknown as PrismaClient)
 
     // テストデータをクリア
     await prisma.domainUser.deleteMany()

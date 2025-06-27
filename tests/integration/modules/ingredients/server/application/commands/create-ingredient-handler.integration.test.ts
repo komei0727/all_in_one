@@ -12,7 +12,10 @@ import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastru
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
-import { CreateIngredientCommandBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
+import {
+  CreateIngredientCommandBuilder,
+  testDataHelpers,
+} from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
