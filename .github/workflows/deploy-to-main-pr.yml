@@ -66,14 +66,14 @@ jobs:
             "NEXTAUTH_URL"
             "NEXTAUTH_SECRET"
           )
-          
+
           missing_vars=()
           for var in "${required_vars[@]}"; do
             if [ -z "${!var:-}" ]; then
               missing_vars+=("$var")
             fi
           done
-          
+
           if [ ${#missing_vars[@]} -gt 0 ]; then
             echo "⚠️  Warning: The following environment variables will need to be set in production:"
             printf '%s\n' "${missing_vars[@]}"
@@ -97,22 +97,22 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `## 🚀 Production Deployment Ready
-            
+
             ### Pre-deployment Checklist:
             - [ ] All tests pass
             - [ ] Code has been reviewed
             - [ ] Database migrations are ready
             - [ ] Environment variables are configured
             - [ ] Preview environment tested
-            
+
             ### Deployment Flow:
             1. Merge this PR to \`main\` branch
             2. Production deployment will start automatically
             3. Monitor deployment in Vercel dashboard
-            
+
             ⚠️ **Important**: This will deploy to production immediately after merge.
             `;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

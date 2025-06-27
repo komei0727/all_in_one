@@ -59,5 +59,12 @@
       "destination": "/api/auth/signin",
       "permanent": false
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "main": true,
+      "deploy": true
+    }
+  }
 }

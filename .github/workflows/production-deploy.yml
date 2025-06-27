@@ -121,11 +121,11 @@ jobs:
           release_name: Production Release ${{ github.sha }}
           body: |
             ## 🚀 Production Deployment
-            
+
             **Commit:** ${{ github.sha }}
             **Author:** ${{ github.actor }}
             **Message:** ${{ github.event.head_commit.message }}
-            
+
             **Production URL:** ${{ steps.waitForVercel.outputs.url }}
           draft: false
           prerelease: false
