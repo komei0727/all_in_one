@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { auth } from '@/auth'
 import { GetIngredientsApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-ingredients.handler'
-import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions/business-rule.exception'
-import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
-import { ValidationException } from '@/modules/ingredients/server/domain/exceptions/validation.exception'
+import {
+  BusinessRuleException,
+  NotFoundException,
+  ValidationException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**

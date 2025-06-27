@@ -6,6 +6,7 @@ import { GetIngredientsQuery } from '@/modules/ingredients/server/application/qu
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 
 import { IngredientBuilder } from '../../../../__fixtures__/builders/entities/ingredient.builder'
+import { testDataHelpers } from '../../../../__fixtures__/builders/faker.config'
 
 describe('GetIngredientsHandler', () => {
   let handler: GetIngredientsHandler
@@ -36,8 +37,16 @@ describe('GetIngredientsHandler', () => {
   it('ページネーション付きで食材一覧を取得できる', async () => {
     // 食材エンティティを生成
     const ingredients = [
-      new IngredientBuilder().withRandomName().withCategoryId('cat1').withDefaultStock().build(),
-      new IngredientBuilder().withRandomName().withCategoryId('cat2').withDefaultStock().build(),
+      new IngredientBuilder()
+        .withRandomName()
+        .withCategoryId(testDataHelpers.categoryId())
+        .withDefaultStock()
+        .build(),
+      new IngredientBuilder()
+        .withRandomName()
+        .withCategoryId(testDataHelpers.categoryId())
+        .withDefaultStock()
+        .build(),
     ]
 
     // モックの設定
@@ -45,7 +54,8 @@ describe('GetIngredientsHandler', () => {
     vi.mocked(mockRepository.count).mockResolvedValue(2)
 
     // クエリの実行
-    const query = new GetIngredientsQuery('user1', 1, 20)
+    const userId = testDataHelpers.userId()
+    const query = new GetIngredientsQuery(userId, 1, 20)
     const result = await handler.execute(query)
 
     // 検証
@@ -58,7 +68,7 @@ describe('GetIngredientsHandler', () => {
 
     // リポジトリの呼び出し確認
     expect(mockRepository.findMany).toHaveBeenCalledWith({
-      userId: 'user1',
+      userId: userId,
       page: 1,
       limit: 20,
       search: undefined,
@@ -68,7 +78,7 @@ describe('GetIngredientsHandler', () => {
       sortOrder: undefined,
     })
     expect(mockRepository.count).toHaveBeenCalledWith({
-      userId: 'user1',
+      userId: userId,
       search: undefined,
       categoryId: undefined,
       expiryStatus: undefined,
@@ -76,25 +86,27 @@ describe('GetIngredientsHandler', () => {
   })
 
   it('検索条件付きで食材を取得できる', async () => {
+    const categoryId = testDataHelpers.categoryId()
     const ingredient = new IngredientBuilder()
       .withName('トマト')
-      .withCategoryId('cat1')
+      .withCategoryId(categoryId)
       .withDefaultStock()
       .build()
 
     vi.mocked(mockRepository.findMany).mockResolvedValue([ingredient])
     vi.mocked(mockRepository.count).mockResolvedValue(1)
 
-    const query = new GetIngredientsQuery('user1', 1, 20, 'トマト', 'cat1', 'expired')
+    const userId = testDataHelpers.userId()
+    const query = new GetIngredientsQuery(userId, 1, 20, 'トマト', categoryId, 'expired')
     const result = await handler.execute(query)
 
     expect(result.items).toHaveLength(1)
     expect(mockRepository.findMany).toHaveBeenCalledWith({
-      userId: 'user1',
+      userId: userId,
       page: 1,
       limit: 20,
       search: 'トマト',
-      categoryId: 'cat1',
+      categoryId: categoryId,
       expiryStatus: 'expired',
       sortBy: undefined,
       sortOrder: undefined,
@@ -110,8 +122,9 @@ describe('GetIngredientsHandler', () => {
     vi.mocked(mockRepository.findMany).mockResolvedValue(ingredients)
     vi.mocked(mockRepository.count).mockResolvedValue(2)
 
+    const userId = testDataHelpers.userId()
     const query = new GetIngredientsQuery(
-      'user1',
+      userId,
       1,
       20,
       undefined,
@@ -124,7 +137,7 @@ describe('GetIngredientsHandler', () => {
 
     expect(result.items).toHaveLength(2)
     expect(mockRepository.findMany).toHaveBeenCalledWith({
-      userId: 'user1',
+      userId: userId,
       page: 1,
       limit: 20,
       search: undefined,
@@ -139,7 +152,8 @@ describe('GetIngredientsHandler', () => {
     vi.mocked(mockRepository.findMany).mockResolvedValue([])
     vi.mocked(mockRepository.count).mockResolvedValue(0)
 
-    const query = new GetIngredientsQuery('user1', 1, 20)
+    const userId = testDataHelpers.userId()
+    const query = new GetIngredientsQuery(userId, 1, 20)
     const result = await handler.execute(query)
 
     expect(result.items).toHaveLength(0)

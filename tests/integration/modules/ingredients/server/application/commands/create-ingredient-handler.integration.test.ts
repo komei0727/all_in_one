@@ -12,20 +12,25 @@ import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastru
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
-import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
+import {
+  CreateIngredientCommandBuilder,
+  testDataHelpers,
+} from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 // テストデータ生成用のヘルパー関数
 const createTestCommand = () => {
+  const testDataIds = getTestDataIds()
   return new CreateIngredientCommandBuilder()
     .withUserId('test-user-' + faker.string.uuid())
-    .withCategoryId('cat00001') // 統合テストなので実在するカテゴリーID
-    .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001') // 統合テストなので実在する単位ID
+    .withCategoryId(testDataIds.categories.vegetable) // 統合テストなので実在するカテゴリーID
+    .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece) // 統合テストなので実在する単位ID
     .withStorageLocation({
       type: faker.helpers.arrayElement([
         StorageType.REFRIGERATED,
@@ -110,10 +115,11 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('メモなしで食材を作成できる', async () => {
       // Given: メモなしのコマンド
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
-        .withCategoryId('cat00001')
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,
@@ -134,10 +140,11 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('価格なしで食材を作成できる', async () => {
       // Given: 価格なしのコマンド
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
-        .withCategoryId('cat00001')
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,
@@ -158,10 +165,11 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('賞味期限・消費期限なしで食材を作成できる', async () => {
       // Given: 期限なしのコマンド
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
-        .withCategoryId('cat00001')
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(new Date().toISOString())
         .withExpiryInfo(null)
@@ -182,12 +190,13 @@ describe('CreateIngredientHandler Integration Tests', () => {
         StorageType.ROOM_TEMPERATURE,
       ]
 
+      const testDataIds = getTestDataIds()
       for (const storageType of storageTypes) {
         const command = new CreateIngredientCommandBuilder()
           .withUserId('test-user-' + faker.string.uuid())
           .withName(`${faker.food.ingredient()}_${storageType}`)
-          .withCategoryId('cat00001')
-          .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+          .withCategoryId(testDataIds.categories.vegetable)
+          .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
           .withStorageLocation({ type: storageType })
           .withPurchaseDate(new Date().toISOString())
           .build()
@@ -202,14 +211,19 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('複数の異なるカテゴリーで食材を作成できる', async () => {
       // Given: 異なるカテゴリーのコマンド
-      const categories = ['cat00001', 'cat00002', 'cat00003']
+      const testDataIds = getTestDataIds()
+      const categories = [
+        testDataIds.categories.vegetable,
+        testDataIds.categories.meatFish,
+        testDataIds.categories.seasoning,
+      ]
 
       for (const categoryId of categories) {
         const command = new CreateIngredientCommandBuilder()
           .withUserId('test-user-' + faker.string.uuid())
           .withName(`${faker.food.ingredient()}_${categoryId}`)
           .withCategoryId(categoryId)
-          .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+          .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
           .withStorageLocation({
             type: faker.helpers.arrayElement([
               StorageType.REFRIGERATED,
@@ -230,13 +244,14 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('複数の異なる単位で食材を作成できる', async () => {
       // Given: 異なる単位のコマンド
-      const units = ['unit0001', 'unit0002', 'unit0003']
+      const testDataIds = getTestDataIds()
+      const units = [testDataIds.units.piece, testDataIds.units.gram, testDataIds.units.milliliter]
 
       for (const unitId of units) {
         const command = new CreateIngredientCommandBuilder()
           .withUserId('test-user-' + faker.string.uuid())
           .withName(`${faker.food.ingredient()}_${unitId}`)
-          .withCategoryId('cat00001')
+          .withCategoryId(testDataIds.categories.vegetable)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), unitId)
           .withStorageLocation({
             type: faker.helpers.arrayElement([
@@ -260,11 +275,12 @@ describe('CreateIngredientHandler Integration Tests', () => {
   describe('異常系', () => {
     it('存在しないカテゴリーIDの場合エラーになる', async () => {
       // Given: 存在しないカテゴリーIDを持つコマンド
-      const nonExistentCategoryId = faker.string.uuid()
+      const nonExistentCategoryId = testDataHelpers.categoryId()
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
         .withCategoryId(nonExistentCategoryId)
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,
@@ -284,10 +300,11 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('存在しない単位IDの場合エラーになる', async () => {
       // Given: 存在しない単位IDを持つコマンド
-      const nonExistentUnitId = faker.string.uuid()
+      const nonExistentUnitId = testDataHelpers.unitId()
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
-        .withCategoryId('cat00001')
+        .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), nonExistentUnitId)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
@@ -330,11 +347,12 @@ describe('CreateIngredientHandler Integration Tests', () => {
     it('同名の食材を複数作成できる', async () => {
       // Given: 同じ名前の食材を作成
       const sameName = faker.food.ingredient()
+      const testDataIds = getTestDataIds()
       const command1 = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
         .withName(sameName)
-        .withCategoryId('cat00001')
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,
@@ -347,8 +365,8 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const command2 = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
         .withName(sameName)
-        .withCategoryId('cat00001')
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,
@@ -370,11 +388,12 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('価格の精度が保持される', async () => {
       // Given: 小数点を含む価格
+      const testDataIds = getTestDataIds()
       const precisePrice = faker.number.float({ min: 100, max: 9999, fractionDigits: 2 })
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
-        .withCategoryId('cat00001')
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,

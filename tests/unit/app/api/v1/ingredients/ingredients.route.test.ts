@@ -194,9 +194,7 @@ describe('POST /api/v1/ingredients', () => {
     } as any)
 
     // ValidationExceptionをインポート
-    const { ValidationException } = await import(
-      '@/modules/ingredients/server/domain/exceptions/validation.exception'
-    )
+    const { ValidationException } = await import('@/modules/ingredients/server/domain/exceptions')
 
     // モックの設定
     vi.mocked(mockApiHandler.handle).mockRejectedValue(

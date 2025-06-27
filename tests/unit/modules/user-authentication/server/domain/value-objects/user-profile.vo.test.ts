@@ -86,7 +86,7 @@ describe('UserProfile値オブジェクト', () => {
       }
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserProfile(invalidProfile)).toThrow('表示名は必須です')
+      expect(() => new UserProfile(invalidProfile)).toThrow('displayNameは必須です')
     })
 
     it('表示名が空白文字のみの場合エラーが発生する', () => {
@@ -99,7 +99,7 @@ describe('UserProfile値オブジェクト', () => {
       }
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserProfile(invalidProfile)).toThrow('表示名は必須です')
+      expect(() => new UserProfile(invalidProfile)).toThrow('displayNameは必須です')
     })
 
     it('表示名が長すぎる場合エラーが発生する', () => {
@@ -146,7 +146,7 @@ describe('UserProfile値オブジェクト', () => {
       const nullProfile = null as any
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserProfile(nullProfile)).toThrow('ユーザープロフィールは必須です')
+      expect(() => new UserProfile(nullProfile)).toThrow('userProfileは必須です')
     })
 
     it('undefinedで作成するとエラーが発生する', () => {
@@ -154,7 +154,7 @@ describe('UserProfile値オブジェクト', () => {
       const undefinedProfile = undefined as any
 
       // Act & Assert（実行 & 検証）
-      expect(() => new UserProfile(undefinedProfile)).toThrow('ユーザープロフィールは必須です')
+      expect(() => new UserProfile(undefinedProfile)).toThrow('userProfileは必須です')
     })
 
     it('無効なUserPreferencesで作成するとエラーが発生する', () => {
@@ -347,8 +347,8 @@ describe('UserProfile値オブジェクト', () => {
 
     it('異なる設定のUserProfileは等しくない', () => {
       // Arrange（準備）
-      const preferences1 = UserPreferences.createDefault()
-      const preferences2 = new UserPreferences({
+      const _preferences1 = UserPreferences.createDefault()
+      const _preferences2 = new UserPreferences({
         theme: 'dark' as const,
         notifications: true,
         emailFrequency: 'weekly' as const,

@@ -6,11 +6,13 @@ import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/applicat
 import { GetCategoriesQuery } from '@/modules/ingredients/server/application/queries/get-categories.query'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 /**
@@ -52,22 +54,24 @@ describe('GetCategoriesHandler Integration Tests', () => {
       const result = await handler.handle(query)
 
       // Then: シードデータの3カテゴリーが表示順で取得される
+      const testDataIds = getTestDataIds()
       expect(result.categories).toHaveLength(3)
-      expect(result.categories[0].id).toBe('cat00001')
+      expect(result.categories[0].id).toBe(testDataIds.categories.vegetable)
       expect(result.categories[0].name).toBe('野菜')
       expect(result.categories[0].displayOrder).toBe(1)
-      expect(result.categories[1].id).toBe('cat00002')
+      expect(result.categories[1].id).toBe(testDataIds.categories.meatFish)
       expect(result.categories[1].name).toBe('肉・魚')
       expect(result.categories[1].displayOrder).toBe(2)
-      expect(result.categories[2].id).toBe('cat00003')
+      expect(result.categories[2].id).toBe(testDataIds.categories.seasoning)
       expect(result.categories[2].name).toBe('調味料')
       expect(result.categories[2].displayOrder).toBe(3)
     })
 
     it('非アクティブなカテゴリーは取得されない', async () => {
       // Given: 1つのカテゴリーを非アクティブにする
+      const testDataIds = getTestDataIds()
       await prisma.category.update({
-        where: { id: 'cat00002' },
+        where: { id: testDataIds.categories.meatFish },
         data: { isActive: false },
       })
 
@@ -76,14 +80,16 @@ describe('GetCategoriesHandler Integration Tests', () => {
 
       // Then: アクティブなカテゴリーのみ取得される
       expect(result.categories).toHaveLength(2)
-      expect(result.categories.find((c: any) => c.id === 'cat00002')).toBeUndefined()
-      expect(result.categories[0].id).toBe('cat00001')
-      expect(result.categories[1].id).toBe('cat00003')
+      expect(
+        result.categories.find((c: any) => c.id === testDataIds.categories.meatFish)
+      ).toBeUndefined()
+      expect(result.categories[0].id).toBe(testDataIds.categories.vegetable)
+      expect(result.categories[1].id).toBe(testDataIds.categories.seasoning)
     })
 
     it('新しいカテゴリーを追加しても表示順で取得される', async () => {
       // Given: 新しいカテゴリーを追加
-      const newCategoryId = faker.string.uuid()
+      const newCategoryId = testDataHelpers.categoryId()
       const newCategoryName = `テストカテゴリー_${faker.string.alphanumeric(6)}`
       await prisma.category.create({
         data: {
@@ -101,10 +107,11 @@ describe('GetCategoriesHandler Integration Tests', () => {
       expect(result.categories).toHaveLength(4)
       expect(result.categories[0].id).toBe(newCategoryId)
       expect(result.categories[0].name).toBe(newCategoryName)
+      const testDataIds = getTestDataIds()
       expect(result.categories[0].displayOrder).toBe(0)
-      expect(result.categories[1].id).toBe('cat00001')
-      expect(result.categories[2].id).toBe('cat00002')
-      expect(result.categories[3].id).toBe('cat00003')
+      expect(result.categories[1].id).toBe(testDataIds.categories.vegetable)
+      expect(result.categories[2].id).toBe(testDataIds.categories.meatFish)
+      expect(result.categories[3].id).toBe(testDataIds.categories.seasoning)
     })
 
     it('カテゴリーが0件の場合は空配列を返す', async () => {
@@ -123,7 +130,7 @@ describe('GetCategoriesHandler Integration Tests', () => {
       const sameOrder = 999
       const categoryIds = []
       for (let i = 0; i < 3; i++) {
-        const id = faker.string.uuid()
+        const id = testDataHelpers.categoryId()
         categoryIds.push(id)
         await prisma.category.create({
           data: {
@@ -156,7 +163,7 @@ describe('GetCategoriesHandler Integration Tests', () => {
     it('大量のカテゴリーがあっても高速に取得できる', async () => {
       // Given: 100個のカテゴリーを追加
       const categories = Array.from({ length: 100 }, (_, i) => ({
-        id: faker.string.uuid(),
+        id: testDataHelpers.categoryId(),
         name: `カテゴリー${i}_${faker.string.alphanumeric(4)}`,
         displayOrder: 100 + i,
         isActive: true,
@@ -190,11 +197,12 @@ describe('GetCategoriesHandler Integration Tests', () => {
 
       // Then: すべて同じ結果を返す
       expect(results).toHaveLength(5)
+      const testDataIds = getTestDataIds()
       results.forEach((result) => {
         expect(result.categories).toHaveLength(3)
-        expect(result.categories[0].id).toBe('cat00001')
-        expect(result.categories[1].id).toBe('cat00002')
-        expect(result.categories[2].id).toBe('cat00003')
+        expect(result.categories[0].id).toBe(testDataIds.categories.vegetable)
+        expect(result.categories[1].id).toBe(testDataIds.categories.meatFish)
+        expect(result.categories[2].id).toBe(testDataIds.categories.seasoning)
       })
     })
 
@@ -204,8 +212,9 @@ describe('GetCategoriesHandler Integration Tests', () => {
       expect(initialResult.categories).toHaveLength(3)
 
       // When: カテゴリーを更新しながら並行してクエリを実行
+      const testDataIds = getTestDataIds()
       const updatePromise = prisma.category.update({
-        where: { id: 'cat00001' },
+        where: { id: testDataIds.categories.vegetable },
         data: { name: `更新_${faker.string.alphanumeric(6)}` },
       })
 
@@ -215,11 +224,13 @@ describe('GetCategoriesHandler Integration Tests', () => {
 
       // Then: カテゴリー数は変わらない
       expect(result.categories).toHaveLength(3)
-      expect(result.categories.map((c: any) => c.id).sort()).toEqual([
-        'cat00001',
-        'cat00002',
-        'cat00003',
-      ])
+      expect(result.categories.map((c: any) => c.id).sort()).toEqual(
+        [
+          testDataIds.categories.vegetable,
+          testDataIds.categories.meatFish,
+          testDataIds.categories.seasoning,
+        ].sort()
+      )
     })
   })
 })

@@ -37,12 +37,12 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
     super()
     // デフォルト値を設定
     this.props = {
-      userId: testDataHelpers.cuid(),
+      userId: testDataHelpers.userId(),
       name: testDataHelpers.ingredientName(),
-      categoryId: testDataHelpers.cuid(),
+      categoryId: testDataHelpers.categoryId(),
       quantity: {
         amount: testDataHelpers.quantity(),
-        unitId: testDataHelpers.cuid(),
+        unitId: testDataHelpers.unitId(),
       },
       storageLocation: {
         type: StorageType.REFRIGERATED,
@@ -167,7 +167,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
    * デフォルトの在庫情報を設定
    */
   withDefaultStock(): this {
-    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.unitId())
       .withStorageLocation({ type: StorageType.REFRIGERATED })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())
@@ -178,7 +178,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
    * 冷蔵庫保存の在庫を設定
    */
   withRefrigeratedStock(): this {
-    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.unitId())
       .withStorageLocation({ type: StorageType.REFRIGERATED, detail: '野菜室' })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())
@@ -189,7 +189,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
    * 冷凍庫保存の在庫を設定
    */
   withFrozenStock(): this {
-    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.unitId())
       .withStorageLocation({ type: StorageType.FROZEN })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())
@@ -200,7 +200,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
    * 常温保存の在庫を設定
    */
   withRoomTemperatureStock(): this {
-    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.unitId())
       .withStorageLocation({ type: StorageType.ROOM_TEMPERATURE, detail: 'パントリー' })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())
@@ -211,7 +211,7 @@ export class CreateIngredientCommandBuilder extends BaseBuilder<
    * 全ての項目を含むデータを設定
    */
   withFullData(): this {
-    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.cuid())
+    return this.withQuantity(testDataHelpers.quantity(), testDataHelpers.unitId())
       .withStorageLocation({ type: StorageType.REFRIGERATED, detail: '野菜室' })
       .withPurchaseDate(testDataHelpers.todayString())
       .withPrice(testDataHelpers.price())

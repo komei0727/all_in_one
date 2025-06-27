@@ -1,20 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
-import { PrismaClient } from '@/generated/prisma-test'
 import { ZodError } from 'zod'
-import {
-  UserIdBuilder,
-  EmailBuilder,
-  NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
 
+import { PrismaClient } from '@/generated/prisma-test'
 // テスト対象のハンドラー
 import { ProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/profile-handler'
-
 // 依存関係
 import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
+import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
 // テストヘルパー
 import {
   getTestPrismaClient,
@@ -36,7 +31,7 @@ describe('ProfileApiHandler 統合テスト', () => {
     prisma = getTestPrismaClient() as PrismaClient
 
     // 実際のサービスとハンドラーを構築
-    repository = new PrismaUserRepository(prisma as any)
+    repository = new PrismaUserRepository(prisma as unknown as PrismaClient)
     domainService = new UserIntegrationService(repository)
     applicationService = new UserApplicationService(domainService)
     apiHandler = new ProfileApiHandler(applicationService)
@@ -224,7 +219,7 @@ describe('ProfileApiHandler 統合テスト', () => {
       const invalidRequest = {
         displayName: '有効な名前',
         timezone: 'Asia/Tokyo',
-        language: 'fr' as any, // フランス語はサポートされていない
+        language: 'fr' as unknown as 'ja' | 'en', // フランス語はサポートされていない
       }
 
       // Act & Assert（実行 & 検証）

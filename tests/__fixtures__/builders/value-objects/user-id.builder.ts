@@ -9,7 +9,7 @@ export class UserIdBuilder extends BaseBuilder<{ value: string }> {
   constructor() {
     super()
     // デフォルト値を設定（Faker.jsでランダムなCUID生成）
-    this.props.value = testDataHelpers.cuid()
+    this.props.value = testDataHelpers.userId()
   }
 
   /**
@@ -23,7 +23,7 @@ export class UserIdBuilder extends BaseBuilder<{ value: string }> {
    * 固定値のユーザーIDでビルド（テスト用）
    */
   withTestId(): this {
-    return this.with('value', 'user_test_001')
+    return this.with('value', 'usr_test_001')
   }
 
   /**

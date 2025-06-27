@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from '@/app/api/v1/ingredients/units/route'
 import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
 
+import { testDataHelpers } from '../../../../../__fixtures__/builders/faker.config'
+
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/api/handlers/queries/get-units.handler', () => ({
   GetUnitsHandler: vi.fn().mockImplementation(() => ({
@@ -22,6 +24,9 @@ vi.mock('@/modules/ingredients/server/api/handlers/queries/get-units.handler', (
  */
 describe('GET /api/v1/ingredients/units', () => {
   let mockHandler: { handle: ReturnType<typeof vi.fn> }
+  let unitId1: string
+  let unitId2: string
+  let unitId3: string
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -29,6 +34,10 @@ describe('GET /api/v1/ingredients/units', () => {
       handle: vi.fn(),
     }
     vi.mocked(GetUnitsHandler).mockImplementation(() => mockHandler as unknown as GetUnitsHandler)
+    // テスト用のIDを生成
+    unitId1 = testDataHelpers.unitId()
+    unitId2 = testDataHelpers.unitId()
+    unitId3 = testDataHelpers.unitId()
   })
 
   it('ハンドラーから単位一覧を取得して返す', async () => {
@@ -36,9 +45,9 @@ describe('GET /api/v1/ingredients/units', () => {
     // Arrange
     const mockResult = {
       units: [
-        { id: 'unit1', name: '個', symbol: '個', displayOrder: 1 },
-        { id: 'unit2', name: 'グラム', symbol: 'g', displayOrder: 2 },
-        { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+        { id: unitId1, name: '個', symbol: '個', displayOrder: 1 },
+        { id: unitId2, name: 'グラム', symbol: 'g', displayOrder: 2 },
+        { id: unitId3, name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
       ],
     }
     mockHandler.handle.mockResolvedValue(mockResult)
@@ -52,9 +61,9 @@ describe('GET /api/v1/ingredients/units', () => {
     expect(response.status).toBe(200)
     expect(data).toEqual({
       units: [
-        { id: 'unit1', name: '個', symbol: '個', displayOrder: 1 },
-        { id: 'unit2', name: 'グラム', symbol: 'g', displayOrder: 2 },
-        { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+        { id: unitId1, name: '個', symbol: '個', displayOrder: 1 },
+        { id: unitId2, name: 'グラム', symbol: 'g', displayOrder: 2 },
+        { id: unitId3, name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
       ],
     })
     expect(mockHandler.handle).toHaveBeenCalledOnce()

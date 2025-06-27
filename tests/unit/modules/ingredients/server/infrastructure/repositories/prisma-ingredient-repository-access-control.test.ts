@@ -1,14 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+
 import { PrismaClient } from '@/generated/prisma'
-import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
 import { IngredientId, IngredientName } from '@/modules/ingredients/server/domain/value-objects'
+import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
+
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - アクセス制御', () => {
   let repository: PrismaIngredientRepository
   let mockPrisma: any
+  let userId1: string
+  let categoryId: string
+  let unitId: string
 
   beforeEach(() => {
+    // テスト用IDの生成
+    userId1 = testDataHelpers.userId()
+    categoryId = testDataHelpers.categoryId()
+    unitId = testDataHelpers.unitId()
+
     // Prismaのモック
     mockPrisma = {
       ingredient: {
@@ -30,7 +40,7 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       mockPrisma.ingredient.findFirst.mockResolvedValue(null)
 
       // user1が他のユーザー（user2）の食材を検索しようとする
-      const result = await repository.findById('user1', ingredientId)
+      const result = await repository.findById(userId1, ingredientId)
 
       // 修正後：他のユーザーの食材は取得できない
       expect(result).toBeNull()
@@ -39,7 +49,7 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       expect(mockPrisma.ingredient.findFirst).toHaveBeenCalledWith({
         where: {
           id: ingredientId.getValue(),
-          userId: 'user1',
+          userId: userId1,
           deletedAt: null,
         },
       })
@@ -50,14 +60,14 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       // user1の食材データ
       const user1Ingredient = {
         id: ingredientId.getValue(),
-        userId: 'user1',
+        userId: userId1,
         name: 'ユーザー1のトマト',
-        categoryId: 'cat1',
+        categoryId: categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 3,
-        unitId: 'unit1',
+        unitId: unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -71,17 +81,17 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       mockPrisma.ingredient.findFirst.mockResolvedValue(user1Ingredient)
 
       // user1が自分の食材を検索
-      const result = await repository.findById('user1', ingredientId)
+      const result = await repository.findById(userId1, ingredientId)
 
       // 期待動作：userIdでフィルタリングされている
       expect(result).not.toBeNull()
-      expect(result?.getUserId()).toBe('user1')
+      expect(result?.getUserId()).toBe(userId1)
 
       // findFirstの呼び出しを確認：userIdでのフィルタリングがある
       expect(mockPrisma.ingredient.findFirst).toHaveBeenCalledWith({
         where: {
           id: ingredientId.getValue(),
-          userId: 'user1',
+          userId: userId1,
           deletedAt: null,
         },
       })
@@ -94,7 +104,7 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       mockPrisma.ingredient.findFirst.mockResolvedValue(null)
 
       // user1が自分の「トマト」を検索
-      const result = await repository.findByName('user1', new IngredientName('トマト'))
+      const result = await repository.findByName(userId1, new IngredientName('トマト'))
 
       // 修正後：userIdでフィルタリングされる
       expect(result).toBeNull()
@@ -103,7 +113,7 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       expect(mockPrisma.ingredient.findFirst).toHaveBeenCalledWith({
         where: {
           name: 'トマト',
-          userId: 'user1',
+          userId: userId1,
           deletedAt: null,
         },
       })
@@ -118,14 +128,14 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       const user1Ingredients = [
         {
           id: id1.getValue(),
-          userId: 'user1',
+          userId: userId1,
           name: 'ユーザー1のトマト',
-          categoryId: 'cat1',
+          categoryId: categoryId,
           memo: null,
           price: null,
           purchaseDate: new Date(),
           quantity: 3,
-          unitId: 'unit1',
+          unitId: unitId,
           threshold: null,
           storageLocationType: 'REFRIGERATED',
           storageLocationDetail: null,
@@ -137,14 +147,14 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
         },
         {
           id: id2.getValue(),
-          userId: 'user1',
+          userId: userId1,
           name: 'ユーザー1のキャベツ',
-          categoryId: 'cat1',
+          categoryId: categoryId,
           memo: null,
           price: null,
           purchaseDate: new Date(),
           quantity: 1,
-          unitId: 'unit1',
+          unitId: unitId,
           threshold: null,
           storageLocationType: 'REFRIGERATED',
           storageLocationDetail: null,
@@ -159,17 +169,17 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       mockPrisma.ingredient.findMany.mockResolvedValue(user1Ingredients)
 
       // user1がfindAllを実行
-      const results = await repository.findAll('user1')
+      const results = await repository.findAll(userId1)
 
       // 修正後：user1の食材のみ取得される
       expect(results).toHaveLength(2)
       const userIds = results.map((r) => r.getUserId())
-      expect(userIds.every((id) => id === 'user1')).toBe(true)
+      expect(userIds.every((id) => id === userId1)).toBe(true)
 
       // findManyの呼び出しを確認：userIdでのフィルタリングがある
       expect(mockPrisma.ingredient.findMany).toHaveBeenCalledWith({
         where: {
-          userId: 'user1',
+          userId: userId1,
           deletedAt: null,
         },
         orderBy: { createdAt: 'desc' },
@@ -185,13 +195,13 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       mockPrisma.ingredient.findFirst.mockResolvedValue(null)
 
       // user1が他のユーザーの食材を削除しようとする
-      await repository.delete('user1', ingredientId)
+      await repository.delete(userId1, ingredientId)
 
       // 修正後：findFirstでチェックしてからしか削除されない
       expect(mockPrisma.ingredient.findFirst).toHaveBeenCalledWith({
         where: {
           id: ingredientId.getValue(),
-          userId: 'user1',
+          userId: userId1,
           deletedAt: null,
         },
       })
@@ -204,14 +214,14 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       const ingredientId = IngredientId.generate()
       const user1Ingredient = {
         id: ingredientId.getValue(),
-        userId: 'user1',
+        userId: userId1,
         name: 'ユーザー1のトマト',
-        categoryId: 'cat1',
+        categoryId: categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 3,
-        unitId: 'unit1',
+        unitId: unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -227,7 +237,7 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
       mockPrisma.ingredient.update.mockResolvedValue({})
 
       // user1が自分の食材を削除
-      await repository.delete('user1', ingredientId)
+      await repository.delete(userId1, ingredientId)
 
       // 削除が実行される
       expect(mockPrisma.ingredient.update).toHaveBeenCalledWith({

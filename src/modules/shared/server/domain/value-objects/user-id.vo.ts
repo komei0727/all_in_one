@@ -1,4 +1,7 @@
-import { ValueObject } from './value-object.base'
+import { createId } from '@paralleldrive/cuid2'
+
+import { PrefixedCuidId } from './prefixed-cuid-id.base'
+import { ID_PREFIXES } from '../constants/id-prefixes'
 
 /**
  * ユーザーID値オブジェクト
@@ -8,53 +11,31 @@ import { ValueObject } from './value-object.base'
  * - 食材管理コンテキスト: 食材の所有者識別
  * - ユーザー認証コンテキスト: ユーザー集約のID
  * - 買い物サポートコンテキスト: 買い物リストの所有者識別
+ *
+ * プレフィックス付きCUID形式の識別子を表現する
  */
-export class UserId extends ValueObject<string> {
-  private static readonly MAX_LENGTH = 255
-
-  constructor(value: string) {
-    super(value)
-    this.validate(value)
-  }
-
-  protected validate(value: string): void {
-    // 必須チェック
-    if (value === null || value === undefined) {
-      throw new Error('ユーザーIDは必須です')
-    }
-
-    // 空文字チェック
-    if (value.trim() === '') {
-      throw new Error('ユーザーIDは必須です')
-    }
-
-    // 最大長チェック
-    if (value.length > UserId.MAX_LENGTH) {
-      throw new Error('ユーザーIDの長さが不正です')
-    }
+export class UserId extends PrefixedCuidId {
+  /**
+   * フィールド名を取得
+   * @returns フィールド名
+   */
+  protected getFieldName(): string {
+    return 'ユーザーID'
   }
 
   /**
-   * 値を取得
+   * IDのプレフィックスを取得
+   * @returns プレフィックス
    */
-  getValue(): string {
-    return this.value
+  protected getPrefix(): string {
+    return ID_PREFIXES.user
   }
 
   /**
-   * 等価性を比較
+   * 新しいユーザーIDを生成
+   * @returns 新しいユーザーID
    */
-  equals(other: ValueObject<string> | null | undefined): boolean {
-    if (!other || !(other instanceof UserId)) {
-      return false
-    }
-    return this.value === other.value
-  }
-
-  /**
-   * 文字列表現を取得
-   */
-  toString(): string {
-    return this.value
+  static generate(): UserId {
+    return new UserId(ID_PREFIXES.user + createId())
   }
 }

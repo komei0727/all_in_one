@@ -8,7 +8,7 @@ import {
   IngredientDeleted,
   IngredientExpired,
 } from '../events'
-import { BusinessRuleException } from '../exceptions/business-rule.exception'
+import { BusinessRuleException } from '../exceptions'
 import {
   IngredientId,
   IngredientName,

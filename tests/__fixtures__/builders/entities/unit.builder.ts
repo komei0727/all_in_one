@@ -20,7 +20,7 @@ export class UnitBuilder extends BaseBuilder<UnitProps, Unit> {
     // デフォルト値を設定
     const unit = testDataHelpers.unit()
     this.props = {
-      id: testDataHelpers.cuid(),
+      id: testDataHelpers.unitId(),
       name: unit.name,
       symbol: unit.symbol,
       type: 'WEIGHT', // デフォルトは重量タイプ
@@ -39,7 +39,7 @@ export class UnitBuilder extends BaseBuilder<UnitProps, Unit> {
    * 新規生成されたIDを設定
    */
   withGeneratedId(): this {
-    return this.with('id', testDataHelpers.cuid())
+    return this.with('id', testDataHelpers.unitId())
   }
 
   /**

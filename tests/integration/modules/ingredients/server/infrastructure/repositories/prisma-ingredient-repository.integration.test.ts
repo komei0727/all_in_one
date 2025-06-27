@@ -14,20 +14,22 @@ import {
 } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 // テストデータ生成用のヘルパー関数
 // 統合テストなので、実在するカテゴリーや単位IDをデフォルトで設定
 const createIngredientForIntegrationTest = () => {
+  const testDataIds = getTestDataIds()
   const stock = new IngredientStock({
     quantity: faker.number.float({ min: 1, max: 100, fractionDigits: 2 }),
-    unitId: new UnitId('unit0001'), // 実在する単位ID
+    unitId: new UnitId(testDataIds.units.piece), // 実在する単位ID
     storageLocation: new StorageLocation(
       faker.helpers.arrayElement([
         StorageType.REFRIGERATED,
@@ -43,7 +45,7 @@ const createIngredientForIntegrationTest = () => {
 
   return new IngredientBuilder()
     .withUserId('test-user-' + faker.string.uuid())
-    .withCategoryId('cat00001') // 実在するカテゴリーID
+    .withCategoryId(testDataIds.categories.vegetable) // 実在するカテゴリーID
     .withIngredientStock(stock)
     .withPrice(
       faker.helpers.maybe(
@@ -102,9 +104,10 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       const savedIngredient = await repository.save(ingredient)
 
       // Then: 保存された食材が正しい
+      const testDataIds = getTestDataIds()
       expect(savedIngredient.getId().getValue()).toBe(ingredient.getId().getValue())
       expect(savedIngredient.getName().getValue()).toBe(ingredientName)
-      expect(savedIngredient.getCategoryId().getValue()).toBe('cat00001')
+      expect(savedIngredient.getCategoryId().getValue()).toBe(testDataIds.categories.vegetable)
       expect(savedIngredient.getMemo()?.getValue()).toBe(memoText)
       expect(savedIngredient.getUserId()).toBe(userId)
       expect(savedIngredient.getPrice()?.getValue()).toBe(price)
@@ -114,7 +117,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       const savedStock = savedIngredient.getIngredientStock()
       expect(savedStock).toBeDefined()
       expect(savedStock.getQuantity()).toBe(stock.getQuantity())
-      expect(savedStock.getUnitId().getValue()).toBe('unit0001')
+      expect(savedStock.getUnitId().getValue()).toBe(testDataIds.units.piece)
       expect(savedStock.getStorageLocation().getType()).toBe(stock.getStorageLocation().getType())
       expect(savedStock.getStorageLocation().getDetail()).toBe(
         stock.getStorageLocation().getDetail()
@@ -140,6 +143,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('既存の食材を更新できる', async () => {
       // Given: 既存の食材を作成
+      const testDataIds = getTestDataIds()
       const ingredientId = IngredientId.generate()
       const userId = 'test-user-123'
       const oldName = faker.food.ingredient()
@@ -149,11 +153,11 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           id: ingredientId.getValue(),
           userId,
           name: oldName,
-          categoryId: 'cat00001',
+          categoryId: testDataIds.categories.vegetable,
           memo: oldMemo,
           purchaseDate: new Date(),
           quantity: 10,
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
           storageLocationType: 'REFRIGERATED',
         },
       })
@@ -163,7 +167,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       const newMemo = faker.lorem.sentence()
       const newStock = new IngredientStock({
         quantity: 20,
-        unitId: new UnitId('unit0001'),
+        unitId: new UnitId(testDataIds.units.piece),
         storageLocation: new StorageLocation(StorageType.FROZEN, '冷凍庫'),
         threshold: 5,
       })
@@ -172,7 +176,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
         .withId(ingredientId)
         .withUserId(userId)
         .withName(newName)
-        .withCategoryId('cat00001')
+        .withCategoryId(testDataIds.categories.vegetable)
         .withMemo(newMemo)
         .withIngredientStock(newStock)
         .build()
@@ -193,7 +197,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('findById', () => {
     it('IDで食材を検索できる', async () => {
       // Given: テストデータを作成
-      const ingredientId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const ingredientName = faker.food.ingredient()
       const ingredientMemo = faker.lorem.sentence()
@@ -206,12 +211,12 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           id: ingredientId,
           userId,
           name: ingredientName,
-          categoryId: 'cat00001',
+          categoryId: testDataIds.categories.vegetable,
           memo: ingredientMemo,
           price,
           purchaseDate,
           quantity: stockQuantity,
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
           threshold: 5,
           storageLocationType: 'REFRIGERATED',
           storageLocationDetail: '野菜室',
@@ -236,7 +241,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('存在しないIDの場合nullを返す', async () => {
       // When: 存在しないIDで検索
       const userId = 'test-user-123'
-      const nonExistentId = faker.string.uuid()
+      const nonExistentId = testDataHelpers.ingredientId()
       const found = await repository.findById(userId, new IngredientId(nonExistentId))
 
       // Then: nullが返される
@@ -245,7 +250,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('論理削除された食材は検索されない', async () => {
       // Given: 論理削除された食材
-      const ingredientId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const deletedIngredientName = faker.food.ingredient()
       await prisma.ingredient.create({
@@ -253,10 +259,10 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           id: ingredientId,
           userId,
           name: deletedIngredientName,
-          categoryId: 'cat00001',
+          categoryId: testDataIds.categories.vegetable,
           purchaseDate: new Date(),
           quantity: 10,
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
           storageLocationType: 'REFRIGERATED',
           deletedAt: faker.date.past(),
         },
@@ -273,7 +279,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('findByName', () => {
     it('名前で食材を検索できる', async () => {
       // Given: テストデータ
-      const ingredientId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const ingredientName = faker.food.ingredient()
       await prisma.ingredient.create({
@@ -281,10 +288,10 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           id: ingredientId,
           userId,
           name: ingredientName,
-          categoryId: 'cat00001',
+          categoryId: testDataIds.categories.vegetable,
           purchaseDate: new Date(),
           quantity: 10,
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
           storageLocationType: 'REFRIGERATED',
         },
       })
@@ -299,30 +306,31 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('同名の食材が複数ある場合は最初の1件を返す', async () => {
       // Given: 同名の食材を複数作成
+      const testDataIds = getTestDataIds()
       const duplicateName = faker.food.ingredient()
       const userId = 'test-user-123'
-      const id1 = faker.string.uuid()
-      const id2 = faker.string.uuid()
+      const id1 = testDataHelpers.ingredientId()
+      const id2 = testDataHelpers.ingredientId()
       await prisma.ingredient.createMany({
         data: [
           {
             id: id1,
             userId,
             name: duplicateName,
-            categoryId: 'cat00001',
+            categoryId: testDataIds.categories.vegetable,
             purchaseDate: new Date(),
             quantity: 10,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'REFRIGERATED',
           },
           {
             id: id2,
             userId: 'test-user-456',
             name: duplicateName,
-            categoryId: 'cat00002',
+            categoryId: testDataIds.categories.meatFish,
             purchaseDate: new Date(),
             quantity: 20,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'FROZEN',
           },
         ],
@@ -340,38 +348,39 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('findAll', () => {
     it('すべての食材を取得できる', async () => {
       // Given: 複数の食材を作成
+      const testDataIds = getTestDataIds()
       const userId = 'test-user-123'
       const names = Array.from({ length: 3 }, () => faker.food.ingredient())
       await prisma.ingredient.createMany({
         data: [
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: names[0],
-            categoryId: 'cat00001',
+            categoryId: testDataIds.categories.vegetable,
             purchaseDate: new Date(),
             quantity: 10,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'REFRIGERATED',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: names[1],
-            categoryId: 'cat00002',
+            categoryId: testDataIds.categories.meatFish,
             purchaseDate: new Date(),
             quantity: 20,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'FROZEN',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: names[2],
-            categoryId: 'cat00003',
+            categoryId: testDataIds.categories.seasoning,
             purchaseDate: new Date(),
             quantity: 30,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'ROOM_TEMPERATURE',
           },
         ],
@@ -390,29 +399,30 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('論理削除された食材は含まれない', async () => {
       // Given: 削除済みと通常の食材
+      const testDataIds = getTestDataIds()
       const userId = 'test-user-123'
       const activeName = faker.food.ingredient()
       const deletedName = faker.food.ingredient()
       await prisma.ingredient.createMany({
         data: [
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: activeName,
-            categoryId: 'cat00001',
+            categoryId: testDataIds.categories.vegetable,
             purchaseDate: new Date(),
             quantity: 10,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'REFRIGERATED',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: deletedName,
-            categoryId: 'cat00001',
+            categoryId: testDataIds.categories.vegetable,
             purchaseDate: new Date(),
             quantity: 20,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'FROZEN',
             deletedAt: faker.date.past(),
           },
@@ -431,42 +441,43 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('findByUserId', () => {
     it('ユーザーIDで食材を検索できる', async () => {
       // Given: 複数ユーザーの食材
+      const testDataIds = getTestDataIds()
       const userId1 = 'test-user-123'
       const userId2 = 'test-user-456'
-      const name1 = faker.food.ingredient()
-      const name2 = faker.food.ingredient()
-      const name3 = faker.food.ingredient()
+      const name1 = `${faker.food.ingredient()}_user1_1`
+      const name2 = `${faker.food.ingredient()}_user1_2`
+      const name3 = `${faker.food.ingredient()}_user2_1`
 
       await prisma.ingredient.createMany({
         data: [
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId: userId1,
             name: name1,
-            categoryId: 'cat00001',
+            categoryId: testDataIds.categories.vegetable,
             purchaseDate: new Date(),
             quantity: 10,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'REFRIGERATED',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId: userId1,
             name: name2,
-            categoryId: 'cat00002',
+            categoryId: testDataIds.categories.meatFish,
             purchaseDate: new Date(),
             quantity: 20,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'FROZEN',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId: userId2,
             name: name3,
-            categoryId: 'cat00001',
+            categoryId: testDataIds.categories.vegetable,
             purchaseDate: new Date(),
             quantity: 30,
-            unitId: 'unit0001',
+            unitId: testDataIds.units.piece,
             storageLocationType: 'ROOM_TEMPERATURE',
           },
         ],
@@ -487,7 +498,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('delete', () => {
     it('食材を論理削除できる', async () => {
       // Given: 食材を作成
-      const ingredientId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const ingredientName = faker.food.ingredient()
       await prisma.ingredient.create({
@@ -495,10 +507,10 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           id: ingredientId,
           userId,
           name: ingredientName,
-          categoryId: 'cat00001',
+          categoryId: testDataIds.categories.vegetable,
           purchaseDate: new Date(),
           quantity: 10,
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
           storageLocationType: 'REFRIGERATED',
         },
       })
@@ -522,10 +534,11 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('外部キー制約のテスト', () => {
     it('存在しないカテゴリーIDで保存するとエラーになる', async () => {
       // Given: 存在しないカテゴリーIDを持つ食材
-      const nonExistentCategoryId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const nonExistentCategoryId = testDataHelpers.categoryId()
       const stock = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit0001'),
+        unitId: new UnitId(testDataIds.units.piece),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -541,16 +554,17 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('存在しない単位IDで保存するとエラーになる', async () => {
       // Given: 存在しない単位IDを持つ在庫
-      const nonExistentUnitId = faker.string.uuid()
+      const nonExistentUnitId = testDataHelpers.unitId()
       const stock = new IngredientStock({
         quantity: 10,
         unitId: new UnitId(nonExistentUnitId),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
+      const testDataIds = getTestDataIds()
       const ingredient = new IngredientBuilder()
         .withUserId('test-user-123')
-        .withCategoryId('cat00001')
+        .withCategoryId(testDataIds.categories.vegetable)
         .withIngredientStock(stock)
         .build()
 
@@ -562,16 +576,17 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('Decimal型（価格）の処理', () => {
     it('価格をDecimal型で正しく保存・取得できる', async () => {
       // Given: 小数点を含む価格を持つ食材
+      const testDataIds = getTestDataIds()
       const precisePrice = faker.number.float({ min: 100, max: 9999, fractionDigits: 2 })
       const stock = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit0001'),
+        unitId: new UnitId(testDataIds.units.piece),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
       const ingredient = new IngredientBuilder()
         .withUserId('test-user-123')
-        .withCategoryId('cat00001')
+        .withCategoryId(testDataIds.categories.vegetable)
         .withIngredientStock(stock)
         .withPrice(new Price(precisePrice))
         .build()

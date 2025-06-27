@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
-import { UnitType } from '@/modules/ingredients/server/domain/value-objects'
 
 import { UnitBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 /**
  * Unit Entity のテスト
@@ -148,14 +148,15 @@ describe('Unit Entity', () => {
       // エンティティがプレーンオブジェクトとしてシリアライズできることを確認
       // これはAPIレスポンスやデータ永続化で使用される
       // Arrange
-      const unit = new UnitBuilder().withId('unit1').asGram().build()
+      const unitId = testDataHelpers.unitId()
+      const unit = new UnitBuilder().withId(unitId).asGram().build()
 
       // Act
       const json = unit.toJSON()
 
       // Assert
       expect(json).toEqual({
-        id: 'unit1',
+        id: unitId,
         name: 'グラム',
         symbol: 'g',
         type: 'WEIGHT',

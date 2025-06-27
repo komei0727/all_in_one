@@ -6,6 +6,7 @@ import { UserCreatedFromNextAuthEvent } from '../events/user-created-from-nextau
 import { UserDeactivatedEvent } from '../events/user-deactivated.event'
 import { UserProfileUpdatedEvent } from '../events/user-profile-updated.event'
 import { UserSyncedWithNextAuthEvent } from '../events/user-synced-with-nextauth.event'
+import { BusinessRuleException } from '../exceptions'
 import { UserProfile } from '../value-objects/user-profile.vo'
 import { UserStatus } from '../value-objects/user-status.vo'
 
@@ -92,12 +93,15 @@ export class User extends AggregateRoot<UserId> {
     }
 
     if (!props.updatedAt) {
-      throw new Error('更新日時は必須です')
+      throw new BusinessRuleException('更新日時は必須です')
     }
 
     // 日時の整合性チェック
     if (props.createdAt > props.updatedAt) {
-      throw new Error('更新日時は作成日時以降である必要があります')
+      throw new BusinessRuleException('更新日時は作成日時以降である必要があります', {
+        createdAt: props.createdAt,
+        updatedAt: props.updatedAt,
+      })
     }
   }
 
@@ -106,7 +110,7 @@ export class User extends AggregateRoot<UserId> {
    */
   static createFromNextAuth(nextAuthUser: NextAuthUser): User {
     const now = new Date()
-    const userId = new UserId(crypto.randomUUID())
+    const userId = UserId.generate()
 
     const user = new User({
       id: userId,
@@ -140,7 +144,7 @@ export class User extends AggregateRoot<UserId> {
     const now = new Date()
 
     return new User({
-      id: new UserId(crypto.randomUUID()),
+      id: UserId.generate(),
       nextAuthId: nextAuthUser.id,
       email: new Email(nextAuthUser.email),
       profile: profile,

@@ -7,12 +7,14 @@ import { UserPreferences } from '@/modules/user-authentication/server/domain/val
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
 
+import { testDataHelpers } from '../faker.config'
+
 /**
  * ユーザーテストデータビルダー
  * Faker.jsを使用して現実的なテストデータを生成
  */
 export class UserTestDataBuilder {
-  private id: string = faker.string.uuid()
+  private id: string = testDataHelpers.userId()
   private nextAuthId: string = faker.string.uuid()
   private email: string = faker.internet.email()
   private displayName: string | null = faker.person.fullName()

@@ -1,6 +1,4 @@
-import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
-
-import { RequiredFieldException, InvalidFieldException } from '../exceptions'
+import { Name } from '@/modules/shared/server/domain/value-objects'
 
 /**
  * 単位名値オブジェクト
@@ -11,25 +9,21 @@ import { RequiredFieldException, InvalidFieldException } from '../exceptions'
  * - 最大30文字
  * - 前後の空白は自動的にトリミング
  */
-export class UnitName extends ValueObject<string> {
-  private static readonly MAX_LENGTH = 30
-
-  constructor(value: string) {
-    const trimmedValue = value.trim()
-    super(trimmedValue)
+export class UnitName extends Name {
+  /**
+   * フィールド名を取得
+   * @returns フィールド名
+   */
+  protected getFieldName(): string {
+    return '単位名'
   }
 
-  protected validate(value: string): void {
-    if (value.length === 0) {
-      throw new RequiredFieldException('単位名')
-    }
-    if (value.length > UnitName.MAX_LENGTH) {
-      throw new InvalidFieldException(
-        '単位名',
-        value,
-        `${UnitName.MAX_LENGTH}文字以内で入力してください`
-      )
-    }
+  /**
+   * 最大文字数を取得
+   * @returns 最大文字数
+   */
+  protected getMaxLength(): number {
+    return 30
   }
 
   /**

@@ -6,6 +6,8 @@ import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { UnitId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+
 // Prismaクライアントのモック
 vi.mock('@/lib/prisma/client', () => ({
   prisma: {
@@ -26,10 +28,15 @@ vi.mock('@/lib/prisma/client', () => ({
  */
 describe('PrismaUnitRepository', () => {
   let repository: PrismaUnitRepository
+  let unitId1: string
+  let unitId2: string
 
   beforeEach(() => {
     vi.clearAllMocks()
     repository = new PrismaUnitRepository(prisma as unknown as PrismaClient)
+    // テスト用のIDを生成
+    unitId1 = testDataHelpers.unitId()
+    unitId2 = testDataHelpers.unitId()
   })
 
   describe('findAllActive', () => {
@@ -38,7 +45,7 @@ describe('PrismaUnitRepository', () => {
       // Arrange
       const mockDbUnits = [
         {
-          id: 'unit1',
+          id: unitId1,
           name: 'グラム',
           symbol: 'g',
           type: 'WEIGHT' as UnitType,
@@ -49,7 +56,7 @@ describe('PrismaUnitRepository', () => {
           updatedAt: new Date(),
         },
         {
-          id: 'unit2',
+          id: unitId2,
           name: 'キログラム',
           symbol: 'kg',
           type: 'WEIGHT' as UnitType,
@@ -68,13 +75,13 @@ describe('PrismaUnitRepository', () => {
       // Assert
       expect(result).toHaveLength(2)
       expect(result[0]).toBeInstanceOf(Unit)
-      expect(result[0].id.getValue()).toBe('unit1')
+      expect(result[0].id.getValue()).toBe(unitId1)
       expect(result[0].name.getValue()).toBe('グラム')
       expect(result[0].symbol.getValue()).toBe('g')
       expect(result[0].displayOrder.getValue()).toBe(1)
 
       expect(result[1]).toBeInstanceOf(Unit)
-      expect(result[1].id.getValue()).toBe('unit2')
+      expect(result[1].id.getValue()).toBe(unitId2)
       expect(result[1].name.getValue()).toBe('キログラム')
       expect(result[1].symbol.getValue()).toBe('kg')
       expect(result[1].displayOrder.getValue()).toBe(2)
@@ -104,7 +111,7 @@ describe('PrismaUnitRepository', () => {
       // IDで単位を検索し、見つかった場合はエンティティを返すことを確認
       // Arrange
       const mockDbUnit = {
-        id: 'unit1',
+        id: unitId1,
         name: 'グラム',
         symbol: 'g',
         type: 'WEIGHT' as UnitType,
@@ -117,17 +124,17 @@ describe('PrismaUnitRepository', () => {
       vi.mocked(prisma.unit.findUnique).mockResolvedValue(mockDbUnit)
 
       // Act
-      const result = await repository.findById(new UnitId('unit1'))
+      const result = await repository.findById(new UnitId(unitId1))
 
       // Assert
       expect(result).toBeInstanceOf(Unit)
-      expect(result?.id.getValue()).toBe('unit1')
+      expect(result?.id.getValue()).toBe(unitId1)
       expect(result?.name.getValue()).toBe('グラム')
       expect(result?.symbol.getValue()).toBe('g')
       expect(result?.displayOrder.getValue()).toBe(1)
 
       expect(prisma.unit.findUnique).toHaveBeenCalledWith({
-        where: { id: 'unit1' },
+        where: { id: unitId1 },
       })
     })
 
@@ -137,7 +144,7 @@ describe('PrismaUnitRepository', () => {
       vi.mocked(prisma.unit.findUnique).mockResolvedValue(null)
 
       // Act
-      const result = await repository.findById(new UnitId('non-existent-id'))
+      const result = await repository.findById(new UnitId(testDataHelpers.unitId()))
 
       // Assert
       expect(result).toBeNull()

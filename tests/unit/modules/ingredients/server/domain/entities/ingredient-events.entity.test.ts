@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
 import { faker } from '@faker-js/faker/locale/ja'
+import { describe, expect, it } from 'vitest'
+
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import {
   IngredientCreated,
   StockConsumed,
@@ -10,18 +10,25 @@ import {
   IngredientDeleted,
   IngredientExpired,
 } from '@/modules/ingredients/server/domain/events'
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { IngredientName, CategoryId } from '@/modules/ingredients/server/domain/value-objects'
+
+import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('Ingredient ドメインイベント発行', () => {
   describe('食材作成イベント', () => {
     it('新規作成時にIngredientCreatedイベントを発行する', () => {
       // 食材作成時にイベントが発行されることを確認
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+      const unitId = testDataHelpers.unitId()
+
       const ingredient = Ingredient.create({
-        userId: 'user-123',
+        userId,
         name: 'トマト',
-        categoryId: 'cat-001',
-        unitId: 'unit-001',
+        categoryId,
+        unitId,
         quantity: 5,
         purchaseDate: new Date(),
         storageLocation: { type: StorageType.REFRIGERATED, detail: '野菜室' },
@@ -35,18 +42,19 @@ describe('Ingredient ドメインイベント発行', () => {
 
       const event = events[0] as IngredientCreated
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
-      expect(event.userId).toBe('user-123')
+      expect(event.userId).toBe(userId)
       expect(event.ingredientName).toBe('トマト')
-      expect(event.categoryId).toBe('cat-001')
+      expect(event.categoryId).toBe(categoryId)
       expect(event.initialQuantity).toBe(5)
-      expect(event.unitId).toBe('unit-001')
+      expect(event.unitId).toBe(unitId)
     })
   })
 
   describe('在庫消費イベント', () => {
     it('消費時にStockConsumedイベントを発行する', () => {
       // 在庫消費時にイベントが発行されることを確認
-      const ingredient = new IngredientBuilder().withUserId('user-123').withQuantity(10).build()
+      const userId = testDataHelpers.userId()
+      const ingredient = new IngredientBuilder().withUserId(userId).withQuantity(10).build()
       ingredient.markEventsAsCommitted() // 作成イベントをクリア
 
       // Act
@@ -59,7 +67,7 @@ describe('Ingredient ドメインイベント発行', () => {
 
       const event = events[0] as StockConsumed
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
-      expect(event.userId).toBe('user-123')
+      expect(event.userId).toBe(userId)
       expect(event.consumedAmount).toBe(3)
       expect(event.remainingAmount).toBe(7)
       expect(event.unitId).toBe(ingredient.getIngredientStock().getUnitId().getValue())
@@ -67,7 +75,8 @@ describe('Ingredient ドメインイベント発行', () => {
 
     it('在庫を全部消費した場合もイベントを発行する', () => {
       // 在庫切れになる消費でもイベントが発行されることを確認
-      const ingredient = new IngredientBuilder().withUserId('user-123').withQuantity(5).build()
+      const userId = testDataHelpers.userId()
+      const ingredient = new IngredientBuilder().withUserId(userId).withQuantity(5).build()
       ingredient.markEventsAsCommitted()
 
       // Act
@@ -84,7 +93,8 @@ describe('Ingredient ドメインイベント発行', () => {
   describe('在庫補充イベント', () => {
     it('補充時にStockReplenishedイベントを発行する', () => {
       // 在庫補充時にイベントが発行されることを確認
-      const ingredient = new IngredientBuilder().withUserId('user-123').withQuantity(2).build()
+      const userId = testDataHelpers.userId()
+      const ingredient = new IngredientBuilder().withUserId(userId).withQuantity(2).build()
       ingredient.markEventsAsCommitted()
 
       // Act
@@ -97,7 +107,7 @@ describe('Ingredient ドメインイベント発行', () => {
 
       const event = events[0] as StockReplenished
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
-      expect(event.userId).toBe('user-123')
+      expect(event.userId).toBe(userId)
       expect(event.replenishedAmount).toBe(5)
       expect(event.previousAmount).toBe(2)
       expect(event.newTotalAmount).toBe(7)
@@ -108,12 +118,13 @@ describe('Ingredient ドメインイベント発行', () => {
   describe('食材更新イベント', () => {
     it('名前更新時にIngredientUpdatedイベントを発行する', () => {
       // 名前更新時にイベントが発行されることを確認
-      const ingredient = new IngredientBuilder().withUserId('user-123').withName('トマト').build()
+      const userId = testDataHelpers.userId()
+      const ingredient = new IngredientBuilder().withUserId(userId).withName('トマト').build()
       ingredient.markEventsAsCommitted()
 
       // Act
       const newName = new IngredientName('プチトマト')
-      ingredient.updateName(newName, 'user-123')
+      ingredient.updateName(newName, userId)
 
       // Assert
       const events = ingredient.getUncommittedEvents()
@@ -122,7 +133,7 @@ describe('Ingredient ドメインイベント発行', () => {
 
       const event = events[0] as IngredientUpdated
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
-      expect(event.userId).toBe('user-123')
+      expect(event.userId).toBe(userId)
       expect(event.changes).toEqual({
         name: { from: 'トマト', to: 'プチトマト' },
       })
@@ -130,22 +141,26 @@ describe('Ingredient ドメインイベント発行', () => {
 
     it('カテゴリー更新時にIngredientUpdatedイベントを発行する', () => {
       // カテゴリー更新時にイベントが発行されることを確認
+      const userId = testDataHelpers.userId()
+      const categoryId1 = testDataHelpers.categoryId()
+      const categoryId2 = testDataHelpers.categoryId()
+
       const ingredient = new IngredientBuilder()
-        .withUserId('user-123')
-        .withCategoryId('cat-001')
+        .withUserId(userId)
+        .withCategoryId(categoryId1)
         .build()
       ingredient.markEventsAsCommitted()
 
       // Act
-      const newCategoryId = new CategoryId('cat-002')
-      ingredient.updateCategory(newCategoryId, 'user-123')
+      const newCategoryId = new CategoryId(categoryId2)
+      ingredient.updateCategory(newCategoryId, userId)
 
       // Assert
       const events = ingredient.getUncommittedEvents()
       expect(events).toHaveLength(1)
       const event = events[0] as IngredientUpdated
       expect(event.changes).toEqual({
-        categoryId: { from: 'cat-001', to: 'cat-002' },
+        categoryId: { from: categoryId1, to: categoryId2 },
       })
     })
   })
@@ -153,16 +168,19 @@ describe('Ingredient ドメインイベント発行', () => {
   describe('食材削除イベント', () => {
     it('削除時にIngredientDeletedイベントを発行する', () => {
       // 削除時にイベントが発行されることを確認
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+
       const ingredient = new IngredientBuilder()
-        .withUserId('user-123')
+        .withUserId(userId)
         .withName('トマト')
-        .withCategoryId('cat-001')
+        .withCategoryId(categoryId)
         .withQuantity(3)
         .build()
       ingredient.markEventsAsCommitted()
 
       // Act
-      ingredient.delete('user-123')
+      ingredient.delete(userId)
 
       // Assert
       const events = ingredient.getUncommittedEvents()
@@ -171,9 +189,9 @@ describe('Ingredient ドメインイベント発行', () => {
 
       const event = events[0] as IngredientDeleted
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
-      expect(event.userId).toBe('user-123')
+      expect(event.userId).toBe(userId)
       expect(event.ingredientName).toBe('トマト')
-      expect(event.categoryId).toBe('cat-001')
+      expect(event.categoryId).toBe(categoryId)
       expect(event.lastQuantity).toBe(3)
       expect(event.unitId).toBe(ingredient.getIngredientStock().getUnitId().getValue())
       expect(event.reason).toBe('user-action')
@@ -183,11 +201,14 @@ describe('Ingredient ドメインイベント発行', () => {
   describe('期限切れイベント', () => {
     it('期限切れチェック時にIngredientExpiredイベントを発行する', () => {
       // 期限切れ検知時にイベントが発行されることを確認
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
       const expiredDate = faker.date.past()
+
       const ingredient = new IngredientBuilder()
-        .withUserId('user-123')
+        .withUserId(userId)
         .withName('トマト')
-        .withCategoryId('cat-001')
+        .withCategoryId(categoryId)
         .withQuantity(2)
         .withExpiryInfo({ bestBeforeDate: expiredDate })
         .build()
@@ -205,7 +226,7 @@ describe('Ingredient ドメインイベント発行', () => {
       const event = events[0] as IngredientExpired
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
       expect(event.ingredientName).toBe('トマト')
-      expect(event.categoryId).toBe('cat-001')
+      expect(event.categoryId).toBe(categoryId)
       expect(event.expiredDate).toEqual(expiredDate)
       expect(event.remainingQuantity).toBe(2)
       expect(event.unitId).toBe(ingredient.getIngredientStock().getUnitId().getValue())
@@ -232,13 +253,14 @@ describe('Ingredient ドメインイベント発行', () => {
   describe('イベントの蓄積と管理', () => {
     it('複数の操作で複数のイベントが蓄積される', () => {
       // 複数の操作で複数のイベントが正しく蓄積されることを確認
-      const ingredient = new IngredientBuilder().withUserId('user-123').withQuantity(10).build()
+      const userId = testDataHelpers.userId()
+      const ingredient = new IngredientBuilder().withUserId(userId).withQuantity(10).build()
       // ビルダーで作成した場合は作成イベントがないのでクリア不要
 
       // Act: 複数の操作を実行
       ingredient.consume(2)
       ingredient.replenish(5)
-      ingredient.updateName(new IngredientName('新しい名前'), 'user-123')
+      ingredient.updateName(new IngredientName('新しい名前'), userId)
 
       // Assert
       const events = ingredient.getUncommittedEvents()
@@ -250,7 +272,8 @@ describe('Ingredient ドメインイベント発行', () => {
 
     it('イベントコミット後は新しいイベントのみ取得できる', () => {
       // イベントコミット後の動作を確認
-      const ingredient = new IngredientBuilder().withUserId('user-123').build()
+      const userId = testDataHelpers.userId()
+      const ingredient = new IngredientBuilder().withUserId(userId).build()
 
       // 最初のイベント（作成）をコミット
       ingredient.markEventsAsCommitted()

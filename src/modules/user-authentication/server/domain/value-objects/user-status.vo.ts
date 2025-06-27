@@ -1,5 +1,7 @@
 import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
 
+import { RequiredFieldException, InvalidFieldException } from '../exceptions'
+
 /**
  * ユーザーステータス型
  */
@@ -19,12 +21,12 @@ export class UserStatus extends ValueObject<UserStatusType> {
   protected validate(value: UserStatusType): void {
     // 必須チェック
     if (value === null || value === undefined) {
-      throw new Error('ユーザーステータスは必須です')
+      throw new RequiredFieldException('status')
     }
 
     // 有効なステータスかチェック
     if (!UserStatus.VALID_STATUSES.includes(value)) {
-      throw new Error('無効なユーザーステータスです')
+      throw new InvalidFieldException('status', value, '無効なユーザーステータスです')
     }
   }
 

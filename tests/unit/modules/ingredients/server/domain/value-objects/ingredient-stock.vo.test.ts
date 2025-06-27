@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
 import { faker } from '@faker-js/faker/locale/ja'
+import { describe, it, expect } from 'vitest'
+
 import {
   IngredientStock,
   StorageLocation,
@@ -7,12 +8,14 @@ import {
   UnitId,
 } from '@/modules/ingredients/server/domain/value-objects'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+
 describe('IngredientStock値オブジェクト', () => {
   describe('正常系', () => {
     it('必須項目のみで作成できる', () => {
       // Given: 必須項目のみ
       const quantity = faker.number.float({ min: 0, max: 100, fractionDigits: 2 })
-      const unitId = new UnitId('unit1')
+      const unitId = new UnitId(testDataHelpers.unitId())
       const storageLocation = new StorageLocation(StorageType.REFRIGERATED)
 
       // When: IngredientStockを作成
@@ -32,7 +35,7 @@ describe('IngredientStock値オブジェクト', () => {
     it('閾値付きで作成できる', () => {
       // Given: 閾値付き
       const quantity = faker.number.float({ min: 10, max: 100, fractionDigits: 2 })
-      const unitId = new UnitId('unit2')
+      const unitId = new UnitId(testDataHelpers.unitId())
       const storageLocation = new StorageLocation(StorageType.FROZEN)
       const threshold = faker.number.float({ min: 0, max: 10, fractionDigits: 2 })
 
@@ -53,13 +56,13 @@ describe('IngredientStock値オブジェクト', () => {
       // Given: 在庫0の状態
       const stockEmpty = new IngredientStock({
         quantity: 0,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
       const stockAvailable = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -72,21 +75,21 @@ describe('IngredientStock値オブジェクト', () => {
       // Given: 閾値設定あり
       const stockLow = new IngredientStock({
         quantity: 3,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
         threshold: 5,
       })
 
       const stockNormal = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
         threshold: 5,
       })
 
       const stockNoThreshold = new IngredientStock({
         quantity: 1,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -100,7 +103,7 @@ describe('IngredientStock値オブジェクト', () => {
       // Given: 初期在庫
       const stock = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -116,7 +119,7 @@ describe('IngredientStock値オブジェクト', () => {
       // Given: 初期在庫
       const stock = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -132,7 +135,7 @@ describe('IngredientStock値オブジェクト', () => {
       // Given: 少ない在庫
       const stock = new IngredientStock({
         quantity: 3,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -145,16 +148,17 @@ describe('IngredientStock値オブジェクト', () => {
 
     it('equals()で同じ値のオブジェクトを比較できる', () => {
       // Given: 同じ値を持つ2つのIngredientStock
+      const unitId = testDataHelpers.unitId()
       const stock1 = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(unitId),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
         threshold: 5,
       })
 
       const stock2 = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(unitId),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
         threshold: 5,
       })
@@ -165,9 +169,10 @@ describe('IngredientStock値オブジェクト', () => {
 
     it('toObject()でプレーンオブジェクトに変換できる', () => {
       // Given: IngredientStock
+      const unitId = testDataHelpers.unitId()
       const stock = new IngredientStock({
         quantity: 10.5,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(unitId),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED, '野菜室'),
         threshold: 5,
       })
@@ -178,7 +183,7 @@ describe('IngredientStock値オブジェクト', () => {
       // Then: 正しい形式のオブジェクトになる
       expect(obj).toEqual({
         quantity: 10.5,
-        unitId: 'unit1',
+        unitId: unitId,
         storageLocation: {
           type: 'REFRIGERATED',
           detail: '野菜室',
@@ -192,7 +197,7 @@ describe('IngredientStock値オブジェクト', () => {
     it('負の数量の場合はエラーになる', () => {
       // Given: 負の数量
       const quantity = -1
-      const unitId = new UnitId('unit1')
+      const unitId = new UnitId(testDataHelpers.unitId())
       const storageLocation = new StorageLocation(StorageType.REFRIGERATED)
 
       // When/Then: エラーが発生する
@@ -209,7 +214,7 @@ describe('IngredientStock値オブジェクト', () => {
     it('負の閾値の場合はエラーになる', () => {
       // Given: 負の閾値
       const quantity = 10
-      const unitId = new UnitId('unit1')
+      const unitId = new UnitId(testDataHelpers.unitId())
       const storageLocation = new StorageLocation(StorageType.REFRIGERATED)
       const threshold = -1
 
@@ -229,9 +234,10 @@ describe('IngredientStock値オブジェクト', () => {
   describe('fromObject', () => {
     it('プレーンオブジェクトからIngredientStockを作成できる', () => {
       // Given: プレーンオブジェクト
+      const unitId = testDataHelpers.unitId()
       const obj = {
         quantity: 10.5,
-        unitId: 'unit1',
+        unitId: unitId,
         storageLocation: {
           type: StorageType.REFRIGERATED,
           detail: '野菜室',
@@ -244,7 +250,7 @@ describe('IngredientStock値オブジェクト', () => {
 
       // Then: 正しく作成される
       expect(stock.getQuantity()).toBe(10.5)
-      expect(stock.getUnitId().getValue()).toBe('unit1')
+      expect(stock.getUnitId().getValue()).toBe(unitId)
       expect(stock.getStorageLocation().getType()).toBe(StorageType.REFRIGERATED)
       expect(stock.getStorageLocation().getDetail()).toBe('野菜室')
       expect(stock.getThreshold()).toBe(5)
@@ -254,7 +260,7 @@ describe('IngredientStock値オブジェクト', () => {
       // Given: thresholdなしのプレーンオブジェクト
       const obj = {
         quantity: 10,
-        unitId: 'unit2',
+        unitId: testDataHelpers.unitId(),
         storageLocation: {
           type: StorageType.FROZEN,
         },

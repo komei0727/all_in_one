@@ -1,22 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import {
-  UserIdBuilder,
-  EmailBuilder,
-  UserProfileBuilder,
-  UserStatusBuilder,
-  NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
 
 // テスト対象のUserApplicationService
-import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
-
-// 依存関係
-import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
+import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
+
+import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 // モックサービス
 const mockUserIntegrationService = {
@@ -82,7 +75,7 @@ describe('UserApplicationService', () => {
   describe('ユーザープロフィール管理', () => {
     it('ユーザープロフィールを更新できる', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = new UserId(testDataHelpers.userId())
       const originalUser = new User({
         id: userId,
         nextAuthId: 'next-auth-123',
@@ -131,7 +124,7 @@ describe('UserApplicationService', () => {
 
     it('無効なプロフィール更新データはエラーとなる', async () => {
       // Arrange（準備）
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
 
       // Act & Assert（実行 & 検証）
       const service = new UserApplicationService(mockUserIntegrationService as any)
@@ -147,7 +140,7 @@ describe('UserApplicationService', () => {
 
     it('サポートされていない言語はエラーとなる', async () => {
       // Arrange（準備）
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
 
       // Act & Assert（実行 & 検証）
       const service = new UserApplicationService(mockUserIntegrationService as any)
@@ -165,7 +158,7 @@ describe('UserApplicationService', () => {
   describe('ユーザー管理機能', () => {
     it('ユーザーを無効化できる', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = new UserId(testDataHelpers.userId())
       const deactivatedUser = new User({
         id: userId,
         nextAuthId: 'next-auth-123',
@@ -195,7 +188,7 @@ describe('UserApplicationService', () => {
 
     it('IDでユーザーを取得できる', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = new UserId(testDataHelpers.userId())
       const user = User.createFromNextAuth(new NextAuthUserBuilder().withTestUser().build())
 
       mockUserIntegrationService.findUserById.mockResolvedValue(user)
@@ -231,7 +224,7 @@ describe('UserApplicationService', () => {
 
     it('存在しないユーザーの取得はnullを返す', async () => {
       // Arrange（準備）
-      const userId = new UserId('non-existent-user')
+      const userId = new UserId(testDataHelpers.userId())
       const email = new Email('nonexistent@example.com')
 
       mockUserIntegrationService.findUserById.mockResolvedValue(null)
@@ -253,10 +246,16 @@ describe('UserApplicationService', () => {
       // Arrange（準備）
       const users = [
         User.createFromNextAuth(
-          new NextAuthUserBuilder().withId('user1').withEmail('user1@example.com').build()
+          new NextAuthUserBuilder()
+            .withId(testDataHelpers.userId())
+            .withEmail('user1@example.com')
+            .build()
         ),
         User.createFromNextAuth(
-          new NextAuthUserBuilder().withId('user2').withEmail('user2@example.com').build()
+          new NextAuthUserBuilder()
+            .withId(testDataHelpers.userId())
+            .withEmail('user2@example.com')
+            .build()
         ),
       ]
 

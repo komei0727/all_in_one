@@ -1,22 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { PrismaClient } from '@/generated/prisma-test'
-import {
-  UserIdBuilder,
-  EmailBuilder,
-  UserProfileBuilder,
-  UserStatusBuilder,
-  NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
 
+import { PrismaClient } from '@/generated/prisma-test'
 // テスト対象のPrismaUserRepository
+// ドメインオブジェクト
+import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
+import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
-// ドメインオブジェクト
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
-import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
-import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
-import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
+import { NextAuthUserBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
 
 describe('PrismaUserRepository（統合テスト）', () => {
   let prisma: PrismaClient
@@ -25,7 +18,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
   beforeEach(async () => {
     // テスト用のPrismaクライアントを作成
     prisma = new PrismaClient()
-    repository = new PrismaUserRepository(prisma as any)
+    repository = new PrismaUserRepository(prisma as unknown as PrismaClient)
 
     // テストデータをクリア
     await prisma.domainUser.deleteMany()
@@ -199,7 +192,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
 
     it('存在しないユーザーの検索はnullを返す', async () => {
       // Arrange（準備）
-      const nonExistentId = new UserId('non-existent-id')
+      const nonExistentId = new UserId(testDataHelpers.userId()) // 正しい形式のID
       const nonExistentEmail = new Email('nonexistent@example.com')
 
       // Act & Assert（実行 & 検証）
@@ -300,7 +293,7 @@ describe('PrismaUserRepository（統合テスト）', () => {
 
     it('存在しないユーザーの削除はfalseを返す', async () => {
       // Arrange（準備）
-      const nonExistentId = new UserId('non-existent-id')
+      const nonExistentId = new UserId(testDataHelpers.userId()) // 正しい形式のID
 
       // Act（実行）
       const deleteResult = await repository.delete(nonExistentId)

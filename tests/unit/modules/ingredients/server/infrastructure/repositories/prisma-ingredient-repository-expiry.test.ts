@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+
 import { PrismaClient } from '@/generated/prisma'
-import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { IngredientId } from '@/modules/ingredients/server/domain/value-objects'
+import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
+
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - 期限管理メソッド', () => {
   let repository: PrismaIngredientRepository
@@ -19,7 +22,9 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
 
   describe('findExpiringSoon', () => {
     it('指定日数以内に期限切れになる食材を取得できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = 'cat_' + testDataHelpers.cuid()
+      const unitId = 'unt_' + testDataHelpers.cuid()
       const days = 7
 
       // 今日から5日後に期限切れの食材
@@ -27,12 +32,12 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
         id: IngredientId.generate().getValue(),
         userId,
         name: 'もうすぐ期限のトマト',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 3,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -44,25 +49,25 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
       }
 
       // 今日から10日後に期限切れの食材（対象外）
-      const notExpiringSoonIngredient = {
-        id: IngredientId.generate().getValue(),
-        userId,
-        name: 'まだ余裕のあるキャベツ',
-        categoryId: 'cat1',
-        memo: null,
-        price: null,
-        purchaseDate: new Date(),
-        quantity: 1,
-        unitId: 'unit1',
-        threshold: null,
-        storageLocationType: 'REFRIGERATED',
-        storageLocationDetail: null,
-        bestBeforeDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10日後
-        useByDate: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      }
+      // const notExpiringSoonIngredient = {
+      //   id: IngredientId.generate().getValue(),
+      //   userId,
+      //   name: 'まだ余裕のあるキャベツ',
+      //   categoryId,
+      //   memo: null,
+      //   price: null,
+      //   purchaseDate: new Date(),
+      //   quantity: 1,
+      //   unitId,
+      //   threshold: null,
+      //   storageLocationType: 'REFRIGERATED',
+      //   storageLocationDetail: null,
+      //   bestBeforeDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10日後
+      //   useByDate: null,
+      //   createdAt: new Date(),
+      //   updatedAt: new Date(),
+      //   deletedAt: null,
+      // }
 
       mockPrisma.ingredient.findMany.mockResolvedValue([expiringSoonIngredient])
 
@@ -102,7 +107,9 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
     })
 
     it('消費期限を優先して判定する', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = 'cat_' + testDataHelpers.cuid()
+      const unitId = 'unt_' + testDataHelpers.cuid()
       const days = 7
 
       // 消費期限が5日後、賞味期限が10日後の食材
@@ -110,12 +117,12 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
         id: IngredientId.generate().getValue(),
         userId,
         name: '消費期限優先の牛乳',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 1,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -137,29 +144,31 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
     })
 
     it('期限情報がない食材は取得されない', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      // const categoryId = 'cat_' + testDataHelpers.cuid()
+      // const unitId = 'unt_' + testDataHelpers.cuid()
       const days = 7
 
       // 期限情報なしの食材
-      const noExpiryIngredient = {
-        id: IngredientId.generate().getValue(),
-        userId,
-        name: '期限なしの調味料',
-        categoryId: 'cat1',
-        memo: null,
-        price: null,
-        purchaseDate: new Date(),
-        quantity: 1,
-        unitId: 'unit1',
-        threshold: null,
-        storageLocationType: 'ROOM_TEMPERATURE',
-        storageLocationDetail: null,
-        bestBeforeDate: null,
-        useByDate: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      }
+      // const noExpiryIngredient = {
+      //   id: IngredientId.generate().getValue(),
+      //   userId,
+      //   name: '期限なしの調味料',
+      //   categoryId,
+      //   memo: null,
+      //   price: null,
+      //   purchaseDate: new Date(),
+      //   quantity: 1,
+      //   unitId,
+      //   threshold: null,
+      //   storageLocationType: 'ROOM_TEMPERATURE',
+      //   storageLocationDetail: null,
+      //   bestBeforeDate: null,
+      //   useByDate: null,
+      //   createdAt: new Date(),
+      //   updatedAt: new Date(),
+      //   deletedAt: null,
+      // }
 
       mockPrisma.ingredient.findMany.mockResolvedValue([])
 
@@ -173,19 +182,21 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
 
   describe('findExpired', () => {
     it('期限切れの食材を取得できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = 'cat_' + testDataHelpers.cuid()
+      const unitId = 'unt_' + testDataHelpers.cuid()
 
       // 昨日期限切れの食材
       const expiredIngredient = {
         id: IngredientId.generate().getValue(),
         userId,
         name: '期限切れトマト',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         quantity: 2,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -197,25 +208,25 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
       }
 
       // まだ期限内の食材
-      const notExpiredIngredient = {
-        id: IngredientId.generate().getValue(),
-        userId,
-        name: 'まだ大丈夫なキャベツ',
-        categoryId: 'cat1',
-        memo: null,
-        price: null,
-        purchaseDate: new Date(),
-        quantity: 1,
-        unitId: 'unit1',
-        threshold: null,
-        storageLocationType: 'REFRIGERATED',
-        storageLocationDetail: null,
-        bestBeforeDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3日後
-        useByDate: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      }
+      // const notExpiredIngredient = {
+      //   id: IngredientId.generate().getValue(),
+      //   userId,
+      //   name: 'まだ大丈夫なキャベツ',
+      //   categoryId,
+      //   memo: null,
+      //   price: null,
+      //   purchaseDate: new Date(),
+      //   quantity: 1,
+      //   unitId,
+      //   threshold: null,
+      //   storageLocationType: 'REFRIGERATED',
+      //   storageLocationDetail: null,
+      //   bestBeforeDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3日後
+      //   useByDate: null,
+      //   createdAt: new Date(),
+      //   updatedAt: new Date(),
+      //   deletedAt: null,
+      // }
 
       mockPrisma.ingredient.findMany.mockResolvedValue([expiredIngredient])
 
@@ -252,28 +263,30 @@ describe('PrismaIngredientRepository - 期限管理メソッド', () => {
     })
 
     it('今日が期限の食材は期限切れとして扱わない', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      // const categoryId = 'cat_' + testDataHelpers.cuid()
+      // const unitId = 'unt_' + testDataHelpers.cuid()
 
       // 今日が期限の食材
-      const todayExpiryIngredient = {
-        id: IngredientId.generate().getValue(),
-        userId,
-        name: '今日が期限の牛乳',
-        categoryId: 'cat1',
-        memo: null,
-        price: null,
-        purchaseDate: new Date(),
-        quantity: 1,
-        unitId: 'unit1',
-        threshold: null,
-        storageLocationType: 'REFRIGERATED',
-        storageLocationDetail: null,
-        bestBeforeDate: new Date(), // 今日
-        useByDate: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      }
+      // const todayExpiryIngredient = {
+      //   id: IngredientId.generate().getValue(),
+      //   userId,
+      //   name: '今日が期限の牛乳',
+      //   categoryId,
+      //   memo: null,
+      //   price: null,
+      //   purchaseDate: new Date(),
+      //   quantity: 1,
+      //   unitId,
+      //   threshold: null,
+      //   storageLocationType: 'REFRIGERATED',
+      //   storageLocationDetail: null,
+      //   bestBeforeDate: new Date(), // 今日
+      //   useByDate: null,
+      //   createdAt: new Date(),
+      //   updatedAt: new Date(),
+      //   deletedAt: null,
+      // }
 
       mockPrisma.ingredient.findMany.mockResolvedValue([])
 

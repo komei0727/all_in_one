@@ -1,4 +1,4 @@
-import { ValidationException } from '../exceptions/validation.exception'
+import { ValidationException } from '../exceptions'
 
 /**
  * 保管場所タイプ

@@ -6,6 +6,8 @@ import { Category } from '@/modules/ingredients/server/domain/entities/category.
 import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
+import { testDataHelpers } from '../../../../../../../__fixtures__/builders/faker.config'
+
 /**
  * CreateIngredientApiHandler のテスト
  *
@@ -100,7 +102,7 @@ describe('CreateIngredientApiHandler', () => {
 
       // モックカテゴリーとユニット
       const mockCategory = new Category({
-        id: '550e8400-e29b-41d4-a716-446655440000',
+        id: 'cat_' + testDataHelpers.cuid(),
         name: '野菜',
         displayOrder: 1,
       })

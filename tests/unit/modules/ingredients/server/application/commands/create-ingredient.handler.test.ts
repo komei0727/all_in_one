@@ -2,7 +2,10 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions/not-found.exception'
+import {
+  CategoryNotFoundException,
+  UnitNotFoundException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
@@ -12,6 +15,7 @@ import {
   CategoryBuilder,
   UnitBuilder,
 } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 import {
   createMockIngredientRepository,
   createMockCategoryRepository,
@@ -77,23 +81,21 @@ describe('CreateIngredientHandler', () => {
     it('カテゴリーが存在しない場合エラーをスローする', async () => {
       // Arrange
       // 無効なカテゴリーIDでコマンドを作成
-      const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('invalid-category-id')
-        .build()
+      const invalidCategoryId = 'cat_' + testDataHelpers.cuid()
+      const command = new CreateIngredientCommandBuilder().withCategoryId(invalidCategoryId).build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(null)
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(NotFoundException)
+      await expect(handler.execute(command)).rejects.toThrow(CategoryNotFoundException)
       await expect(handler.execute(command)).rejects.toThrow('Category not found')
     })
 
     it('単位が存在しない場合エラーをスローする', async () => {
       // Arrange
       // 無効な単位IDでコマンドを作成
-      const command = new CreateIngredientCommandBuilder()
-        .withQuantity(3, 'invalid-unit-id')
-        .build()
+      const invalidUnitId = 'unt_' + testDataHelpers.cuid()
+      const command = new CreateIngredientCommandBuilder().withQuantity(3, invalidUnitId).build()
 
       const mockCategory = new CategoryBuilder().build()
 
@@ -101,7 +103,7 @@ describe('CreateIngredientHandler', () => {
       vi.mocked(unitRepository.findById).mockResolvedValue(null)
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(NotFoundException)
+      await expect(handler.execute(command)).rejects.toThrow(UnitNotFoundException)
       await expect(handler.execute(command)).rejects.toThrow('Unit not found')
     })
 

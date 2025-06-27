@@ -1,6 +1,4 @@
-import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
-
-import { RequiredFieldException, InvalidFieldException } from '../exceptions'
+import { Name } from '@/modules/shared/server/domain/value-objects'
 
 /**
  * カテゴリー名値オブジェクト
@@ -11,25 +9,21 @@ import { RequiredFieldException, InvalidFieldException } from '../exceptions'
  * - 最大20文字
  * - 前後の空白は自動的にトリミング
  */
-export class CategoryName extends ValueObject<string> {
-  private static readonly MAX_LENGTH = 20
-
-  constructor(value: string) {
-    // null/undefinedチェックを先に行う
-    if (value === null || value === undefined) {
-      throw new RequiredFieldException('カテゴリー名')
-    }
-    const trimmedValue = value.trim()
-    super(trimmedValue)
+export class CategoryName extends Name {
+  /**
+   * フィールド名を取得
+   * @returns フィールド名
+   */
+  protected getFieldName(): string {
+    return 'カテゴリー名'
   }
 
-  protected validate(value: string): void {
-    if (value.length === 0) {
-      throw new RequiredFieldException('カテゴリー名')
-    }
-    if (value.length > CategoryName.MAX_LENGTH) {
-      throw new InvalidFieldException('カテゴリー名', value, '20文字以内で入力してください')
-    }
+  /**
+   * 最大文字数を取得
+   * @returns 最大文字数
+   */
+  protected getMaxLength(): number {
+    return 20
   }
 
   /**

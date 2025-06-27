@@ -1,9 +1,11 @@
-# コンテキストマップ v2.0（ビジネス要求対応版）
+# コンテキストマップ v2.1（ユーザー管理をMVPに統合）
 
 ## 1. 概要
 
 本ドキュメントは、ビジネス要求文書（BRD）に基づいて再設計したコンテキストマップです。
 特に、ペルソナ分析から得られた洞察と、MVPからPhase 3までの段階的な実装計画を反映しています。
+
+**v2.1更新**: ユーザー管理をMVPに含めることで、今後の開発をよりスムーズに進められるようになりました。
 
 ## 2. 全体コンテキストマップ
 
@@ -12,10 +14,10 @@ graph TB
     subgraph "MVP (Phase 1)"
         IM[食材管理<br/>Ingredient Management]
         SH[買い物サポート<br/>Shopping Support]
+        UM[ユーザー管理<br/>User Management]
     end
 
     subgraph "Phase 2"
-        UM[ユーザー管理<br/>User Management]
         SHR[共有管理<br/>Sharing Management]
         RM[レシピ管理<br/>Recipe Management]
     end
@@ -33,13 +35,14 @@ graph TB
 
     %% MVP関係
     IM <--> SH
+    UM -->|ACL| IM
+    UM -->|ACL| SH
     IM --> SK
     SH --> SK
+    UM --> SK
     IM --> NT
 
     %% Phase 2関係
-    UM -.->|ACL| IM
-    UM -.->|ACL| SH
     SHR -.->|Customer/Supplier| IM
     SHR -.->|Customer/Supplier| UM
     RM -.->|Customer/Supplier| IM
@@ -53,9 +56,9 @@ graph TB
     %% スタイリング
     style IM fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px
     style SH fill:#ff8787,stroke:#c92a2a,stroke-width:4px
+    style UM fill:#ff9999,stroke:#c92a2a,stroke-width:4px
     style SK fill:#ffd43b,stroke:#fab005,stroke-width:2px
     style NT fill:#ffe066,stroke:#fab005,stroke-width:2px
-    style UM fill:#74c0fc,stroke:#339af0,stroke-width:2px,stroke-dasharray: 5 5
     style SHR fill:#74c0fc,stroke:#339af0,stroke-width:2px,stroke-dasharray: 5 5
     style RM fill:#74c0fc,stroke:#339af0,stroke-width:2px,stroke-dasharray: 5 5
     style SL fill:#b2f2bb,stroke:#51cf66,stroke-width:2px,stroke-dasharray: 8 4
@@ -104,20 +107,26 @@ graph TB
 - 重複購入の防止
 - 買い物時間の短縮
 
-### 3.2 Phase 2 コンテキスト（3-6ヶ月後）
-
 #### 👥 ユーザー管理（User Management）
 
 **タイプ**: 汎用サブドメイン
-**優先度**: 高（Phase 2で必須）
-**関連ペルソナ**: 山田・鈴木カップル
+**優先度**: 高（MVP実装）
+**関連ペルソナ**: 全ペルソナ（特に山田・鈴木カップル）
 
 **主要な責務**:
 
 - アカウント作成・認証
 - メールアドレス認証
 - プロフィール管理
-- アカウント招待機能
+- アカウント招待機能（Phase 2での共有機能の基盤）
+
+**ビジネス価値**:
+
+- 個人データの安全な管理
+- 将来の共有機能の基盤構築
+- マルチデバイス対応の実現
+
+### 3.2 Phase 2 コンテキスト（3-6ヶ月後）
 
 #### 🤝 共有管理（Sharing Management）
 
@@ -203,19 +212,25 @@ graph TB
 - 理由: 高速なデータアクセスが必要
 - 実装: 同じ集約を参照
 
-### 4.2 Phase 2での統合
-
 **ユーザー管理 → 食材管理/買い物サポート**
 
 - パターン: **Anti-Corruption Layer (ACL)**
 - 理由: 認証・認可の横断的関心事
-- 実装: 認証ミドルウェア
+- 実装: 認証ミドルウェアとサービス層での統合
+
+### 4.2 Phase 2での統合
 
 **共有管理 → 食材管理**
 
 - パターン: **Customer/Supplier**
 - 理由: 共有管理が食材管理のデータに依存
 - 実装: 明確なインターフェース定義
+
+**共有管理 → ユーザー管理**
+
+- パターン: **Customer/Supplier**
+- 理由: 共有管理がユーザー情報と権限管理に依存
+- 実装: ユーザーサービスAPIの利用
 
 ### 4.3 イベント駆動統合
 
@@ -276,11 +291,17 @@ interface IngredientDomainEvents {
 - 買い物中の高速アクセス要求
 - 将来的な機能拡張（バーコードスキャン等）
 
-### なぜユーザー管理をPhase 2に延期したか
+### なぜユーザー管理をMVPに含めたか
 
-- MVPでは認証なしでも価値提供可能
-- 開発期間3ヶ月の制約
-- まず単一ユーザーでの価値検証
+- 今後の開発効率の向上
+  - Phase 2以降の機能（共有管理、レシピ管理）がユーザー管理を前提とする
+  - 後からユーザー管理を追加すると大規模なリファクタリングが必要
+- データの一貫性と整合性
+  - 最初からユーザーごとのデータ分離を実装
+  - マルチテナンシーの基盤を確立
+- ユーザー体験の向上
+  - マルチデバイス対応が初期から可能
+  - 個人設定の保存と同期
 
 ### なぜ共有管理を独立させたか
 
@@ -295,8 +316,8 @@ interface IngredientDomainEvents {
 ```
 src/modules/
 ├── ingredients/        # 食材管理 + 買い物サポート（MVP）
+├── users/             # ユーザー管理（MVP）
 ├── sharing/           # 共有管理（Phase 2）
-├── users/             # ユーザー管理（Phase 2）
 ├── recipes/           # レシピ管理（Phase 2）
 └── shared/            # 共有カーネル
 ```
@@ -306,6 +327,8 @@ src/modules/
 - 各コンテキストは独自のAPIルートを持つ
 - `/api/v1/ingredients/*`
 - `/api/v1/shopping/*`
+- `/api/v1/users/*`
+- `/api/v1/auth/*`
 - `/api/v2/sharing/*`（Phase 2）
 
 ## 8. リスクと軽減策
@@ -322,6 +345,7 @@ src/modules/
 
 ## 更新履歴
 
-| 日付       | 内容 | 作成者     |
-| ---------- | ---- | ---------- |
-| 2025-06-24 | 初版 | @komei0727 |
+| 日付       | 内容                           | 作成者     |
+| ---------- | ------------------------------ | ---------- |
+| 2025-06-24 | 初版                           | @komei0727 |
+| 2025-06-26 | v2.1 - ユーザー管理をMVPに移動 | @komei0727 |

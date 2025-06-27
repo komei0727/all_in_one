@@ -1,6 +1,8 @@
 import { faker } from '@faker-js/faker/locale/ja'
 import { createId } from '@paralleldrive/cuid2'
 
+import { ID_PREFIXES } from '@/modules/shared/server/domain/constants/id-prefixes'
+
 /**
  * 日本語ロケール専用のFakerインスタンス
  * 日本語パッケージのみをインポートすることで読み込みを高速化
@@ -124,6 +126,15 @@ export const testDataHelpers = {
    * CUID生成
    */
   cuid: () => createId(),
+
+  /**
+   * プレフィックス付きID生成
+   */
+  ingredientId: () => ID_PREFIXES.ingredient + createId(),
+  ingredientStockId: () => ID_PREFIXES.ingredientStock + createId(),
+  categoryId: () => ID_PREFIXES.category + createId(),
+  unitId: () => ID_PREFIXES.unit + createId(),
+  userId: () => ID_PREFIXES.user + createId(),
 
   /**
    * ランダムなカテゴリー名を取得

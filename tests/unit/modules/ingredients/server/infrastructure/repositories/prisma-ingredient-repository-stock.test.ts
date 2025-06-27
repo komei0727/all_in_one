@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+
 import { PrismaClient } from '@/generated/prisma'
-import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { IngredientId } from '@/modules/ingredients/server/domain/value-objects'
+import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
+
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
   let repository: PrismaIngredientRepository
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockPrisma: any
 
   beforeEach(() => {
@@ -19,19 +23,21 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
 
   describe('findOutOfStock', () => {
     it('在庫切れ（quantity: 0）の食材を取得できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+      const unitId = testDataHelpers.unitId()
 
       // 在庫切れの食材
       const outOfStockIngredient = {
         id: IngredientId.generate().getValue(),
         userId,
         name: '在庫切れトマト',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 0, // 在庫切れ
-        unitId: 'unit1',
+        unitId,
         threshold: 5,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -64,7 +70,7 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
     })
 
     it('在庫がある食材は取得されない', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
 
       mockPrisma.ingredient.findMany.mockResolvedValue([])
 
@@ -78,7 +84,9 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
 
   describe('findLowStock', () => {
     it('指定した閾値以下の在庫を取得できる（在庫切れを除く）', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+      const unitId = testDataHelpers.unitId()
       const threshold = 5
 
       // 在庫不足の食材（在庫3、閾値5以下）
@@ -86,12 +94,12 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
         id: IngredientId.generate().getValue(),
         userId,
         name: '在庫不足のキャベツ',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 3, // 在庫不足
-        unitId: 'unit1',
+        unitId,
         threshold: 10, // 個別の閾値（テストでは使用しない）
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -127,19 +135,21 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
     })
 
     it('各食材の個別閾値を使用して在庫不足を判定できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+      const unitId = testDataHelpers.unitId()
 
       // 在庫不足の食材（在庫3、個別閾値5）
       const lowStockIngredient1 = {
         id: IngredientId.generate().getValue(),
         userId,
         name: '閾値5で在庫3の人参',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 3,
-        unitId: 'unit1',
+        unitId,
         threshold: 5, // 個別閾値
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -155,12 +165,12 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
         id: IngredientId.generate().getValue(),
         userId,
         name: '閾値5で在庫8のじゃがいも',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 8,
-        unitId: 'unit1',
+        unitId,
         threshold: 5, // 個別閾値
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -176,12 +186,12 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
         id: IngredientId.generate().getValue(),
         userId,
         name: '在庫切れの玉ねぎ',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 0,
-        unitId: 'unit1',
+        unitId,
         threshold: 5,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -219,19 +229,21 @@ describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
     })
 
     it('閾値が設定されていない食材は取得されない', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+      const unitId = testDataHelpers.unitId()
 
       // 閾値なしの食材
       const noThresholdIngredient = {
         id: IngredientId.generate().getValue(),
         userId,
         name: '閾値なしの食材',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 1,
-        unitId: 'unit1',
+        unitId,
         threshold: null, // 閾値なし
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,

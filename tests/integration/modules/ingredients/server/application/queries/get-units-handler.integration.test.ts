@@ -6,11 +6,13 @@ import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/q
 import { GetUnitsQuery } from '@/modules/ingredients/server/application/queries/get-units.query'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 /**
@@ -52,16 +54,17 @@ describe('GetUnitsHandler Integration Tests', () => {
       const result = (await handler.handle(query)) as any
 
       // Then: シードデータの3単位が表示順で取得される
+      const testDataIds = getTestDataIds()
       expect(result.units).toHaveLength(3)
-      expect(result.units[0].id).toBe('unit0001')
+      expect(result.units[0].id).toBe(testDataIds.units.piece)
       expect(result.units[0].name).toBe('個')
       expect(result.units[0].symbol).toBe('個')
       expect(result.units[0].displayOrder).toBe(1)
-      expect(result.units[1].id).toBe('unit0002')
+      expect(result.units[1].id).toBe(testDataIds.units.gram)
       expect(result.units[1].name).toBe('グラム')
       expect(result.units[1].symbol).toBe('g')
       expect(result.units[1].displayOrder).toBe(2)
-      expect(result.units[2].id).toBe('unit0003')
+      expect(result.units[2].id).toBe(testDataIds.units.milliliter)
       expect(result.units[2].name).toBe('ミリリットル')
       expect(result.units[2].symbol).toBe('ml')
       expect(result.units[2].displayOrder).toBe(3)
@@ -69,8 +72,9 @@ describe('GetUnitsHandler Integration Tests', () => {
 
     it('非アクティブな単位は取得されない', async () => {
       // Given: 1つの単位を非アクティブにする
+      const testDataIds = getTestDataIds()
       await prisma.unit.update({
-        where: { id: 'unit0002' },
+        where: { id: testDataIds.units.gram },
         data: { isActive: false },
       })
 
@@ -79,14 +83,14 @@ describe('GetUnitsHandler Integration Tests', () => {
 
       // Then: アクティブな単位のみ取得される
       expect(result.units).toHaveLength(2)
-      expect(result.units.find((u: any) => u.id === 'unit0002')).toBeUndefined()
-      expect(result.units[0].id).toBe('unit0001')
-      expect(result.units[1].id).toBe('unit0003')
+      expect(result.units.find((u: any) => u.id === testDataIds.units.gram)).toBeUndefined()
+      expect(result.units[0].id).toBe(testDataIds.units.piece)
+      expect(result.units[1].id).toBe(testDataIds.units.milliliter)
     })
 
     it('新しい単位を追加しても表示順で取得される', async () => {
       // Given: 新しい単位を追加（ユニークなシンボルを確保）
-      const newUnitId = faker.string.uuid()
+      const newUnitId = testDataHelpers.unitId()
       const newUnitName = `テスト単位_${faker.string.alphanumeric(6)}`
       const newUnitSymbol = faker.string.alphanumeric(5)
       await prisma.unit.create({
@@ -108,10 +112,11 @@ describe('GetUnitsHandler Integration Tests', () => {
       expect(result.units[0].id).toBe(newUnitId)
       expect(result.units[0].name).toBe(newUnitName)
       expect(result.units[0].symbol).toBe(newUnitSymbol)
+      const testDataIds = getTestDataIds()
       expect(result.units[0].displayOrder).toBe(0)
-      expect(result.units[1].id).toBe('unit0001')
-      expect(result.units[2].id).toBe('unit0002')
-      expect(result.units[3].id).toBe('unit0003')
+      expect(result.units[1].id).toBe(testDataIds.units.piece)
+      expect(result.units[2].id).toBe(testDataIds.units.gram)
+      expect(result.units[3].id).toBe(testDataIds.units.milliliter)
     })
 
     it('単位が0件の場合は空配列を返す', async () => {
@@ -130,7 +135,7 @@ describe('GetUnitsHandler Integration Tests', () => {
       const sameOrder = 999
       const unitIds = []
       for (let i = 0; i < 3; i++) {
-        const id = faker.string.uuid()
+        const id = testDataHelpers.unitId()
         unitIds.push(id)
         await prisma.unit.create({
           data: {
@@ -171,7 +176,7 @@ describe('GetUnitsHandler Integration Tests', () => {
       for (const unitType of unitTypes) {
         await prisma.unit.create({
           data: {
-            id: faker.string.uuid(),
+            id: testDataHelpers.unitId(),
             name: unitType.name,
             symbol: unitType.symbol,
             displayOrder: faker.number.int({ min: 10, max: 20 }),
@@ -196,7 +201,7 @@ describe('GetUnitsHandler Integration Tests', () => {
     it('大量の単位があっても高速に取得できる', async () => {
       // Given: 100個の単位を追加
       const units = Array.from({ length: 100 }, (_, i) => ({
-        id: faker.string.uuid(),
+        id: testDataHelpers.unitId(),
         name: `単位${i}_${faker.string.alphanumeric(4)}`,
         symbol: `s${i}_${faker.string.alphanumeric(2)}`, // ユニークなシンボルを生成
         displayOrder: 100 + i,
@@ -232,11 +237,12 @@ describe('GetUnitsHandler Integration Tests', () => {
 
       // Then: すべて同じ結果を返す
       expect(results).toHaveLength(5)
+      const testDataIds = getTestDataIds()
       results.forEach((result) => {
         expect(result.units).toHaveLength(3)
-        expect(result.units[0].id).toBe('unit0001')
-        expect(result.units[1].id).toBe('unit0002')
-        expect(result.units[2].id).toBe('unit0003')
+        expect(result.units[0].id).toBe(testDataIds.units.piece)
+        expect(result.units[1].id).toBe(testDataIds.units.gram)
+        expect(result.units[2].id).toBe(testDataIds.units.milliliter)
       })
     })
 
@@ -246,8 +252,9 @@ describe('GetUnitsHandler Integration Tests', () => {
       expect(initialResult.units).toHaveLength(3)
 
       // When: 単位を更新しながら並行してクエリを実行
+      const testDataIds = getTestDataIds()
       const updatePromise = prisma.unit.update({
-        where: { id: 'unit0001' },
+        where: { id: testDataIds.units.piece },
         data: { name: `更新_${faker.string.alphanumeric(6)}` },
       })
 
@@ -257,11 +264,9 @@ describe('GetUnitsHandler Integration Tests', () => {
 
       // Then: 単位数は変わらない
       expect(result.units).toHaveLength(3)
-      expect(result.units.map((u: any) => u.id).sort()).toEqual([
-        'unit0001',
-        'unit0002',
-        'unit0003',
-      ])
+      expect(result.units.map((u: any) => u.id).sort()).toEqual(
+        [testDataIds.units.piece, testDataIds.units.gram, testDataIds.units.milliliter].sort()
+      )
     })
   })
 
@@ -278,7 +283,7 @@ describe('GetUnitsHandler Integration Tests', () => {
       for (const unit of specialUnits) {
         await prisma.unit.create({
           data: {
-            id: faker.string.uuid(),
+            id: testDataHelpers.unitId(),
             name: unit.name,
             symbol: unit.symbol,
             displayOrder: faker.number.int({ min: 10, max: 20 }),

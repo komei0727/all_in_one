@@ -1,5 +1,7 @@
 import { ValueObject } from '@/modules/shared/server/domain/value-objects/value-object.base'
 
+import { RequiredFieldException, InvalidFieldException } from '../exceptions'
+
 /**
  * ユーザー設定プロパティ
  */
@@ -24,22 +26,30 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
   protected validate(value: UserPreferencesProps): void {
     // 必須チェック
     if (value === null || value === undefined) {
-      throw new Error('ユーザー設定は必須です')
+      throw new RequiredFieldException('preferences')
     }
 
     // テーマのバリデーション
     if (!UserPreferences.VALID_THEMES.includes(value.theme)) {
-      throw new Error('無効なテーマが指定されています')
+      throw new InvalidFieldException('theme', value.theme, '無効なテーマが指定されています')
     }
 
     // 通知設定のバリデーション
     if (typeof value.notifications !== 'boolean') {
-      throw new Error('通知設定はtrue/falseで指定してください')
+      throw new InvalidFieldException(
+        'notifications',
+        value.notifications,
+        '通知設定はtrue/falseで指定してください'
+      )
     }
 
     // メール頻度のバリデーション
     if (!UserPreferences.VALID_EMAIL_FREQUENCIES.includes(value.emailFrequency)) {
-      throw new Error('無効なメール頻度が指定されています')
+      throw new InvalidFieldException(
+        'emailFrequency',
+        value.emailFrequency,
+        '無効なメール頻度が指定されています'
+      )
     }
   }
 
