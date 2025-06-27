@@ -63,7 +63,7 @@ export function getAuthConfig() {
         name: `${isProduction ? '__Secure-' : ''}next-auth.session-token`,
         options: {
           httpOnly: true,
-          sameSite: 'lax',
+          sameSite: 'lax' as const,
           path: '/',
           secure: isProduction,
         },

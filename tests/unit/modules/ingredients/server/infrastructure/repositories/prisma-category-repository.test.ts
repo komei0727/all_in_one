@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { PrismaClient } from '@/generated/prisma'
-import { prisma } from '@/lib/prisma/client'
+import { prisma } from '@/lib/prisma'
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
@@ -9,7 +9,7 @@ import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastru
 import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 // Prismaクライアントのモック
-vi.mock('@/lib/prisma/client', () => ({
+vi.mock('@/lib/prisma', () => ({
   prisma: {
     category: {
       findMany: vi.fn(),

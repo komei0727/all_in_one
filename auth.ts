@@ -2,7 +2,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import NextAuth from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
 
-import { getAuthConfig, getEmailConfig } from '@/auth.config'
+import { getAuthConfig, getEmailConfig } from './auth.config'
 import { prisma } from '@/lib/prisma'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
