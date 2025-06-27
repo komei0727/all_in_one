@@ -1,6 +1,6 @@
 import { DomainEvent } from '@/modules/shared/server/domain/events/domain-event.base'
 
-import { UserProfile } from '../value-objects/user-profile.vo'
+import type { UserProfile } from '../value-objects/user-profile.vo'
 
 /**
  * ユーザープロフィールが更新されたイベント

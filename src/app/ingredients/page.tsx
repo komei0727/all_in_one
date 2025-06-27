@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 
-import { Loader2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
+
+import { Loader2 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 import { CreateIngredientForm } from '@/modules/ingredients/client/components/create-ingredient-form'
@@ -54,7 +55,7 @@ export default function IngredientsPage() {
         <div className="lg:col-span-1">
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="mb-4 text-xl font-semibold">新規食材登録</h2>
-            <CreateIngredientForm onSuccess={() => refetch()} />
+            <CreateIngredientForm onSuccess={() => void refetch()} />
           </div>
         </div>
 

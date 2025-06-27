@@ -1,4 +1,4 @@
-import { StorageType } from '../../domain/value-objects'
+import type { StorageType } from '../../domain/value-objects'
 
 /**
  * 食材作成コマンド

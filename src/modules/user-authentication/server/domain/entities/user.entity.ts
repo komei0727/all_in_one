@@ -147,7 +147,7 @@ export class User extends AggregateRoot<UserId> {
       id: UserId.generate(),
       nextAuthId: nextAuthUser.id,
       email: new Email(nextAuthUser.email),
-      profile: profile,
+      profile,
       status: UserStatus.createActive(),
       createdAt: now,
       updatedAt: now,
@@ -303,7 +303,7 @@ export class User extends AggregateRoot<UserId> {
       throw new Error('NextAuth IDが一致しません')
     }
 
-    const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
+    const changes: { field: string; oldValue: any; newValue: any }[] = []
     const syncedFields: ('email' | 'name' | 'lastLoginAt')[] = []
 
     // メールアドレスの同期

@@ -1,7 +1,6 @@
-import { PrismaClient, Prisma } from '@/generated/prisma'
+import { type PrismaClient, Prisma } from '@/generated/prisma'
 
 import { Ingredient } from '../../domain/entities/ingredient.entity'
-import { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 import {
   CategoryId,
   IngredientId,
@@ -9,11 +8,13 @@ import {
   Memo,
   Price,
   StorageLocation,
-  StorageType,
+  type StorageType,
   UnitId,
   ExpiryInfo,
   IngredientStock,
 } from '../../domain/value-objects'
+
+import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 
 /**
  * Prismaを使用した食材リポジトリの実装

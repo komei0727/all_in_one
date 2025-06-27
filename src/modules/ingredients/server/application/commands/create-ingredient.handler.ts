@@ -1,12 +1,8 @@
-import { CreateIngredientCommand } from './create-ingredient.command'
 import { Ingredient } from '../../domain/entities/ingredient.entity'
 import {
   CategoryNotFoundException,
   UnitNotFoundException,
 } from '../../domain/exceptions/not-found.exception'
-import { CategoryRepository } from '../../domain/repositories/category-repository.interface'
-import { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
-import { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 import {
   CategoryId,
   IngredientId,
@@ -18,6 +14,11 @@ import {
   ExpiryInfo,
   IngredientStock,
 } from '../../domain/value-objects'
+
+import type { CreateIngredientCommand } from './create-ingredient.command'
+import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
+import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
+import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 
 /**
  * 食材作成コマンドハンドラー

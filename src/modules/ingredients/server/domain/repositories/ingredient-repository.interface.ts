@@ -1,5 +1,5 @@
-import { Ingredient } from '../entities/ingredient.entity'
-import {
+import type { Ingredient } from '../entities/ingredient.entity'
+import type {
   IngredientId,
   IngredientName,
   StorageType,

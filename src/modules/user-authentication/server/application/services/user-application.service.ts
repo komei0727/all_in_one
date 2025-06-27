@@ -1,7 +1,7 @@
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
+import type { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
+import type { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 
 /**
@@ -101,7 +101,7 @@ export class UserApplicationService {
     const newProfile = new UserProfile({
       displayName: request.displayName,
       timezone: request.timezone,
-      language: request.language as 'ja' | 'en',
+      language: request.language,
       preferences: currentUser.getProfile().getPreferences(),
     })
 

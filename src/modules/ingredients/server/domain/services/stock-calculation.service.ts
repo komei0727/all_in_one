@@ -1,4 +1,4 @@
-import { Ingredient } from '../entities/ingredient.entity'
+import type { Ingredient } from '../entities/ingredient.entity'
 
 /**
  * 在庫必要量の定義

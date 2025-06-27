@@ -1,6 +1,7 @@
-import { Unit } from '../../domain/entities/unit.entity'
 import { UnitListDTO } from '../dtos/unit-list.dto'
 import { UnitDTO } from '../dtos/unit.dto'
+
+import type { Unit } from '../../domain/entities/unit.entity'
 
 /**
  * 単位マッパー

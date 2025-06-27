@@ -1,7 +1,8 @@
-import { GetCategoriesQuery } from './get-categories.query'
-import { CategoryRepository } from '../../domain/repositories/category-repository.interface'
 import { CategoryListDTO } from '../dtos/category-list.dto'
 import { CategoryDTO } from '../dtos/category.dto'
+
+import type { GetCategoriesQuery } from './get-categories.query'
+import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
 
 /**
  * GetCategoriesQueryHandler

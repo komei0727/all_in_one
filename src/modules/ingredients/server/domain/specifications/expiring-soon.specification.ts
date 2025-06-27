@@ -1,6 +1,6 @@
 import { Specification } from '@/modules/shared/server/domain/specifications/specification.base'
 
-import { Ingredient } from '../entities/ingredient.entity'
+import type { Ingredient } from '../entities/ingredient.entity'
 
 /**
  * 期限切れ間近仕様

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+
 import { useSession, signOut } from 'next-auth/react'
 
 export default function HomePage() {
@@ -43,7 +44,7 @@ export default function HomePage() {
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">{session.user?.email}</span>
               <button
-                onClick={() => signOut()}
+                onClick={() => void signOut()}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
                 ログアウト

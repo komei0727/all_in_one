@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { ZodError } from 'zod'
 
 import { DomainException } from '../domain/exceptions'

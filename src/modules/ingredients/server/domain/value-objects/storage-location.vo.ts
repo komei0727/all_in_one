@@ -25,7 +25,7 @@ export class StorageLocation {
 
     this.type = type
     // 詳細が未定義、空文字、空白のみの場合はnullにする
-    this.detail = detail && detail.trim() ? detail.trim() : null
+    this.detail = detail?.trim() ? detail.trim() : null
     this.validate()
   }
 

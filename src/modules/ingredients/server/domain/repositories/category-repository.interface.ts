@@ -1,5 +1,5 @@
-import { Category } from '../entities/category.entity'
-import { CategoryId } from '../value-objects'
+import type { Category } from '../entities/category.entity'
+import type { CategoryId } from '../value-objects'
 
 /**
  * CategoryRepository Interface

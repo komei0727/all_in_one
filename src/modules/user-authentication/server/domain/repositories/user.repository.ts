@@ -1,7 +1,7 @@
-import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import type { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import type { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 
-import { User } from '../entities/user.entity'
+import type { User } from '../entities/user.entity'
 
 /**
  * ユーザーリポジトリインターフェース

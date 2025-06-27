@@ -8,12 +8,12 @@ export class BatchStockUpdate extends DomainEvent {
   constructor(
     public readonly batchId: string,
     public readonly userId: string,
-    public readonly updates: Array<{
+    public readonly updates: {
       ingredientId: string
       previousQuantity: number
       newQuantity: number
       unitId: string
-    }>,
+    }[],
     metadata: Record<string, any> = {}
   ) {
     BatchStockUpdate.validateRequiredFields(batchId, userId, updates)
@@ -36,7 +36,7 @@ export class BatchStockUpdate extends DomainEvent {
   private static validateRequiredFields(
     batchId: string,
     userId: string,
-    updates: Array<any> | null
+    updates: any[] | null
   ): void {
     if (!batchId?.trim()) throw new Error('バッチIDは必須です')
     if (!userId?.trim()) throw new Error('ユーザーIDは必須です')

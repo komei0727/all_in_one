@@ -19,7 +19,7 @@ import {
   IngredientStock,
   UnitId,
   StorageLocation,
-  StorageType,
+  type StorageType,
 } from '../value-objects'
 
 /**
@@ -359,7 +359,7 @@ export class Ingredient extends AggregateRoot {
    * @param userId 削除するユーザーID
    * @param reason 削除理由
    */
-  delete(userId?: string, reason: string = 'user-action'): void {
+  delete(userId?: string, reason = 'user-action'): void {
     if (this.isDeleted()) {
       throw new BusinessRuleException('すでに削除されています')
     }

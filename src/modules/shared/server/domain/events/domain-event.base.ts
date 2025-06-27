@@ -10,7 +10,7 @@ export abstract class DomainEvent {
   public readonly version: number
   public readonly metadata: Record<string, any>
 
-  constructor(aggregateId: string, metadata: Record<string, any> = {}, version: number = 1) {
+  constructor(aggregateId: string, metadata: Record<string, any> = {}, version = 1) {
     this.id = crypto.randomUUID()
     this.occurredAt = new Date()
     this.aggregateId = aggregateId

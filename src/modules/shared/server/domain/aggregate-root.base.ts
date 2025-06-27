@@ -1,4 +1,4 @@
-import { DomainEvent } from './events/domain-event.base'
+import type { DomainEvent } from './events/domain-event.base'
 
 /**
  * 集約ルート基底クラス

@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 
 import { useSearchParams } from 'next/navigation'
+
 import { signIn } from 'next-auth/react'
 
 function LoginForm() {
@@ -25,12 +26,15 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        alert('エラーが発生しました: ' + result.error)
+        // エラーハンドリング（本来はトーストやエラー表示UIを使うべき）
+        // eslint-disable-next-line no-console
+        console.error('ログインエラー:', result.error)
       } else {
         setIsSubmitted(true)
       }
-    } catch (error) {
-      alert('エラーが発生しました')
+    } catch (_error) {
+      // eslint-disable-next-line no-console
+      console.error('予期しないエラーが発生しました')
     } finally {
       setIsLoading(false)
     }
@@ -59,7 +63,7 @@ function LoginForm() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">ログイン</h2>
           <p className="mt-2 text-center text-sm text-gray-600">メールアドレスを入力してください</p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={(e) => void handleSubmit(e)}>
           <div className="-space-y-px rounded-md shadow-sm">
             <div>
               <label htmlFor="email-address" className="sr-only">

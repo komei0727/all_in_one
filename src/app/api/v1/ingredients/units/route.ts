@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
 
@@ -22,7 +22,7 @@ export async function GET(_request: NextRequest) {
 
     // HTTPレスポンスとして返却
     return NextResponse.json(result)
-  } catch (error) {
+  } catch (_error) {
     // エラーハンドリング
     return NextResponse.json(
       {

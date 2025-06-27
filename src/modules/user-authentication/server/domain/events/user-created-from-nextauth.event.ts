@@ -10,7 +10,7 @@ export class UserCreatedFromNextAuthEvent extends DomainEvent {
     public readonly nextAuthId: string,
     public readonly email: string,
     public readonly displayName: string,
-    public readonly isFirstTime: boolean = true
+    public readonly isFirstTime = true
   ) {
     super(aggregateId)
   }
