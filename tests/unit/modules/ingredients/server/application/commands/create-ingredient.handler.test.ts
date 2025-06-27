@@ -15,6 +15,7 @@ import {
   CategoryBuilder,
   UnitBuilder,
 } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 import {
   createMockIngredientRepository,
   createMockCategoryRepository,
@@ -80,9 +81,8 @@ describe('CreateIngredientHandler', () => {
     it('カテゴリーが存在しない場合エラーをスローする', async () => {
       // Arrange
       // 無効なカテゴリーIDでコマンドを作成
-      const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('invalid-category-id')
-        .build()
+      const invalidCategoryId = 'cat_' + testDataHelpers.cuid()
+      const command = new CreateIngredientCommandBuilder().withCategoryId(invalidCategoryId).build()
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(null)
 
@@ -94,9 +94,8 @@ describe('CreateIngredientHandler', () => {
     it('単位が存在しない場合エラーをスローする', async () => {
       // Arrange
       // 無効な単位IDでコマンドを作成
-      const command = new CreateIngredientCommandBuilder()
-        .withQuantity(3, 'invalid-unit-id')
-        .build()
+      const invalidUnitId = 'unt_' + testDataHelpers.cuid()
+      const command = new CreateIngredientCommandBuilder().withQuantity(3, invalidUnitId).build()
 
       const mockCategory = new CategoryBuilder().build()
 

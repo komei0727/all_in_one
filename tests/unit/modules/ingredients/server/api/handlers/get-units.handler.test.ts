@@ -5,6 +5,8 @@ import { UnitListDTO } from '@/modules/ingredients/server/application/dtos/unit-
 import { UnitDTO } from '@/modules/ingredients/server/application/dtos/unit.dto'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/application/queries/get-units.handler')
 vi.mock('@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository')
@@ -23,8 +25,15 @@ vi.mock('@/lib/prisma/client', () => ({
 describe('GetUnitsHandler', () => {
   let handler: GetUnitsHandler
   let mockQueryHandler: { handle: ReturnType<typeof vi.fn> }
+  let unitId1: string
+  let unitId2: string
+  let unitId3: string
 
   beforeEach(() => {
+    // テスト用IDの生成
+    unitId1 = testDataHelpers.unitId()
+    unitId2 = testDataHelpers.unitId()
+    unitId3 = testDataHelpers.unitId()
     vi.clearAllMocks()
     mockQueryHandler = {
       handle: vi.fn(),
@@ -39,8 +48,8 @@ describe('GetUnitsHandler', () => {
     // クエリハンドラーの結果を返すことを確認
     // Arrange
     const unitDTOs = [
-      new UnitDTO('unit1', 'グラム', 'g', 1),
-      new UnitDTO('unit2', 'キログラム', 'kg', 2),
+      new UnitDTO(unitId1, 'グラム', 'g', 1),
+      new UnitDTO(unitId2, 'キログラム', 'kg', 2),
     ]
     const mockDTO = new UnitListDTO(unitDTOs)
     mockQueryHandler.handle.mockResolvedValue(mockDTO)
@@ -69,10 +78,10 @@ describe('GetUnitsHandler', () => {
     const mockResult = {
       unitsByType: {
         weight: [
-          { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-          { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+          { id: unitId1, name: 'グラム', symbol: 'g', displayOrder: 1 },
+          { id: unitId2, name: 'キログラム', symbol: 'kg', displayOrder: 2 },
         ],
-        volume: [{ id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }],
+        volume: [{ id: unitId3, name: 'ミリリットル', symbol: 'ml', displayOrder: 3 }],
       },
     }
     mockQueryHandler.handle.mockResolvedValue(mockResult)

@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+
 import { LowStockSpecification } from '@/modules/ingredients/server/domain/specifications/low-stock.specification'
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
 import {
   IngredientStock,
   StorageLocation,
   StorageType,
   UnitId,
 } from '@/modules/ingredients/server/domain/value-objects'
+
+import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('LowStockSpecification', () => {
   let builder: IngredientBuilder
@@ -43,7 +45,7 @@ describe('LowStockSpecification', () => {
       // 在庫量3
       const stock = new IngredientStock({
         quantity: 3,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -59,7 +61,7 @@ describe('LowStockSpecification', () => {
       // 在庫量5（境界値）
       const stock = new IngredientStock({
         quantity: 5,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -75,7 +77,7 @@ describe('LowStockSpecification', () => {
       // 在庫量10
       const stock = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -91,7 +93,7 @@ describe('LowStockSpecification', () => {
       // 在庫量0
       const stock = new IngredientStock({
         quantity: 0,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -107,7 +109,7 @@ describe('LowStockSpecification', () => {
       // 在庫量0
       const stock = new IngredientStock({
         quantity: 0,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -123,7 +125,7 @@ describe('LowStockSpecification', () => {
       // 在庫量0.1
       const stock = new IngredientStock({
         quantity: 0.1,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -141,7 +143,7 @@ describe('LowStockSpecification', () => {
       // 在庫量2.5（境界値）
       const thresholdStock = new IngredientStock({
         quantity: 2.5,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -152,7 +154,7 @@ describe('LowStockSpecification', () => {
       // 在庫量2.6（閾値より多い）
       const aboveStock = new IngredientStock({
         quantity: 2.6,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 

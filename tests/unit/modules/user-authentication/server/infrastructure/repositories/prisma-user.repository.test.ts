@@ -5,6 +5,7 @@ import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 import { createUserTestData } from '../../../../../../__fixtures__/builders/user-authentication/user.builder'
 
 describe('PrismaUserRepository', () => {
@@ -77,7 +78,7 @@ describe('PrismaUserRepository', () => {
       mockPrismaClient.domainUser.findUnique.mockResolvedValue(null)
 
       // 実行
-      const userId = new UserId(faker.string.uuid())
+      const userId = new UserId(testDataHelpers.userId())
       const result = await repository.findById(userId)
 
       // 検証
@@ -300,7 +301,7 @@ describe('PrismaUserRepository', () => {
       mockPrismaClient.domainUser.update.mockResolvedValue({})
 
       // 実行
-      const userId = new UserId(faker.string.uuid())
+      const userId = new UserId(testDataHelpers.userId())
       const result = await repository.delete(userId)
 
       // 検証
@@ -319,7 +320,7 @@ describe('PrismaUserRepository', () => {
       mockPrismaClient.domainUser.update.mockRejectedValue(new Error('Record not found'))
 
       // 実行
-      const userId = new UserId(faker.string.uuid())
+      const userId = new UserId(testDataHelpers.userId())
       const result = await repository.delete(userId)
 
       // 検証

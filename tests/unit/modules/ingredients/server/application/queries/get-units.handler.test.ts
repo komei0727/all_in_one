@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
 import { GetUnitsQuery } from '@/modules/ingredients/server/application/queries/get-units.query'
-import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
 import { UnitBuilder } from '../../../../../../__fixtures__/builders'
@@ -90,29 +89,25 @@ describe('GetUnitsQueryHandler', () => {
     it('記号順でソートされた単位を取得する', async () => {
       // sortBy: 'symbol'の場合のソート処理を確認
       // Arrange
-      const mockUnits = [
-        new UnitBuilder()
-          .withId('unit1')
-          .withName('グラム')
-          .withSymbol('g')
-          .withType('WEIGHT')
-          .withDisplayOrder(1)
-          .build(),
-        new UnitBuilder()
-          .withId('unit2')
-          .withName('キログラム')
-          .withSymbol('kg')
-          .withType('WEIGHT')
-          .withDisplayOrder(2)
-          .build(),
-        new UnitBuilder()
-          .withId('unit3')
-          .withName('ミリリットル')
-          .withSymbol('ml')
-          .withType('VOLUME')
-          .withDisplayOrder(3)
-          .build(),
-      ]
+      const unit1 = new UnitBuilder()
+        .withName('グラム')
+        .withSymbol('g')
+        .withType('WEIGHT')
+        .withDisplayOrder(1)
+        .build()
+      const unit2 = new UnitBuilder()
+        .withName('キログラム')
+        .withSymbol('kg')
+        .withType('WEIGHT')
+        .withDisplayOrder(2)
+        .build()
+      const unit3 = new UnitBuilder()
+        .withName('ミリリットル')
+        .withSymbol('ml')
+        .withType('VOLUME')
+        .withDisplayOrder(3)
+        .build()
+      const mockUnits = [unit1, unit2, unit3]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
       const query = new GetUnitsQuery({ sortBy: 'symbol' })
@@ -123,9 +118,9 @@ describe('GetUnitsQueryHandler', () => {
       // Assert
       expect(result).toEqual({
         units: [
-          { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-          { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
-          { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+          { id: unit1.getId(), name: 'グラム', symbol: 'g', displayOrder: 1 },
+          { id: unit2.getId(), name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+          { id: unit3.getId(), name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
         ],
       })
     })
@@ -135,43 +130,37 @@ describe('GetUnitsQueryHandler', () => {
     it('タイプ別にグループ化された単位を取得する', async () => {
       // groupByType: trueの場合のグルーピング処理を確認
       // Arrange
-      const mockUnits = [
-        new UnitBuilder()
-          .withId('unit1')
-          .withName('グラム')
-          .withSymbol('g')
-          .withType('WEIGHT')
-          .withDisplayOrder(1)
-          .build(),
-        new UnitBuilder()
-          .withId('unit2')
-          .withName('キログラム')
-          .withSymbol('kg')
-          .withType('WEIGHT')
-          .withDisplayOrder(2)
-          .build(),
-        new UnitBuilder()
-          .withId('unit3')
-          .withName('ミリリットル')
-          .withSymbol('ml')
-          .withType('VOLUME')
-          .withDisplayOrder(3)
-          .build(),
-        new UnitBuilder()
-          .withId('unit4')
-          .withName('リットル')
-          .withSymbol('L')
-          .withType('VOLUME')
-          .withDisplayOrder(4)
-          .build(),
-        new UnitBuilder()
-          .withId('unit5')
-          .withName('個')
-          .withSymbol('個')
-          .withType('COUNT')
-          .withDisplayOrder(5)
-          .build(),
-      ]
+      const unit1 = new UnitBuilder()
+        .withName('グラム')
+        .withSymbol('g')
+        .withType('WEIGHT')
+        .withDisplayOrder(1)
+        .build()
+      const unit2 = new UnitBuilder()
+        .withName('キログラム')
+        .withSymbol('kg')
+        .withType('WEIGHT')
+        .withDisplayOrder(2)
+        .build()
+      const unit3 = new UnitBuilder()
+        .withName('ミリリットル')
+        .withSymbol('ml')
+        .withType('VOLUME')
+        .withDisplayOrder(3)
+        .build()
+      const unit4 = new UnitBuilder()
+        .withName('リットル')
+        .withSymbol('L')
+        .withType('VOLUME')
+        .withDisplayOrder(4)
+        .build()
+      const unit5 = new UnitBuilder()
+        .withName('個')
+        .withSymbol('個')
+        .withType('COUNT')
+        .withDisplayOrder(5)
+        .build()
+      const mockUnits = [unit1, unit2, unit3, unit4, unit5]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
       const query = new GetUnitsQuery({ groupByType: true })
@@ -183,14 +172,14 @@ describe('GetUnitsQueryHandler', () => {
       expect(result).toEqual({
         unitsByType: {
           weight: [
-            { id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 },
-            { id: 'unit2', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+            { id: unit1.getId(), name: 'グラム', symbol: 'g', displayOrder: 1 },
+            { id: unit2.getId(), name: 'キログラム', symbol: 'kg', displayOrder: 2 },
           ],
           volume: [
-            { id: 'unit3', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
-            { id: 'unit4', name: 'リットル', symbol: 'L', displayOrder: 4 },
+            { id: unit3.getId(), name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+            { id: unit4.getId(), name: 'リットル', symbol: 'L', displayOrder: 4 },
           ],
-          count: [{ id: 'unit5', name: '個', symbol: '個', displayOrder: 5 }],
+          count: [{ id: unit5.getId(), name: '個', symbol: '個', displayOrder: 5 }],
         },
       })
     })
@@ -198,36 +187,31 @@ describe('GetUnitsQueryHandler', () => {
     it('グループ化とソートを組み合わせる', async () => {
       // groupByType: true かつ sortBy: 'name' の場合
       // Arrange
-      const mockUnits = [
-        new UnitBuilder()
-          .withId('unit1')
-          .withName('キログラム')
-          .withSymbol('kg')
-          .withType('WEIGHT')
-          .withDisplayOrder(2)
-          .build(),
-        new UnitBuilder()
-          .withId('unit2')
-          .withName('グラム')
-          .withSymbol('g')
-          .withType('WEIGHT')
-          .withDisplayOrder(1)
-          .build(),
-        new UnitBuilder()
-          .withId('unit3')
-          .withName('リットル')
-          .withSymbol('L')
-          .withType('VOLUME')
-          .withDisplayOrder(4)
-          .build(),
-        new UnitBuilder()
-          .withId('unit4')
-          .withName('ミリリットル')
-          .withSymbol('ml')
-          .withType('VOLUME')
-          .withDisplayOrder(3)
-          .build(),
-      ]
+      const unit1 = new UnitBuilder()
+        .withName('キログラム')
+        .withSymbol('kg')
+        .withType('WEIGHT')
+        .withDisplayOrder(2)
+        .build()
+      const unit2 = new UnitBuilder()
+        .withName('グラム')
+        .withSymbol('g')
+        .withType('WEIGHT')
+        .withDisplayOrder(1)
+        .build()
+      const unit3 = new UnitBuilder()
+        .withName('リットル')
+        .withSymbol('L')
+        .withType('VOLUME')
+        .withDisplayOrder(4)
+        .build()
+      const unit4 = new UnitBuilder()
+        .withName('ミリリットル')
+        .withSymbol('ml')
+        .withType('VOLUME')
+        .withDisplayOrder(3)
+        .build()
+      const mockUnits = [unit1, unit2, unit3, unit4]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
       const query = new GetUnitsQuery({ groupByType: true, sortBy: 'name' })
@@ -239,12 +223,12 @@ describe('GetUnitsQueryHandler', () => {
       expect(result).toEqual({
         unitsByType: {
           weight: [
-            { id: 'unit1', name: 'キログラム', symbol: 'kg', displayOrder: 2 },
-            { id: 'unit2', name: 'グラム', symbol: 'g', displayOrder: 1 },
+            { id: unit1.getId(), name: 'キログラム', symbol: 'kg', displayOrder: 2 },
+            { id: unit2.getId(), name: 'グラム', symbol: 'g', displayOrder: 1 },
           ],
           volume: [
-            { id: 'unit4', name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
-            { id: 'unit3', name: 'リットル', symbol: 'L', displayOrder: 4 },
+            { id: unit4.getId(), name: 'ミリリットル', symbol: 'ml', displayOrder: 3 },
+            { id: unit3.getId(), name: 'リットル', symbol: 'L', displayOrder: 4 },
           ],
         },
       })
@@ -253,36 +237,31 @@ describe('GetUnitsQueryHandler', () => {
     it('その他カテゴリーの単位も正しくグループ化される', async () => {
       // 分類できない単位が'other'グループに分類されることを確認
       // Arrange
-      const mockUnits = [
-        new UnitBuilder()
-          .withId('unit1')
-          .withName('グラム')
-          .withSymbol('g')
-          .withType('WEIGHT')
-          .withDisplayOrder(1)
-          .build(),
-        new UnitBuilder()
-          .withId('unit2')
-          .withName('センチメートル')
-          .withSymbol('cm')
-          .withType('COUNT')
-          .withDisplayOrder(2)
-          .build(),
-        new UnitBuilder()
-          .withId('unit3')
-          .withName('メートル')
-          .withSymbol('m')
-          .withType('COUNT')
-          .withDisplayOrder(3)
-          .build(),
-        new UnitBuilder()
-          .withId('unit4')
-          .withName('個')
-          .withSymbol('個')
-          .withType('COUNT')
-          .withDisplayOrder(4)
-          .build(),
-      ]
+      const unit1 = new UnitBuilder()
+        .withName('グラム')
+        .withSymbol('g')
+        .withType('WEIGHT')
+        .withDisplayOrder(1)
+        .build()
+      const unit2 = new UnitBuilder()
+        .withName('センチメートル')
+        .withSymbol('cm')
+        .withType('COUNT')
+        .withDisplayOrder(2)
+        .build()
+      const unit3 = new UnitBuilder()
+        .withName('メートル')
+        .withSymbol('m')
+        .withType('COUNT')
+        .withDisplayOrder(3)
+        .build()
+      const unit4 = new UnitBuilder()
+        .withName('個')
+        .withSymbol('個')
+        .withType('COUNT')
+        .withDisplayOrder(4)
+        .build()
+      const mockUnits = [unit1, unit2, unit3, unit4]
       vi.mocked(mockRepository.findAllActive).mockResolvedValue(mockUnits)
 
       const query = new GetUnitsQuery({ groupByType: true })
@@ -293,11 +272,11 @@ describe('GetUnitsQueryHandler', () => {
       // Assert
       expect(result).toEqual({
         unitsByType: {
-          weight: [{ id: 'unit1', name: 'グラム', symbol: 'g', displayOrder: 1 }],
-          count: [{ id: 'unit4', name: '個', symbol: '個', displayOrder: 4 }],
+          weight: [{ id: unit1.getId(), name: 'グラム', symbol: 'g', displayOrder: 1 }],
+          count: [{ id: unit4.getId(), name: '個', symbol: '個', displayOrder: 4 }],
           other: [
-            { id: 'unit2', name: 'センチメートル', symbol: 'cm', displayOrder: 2 },
-            { id: 'unit3', name: 'メートル', symbol: 'm', displayOrder: 3 },
+            { id: unit2.getId(), name: 'センチメートル', symbol: 'cm', displayOrder: 2 },
+            { id: unit3.getId(), name: 'メートル', symbol: 'm', displayOrder: 3 },
           ],
         },
       })

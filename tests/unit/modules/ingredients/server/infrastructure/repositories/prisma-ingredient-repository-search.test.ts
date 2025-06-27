@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+
 import { PrismaClient } from '@/generated/prisma'
-import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { IngredientId, StorageType } from '@/modules/ingredients/server/domain/value-objects'
+import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
+
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - 分類・保存場所検索メソッド', () => {
   let repository: PrismaIngredientRepository
@@ -19,8 +22,9 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
 
   describe('findByCategory', () => {
     it('指定したカテゴリーの食材を取得できる', async () => {
-      const userId = 'user-123'
-      const categoryId = 'cat-vegetable'
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
+      const unitId = testDataHelpers.unitId() // 同じunitIdを使用
 
       // 野菜カテゴリーの食材
       const vegetableIngredient1 = {
@@ -32,7 +36,7 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
         price: null,
         purchaseDate: new Date(),
         quantity: 3,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -52,7 +56,7 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
         price: null,
         purchaseDate: new Date(),
         quantity: 1,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: null,
@@ -85,8 +89,8 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
     })
 
     it('他のカテゴリーの食材は取得されない', async () => {
-      const userId = 'user-123'
-      const categoryId = 'cat-meat'
+      const userId = testDataHelpers.userId()
+      const categoryId = testDataHelpers.categoryId()
 
       mockPrisma.ingredient.findMany.mockResolvedValue([])
 
@@ -100,7 +104,7 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
 
   describe('findByStorageLocation', () => {
     it('冷蔵保存の食材を取得できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
       const location = StorageType.REFRIGERATED
 
       // 冷蔵保存の食材
@@ -108,12 +112,12 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
         id: IngredientId.generate().getValue(),
         userId,
         name: '牛乳',
-        categoryId: 'cat1',
+        categoryId: testDataHelpers.categoryId(),
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 1,
-        unitId: 'unit1',
+        unitId: testDataHelpers.unitId(),
         threshold: null,
         storageLocationType: 'REFRIGERATED',
         storageLocationDetail: 'ドアポケット',
@@ -148,20 +152,22 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
     })
 
     it('冷凍保存の食材を取得できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
       const location = StorageType.FROZEN
+      const categoryId = testDataHelpers.categoryId() // 同じcategoryIdを使用
+      const unitId = testDataHelpers.unitId() // 同じunitIdを使用
 
       // 冷凍保存の食材
       const frozenIngredient1 = {
         id: IngredientId.generate().getValue(),
         userId,
         name: '冷凍ほうれん草',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 2,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'FROZEN',
         storageLocationDetail: null,
@@ -176,12 +182,12 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
         id: IngredientId.generate().getValue(),
         userId,
         name: '冷凍餃子',
-        categoryId: 'cat1',
+        categoryId,
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 1,
-        unitId: 'unit1',
+        unitId,
         threshold: null,
         storageLocationType: 'FROZEN',
         storageLocationDetail: '上段',
@@ -204,7 +210,7 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
     })
 
     it('常温保存の食材を取得できる', async () => {
-      const userId = 'user-123'
+      const userId = testDataHelpers.userId()
       const location = StorageType.ROOM_TEMPERATURE
 
       // 常温保存の食材
@@ -212,12 +218,12 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
         id: IngredientId.generate().getValue(),
         userId,
         name: '米',
-        categoryId: 'cat1',
+        categoryId: testDataHelpers.categoryId(),
         memo: null,
         price: null,
         purchaseDate: new Date(),
         quantity: 5,
-        unitId: 'unit1',
+        unitId: testDataHelpers.unitId(),
         threshold: 2,
         storageLocationType: 'ROOM_TEMPERATURE',
         storageLocationDetail: 'パントリー上段',

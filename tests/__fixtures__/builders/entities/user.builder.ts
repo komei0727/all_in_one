@@ -1,7 +1,7 @@
 import { BaseBuilder } from '../base.builder'
-import { faker, testDataHelpers } from '../faker.config'
-import { UserIdBuilder } from '../value-objects/user-id.builder'
+import { faker } from '../faker.config'
 import { EmailBuilder } from '../value-objects/email.builder'
+import { UserIdBuilder } from '../value-objects/user-id.builder'
 import { UserProfileBuilder } from '../value-objects/user-profile.builder'
 import { UserStatusBuilder } from '../value-objects/user-status.builder'
 
@@ -116,7 +116,7 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
    * テスト用固定ユーザーでビルド
    */
   withTestUser(): this {
-    return this.withId('user_test_001')
+    return this.withId('usr_test_001')
       .withEmail('test@example.com')
       .withProfileBuilder(
         new UserProfileBuilder().withDisplayName('テスト ユーザー').withDefaults()
@@ -149,7 +149,7 @@ export class UserBuilder extends BaseBuilder<UserEntityProps> {
    */
   withNextAuthIntegration(nextAuthId: string): this {
     // NextAuthのIDをユーザーIDのプレフィックスとして使用
-    return this.withId(`user_${nextAuthId.slice(-8)}`) // 末尾8文字を使用
+    return this.withId(`usr_${nextAuthId.slice(-8)}`) // 末尾8文字を使用
       .withEmailBuilder(new EmailBuilder().withGmail())
   }
 

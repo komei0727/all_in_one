@@ -36,15 +36,15 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
     // デフォルト値を設定
     const defaultStock = new IngredientStock({
       quantity: faker.number.float({ min: 1, max: 10, fractionDigits: 2 }),
-      unitId: new UnitId('unit1'),
+      unitId: new UnitId(testDataHelpers.unitId()),
       storageLocation: new StorageLocation(StorageType.REFRIGERATED),
     })
 
     this.props = {
       id: IngredientId.generate(),
-      userId: 'user-' + testDataHelpers.cuid(),
+      userId: testDataHelpers.userId(),
       name: new IngredientName(testDataHelpers.ingredientName()),
-      categoryId: new CategoryId(testDataHelpers.cuid()),
+      categoryId: new CategoryId(testDataHelpers.categoryId()),
       purchaseDate: faker.date.recent({ days: 7 }),
       ingredientStock: defaultStock,
       memo: null,
@@ -226,7 +226,7 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
   withDefaultStock(): this {
     const stock = new IngredientStock({
       quantity: faker.number.float({ min: 1, max: 10, fractionDigits: 2 }),
-      unitId: new UnitId('unit1'),
+      unitId: new UnitId(testDataHelpers.unitId()),
       storageLocation: new StorageLocation(StorageType.REFRIGERATED),
     })
     return this.with('ingredientStock', stock)
@@ -251,7 +251,7 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
   withEmptyStock(): this {
     const stock = new IngredientStock({
       quantity: 0,
-      unitId: new UnitId('unit1'),
+      unitId: new UnitId(testDataHelpers.unitId()),
       storageLocation: new StorageLocation(StorageType.REFRIGERATED),
     })
     return this.with('ingredientStock', stock)

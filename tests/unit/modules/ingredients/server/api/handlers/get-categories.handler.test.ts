@@ -5,6 +5,8 @@ import { CategoryListDTO } from '@/modules/ingredients/server/application/dtos/c
 import { CategoryDTO } from '@/modules/ingredients/server/application/dtos/category.dto'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/application/queries/get-categories.handler')
 vi.mock('@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository')
@@ -23,8 +25,13 @@ vi.mock('@/lib/prisma/client', () => ({
 describe('GetCategoriesHandler', () => {
   let handler: GetCategoriesHandler
   let mockQueryHandler: { handle: ReturnType<typeof vi.fn> }
+  let categoryId1: string
+  let categoryId2: string
 
   beforeEach(() => {
+    // テスト用IDの生成
+    categoryId1 = testDataHelpers.categoryId()
+    categoryId2 = testDataHelpers.categoryId()
     vi.clearAllMocks()
     mockQueryHandler = {
       handle: vi.fn(),
@@ -38,7 +45,10 @@ describe('GetCategoriesHandler', () => {
   it('should return categories from query handler', async () => {
     // クエリハンドラーの結果を返すことを確認
     // Arrange
-    const categoryDTOs = [new CategoryDTO('cat1', '野菜', 1), new CategoryDTO('cat2', '肉類', 2)]
+    const categoryDTOs = [
+      new CategoryDTO(categoryId1, '野菜', 1),
+      new CategoryDTO(categoryId2, '肉類', 2),
+    ]
     const mockDTO = new CategoryListDTO(categoryDTOs)
     mockQueryHandler.handle.mockResolvedValue(mockDTO)
 

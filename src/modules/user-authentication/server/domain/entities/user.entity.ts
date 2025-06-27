@@ -110,7 +110,7 @@ export class User extends AggregateRoot<UserId> {
    */
   static createFromNextAuth(nextAuthUser: NextAuthUser): User {
     const now = new Date()
-    const userId = new UserId(crypto.randomUUID())
+    const userId = UserId.generate()
 
     const user = new User({
       id: userId,
@@ -144,7 +144,7 @@ export class User extends AggregateRoot<UserId> {
     const now = new Date()
 
     return new User({
-      id: new UserId(crypto.randomUUID()),
+      id: UserId.generate(),
       nextAuthId: nextAuthUser.id,
       email: new Email(nextAuthUser.email),
       profile: profile,

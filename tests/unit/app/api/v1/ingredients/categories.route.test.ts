@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from '@/app/api/v1/ingredients/categories/route'
 import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
 
+import { testDataHelpers } from '../../../../../__fixtures__/builders/faker.config'
+
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/api/handlers/queries/get-categories.handler', () => ({
   GetCategoriesHandler: vi.fn().mockImplementation(() => ({
@@ -22,6 +24,8 @@ vi.mock('@/modules/ingredients/server/api/handlers/queries/get-categories.handle
  */
 describe('GET /api/v1/ingredients/categories', () => {
   let mockHandler: { handle: ReturnType<typeof vi.fn> }
+  let categoryId1: string
+  let categoryId2: string
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -31,6 +35,9 @@ describe('GET /api/v1/ingredients/categories', () => {
     vi.mocked(GetCategoriesHandler).mockImplementation(
       () => mockHandler as unknown as GetCategoriesHandler
     )
+    // テスト用のIDを生成
+    categoryId1 = testDataHelpers.categoryId()
+    categoryId2 = testDataHelpers.categoryId()
   })
 
   it('ハンドラーからカテゴリー一覧を取得して返す', async () => {
@@ -38,8 +45,8 @@ describe('GET /api/v1/ingredients/categories', () => {
     // Arrange
     const mockResult = {
       categories: [
-        { id: 'cat1', name: '野菜', displayOrder: 1 },
-        { id: 'cat2', name: '肉類', displayOrder: 2 },
+        { id: categoryId1, name: '野菜', displayOrder: 1 },
+        { id: categoryId2, name: '肉類', displayOrder: 2 },
       ],
     }
     mockHandler.handle.mockResolvedValue(mockResult)
@@ -53,8 +60,8 @@ describe('GET /api/v1/ingredients/categories', () => {
     expect(response.status).toBe(200)
     expect(data).toEqual({
       categories: [
-        { id: 'cat1', name: '野菜', displayOrder: 1 },
-        { id: 'cat2', name: '肉類', displayOrder: 2 },
+        { id: categoryId1, name: '野菜', displayOrder: 1 },
+        { id: categoryId2, name: '肉類', displayOrder: 2 },
       ],
     })
     expect(mockHandler.handle).toHaveBeenCalledOnce()

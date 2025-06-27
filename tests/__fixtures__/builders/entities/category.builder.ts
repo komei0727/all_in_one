@@ -18,7 +18,7 @@ export class CategoryBuilder extends BaseBuilder<CategoryProps, Category> {
     super()
     // デフォルト値を設定
     this.props = {
-      id: testDataHelpers.cuid(),
+      id: testDataHelpers.categoryId(),
       name: testDataHelpers.categoryName(),
       description: null, // デフォルトはnull
       displayOrder: faker.number.int({ min: 1, max: 999 }),
@@ -36,7 +36,7 @@ export class CategoryBuilder extends BaseBuilder<CategoryProps, Category> {
    * 新規生成されたIDを設定
    */
   withGeneratedId(): this {
-    return this.with('id', testDataHelpers.cuid())
+    return this.with('id', testDataHelpers.categoryId())
   }
 
   /**

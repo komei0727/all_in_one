@@ -1,4 +1,5 @@
 import type { Category, Unit, Ingredient } from '../../src/generated/prisma-test'
+import { testDataHelpers } from '../__fixtures__/builders/faker.config'
 
 /**
  * テストデータファクトリー
@@ -68,42 +69,56 @@ export interface TestDataSet {
 }
 
 export function createTestDataSet(): TestDataSet {
+  // プレフィックス付きCUIDを生成
+  const categoryIds = [
+    testDataHelpers.categoryId(),
+    testDataHelpers.categoryId(),
+    testDataHelpers.categoryId(),
+  ]
+  const unitIds = [testDataHelpers.unitId(), testDataHelpers.unitId(), testDataHelpers.unitId()]
+  const userId = testDataHelpers.userId()
+  const ingredientIds = [
+    testDataHelpers.ingredientId(),
+    testDataHelpers.ingredientId(),
+    testDataHelpers.ingredientId(),
+  ]
+
   const categories = [
-    createTestCategory({ id: 'cat1', name: '野菜', displayOrder: 1 }),
-    createTestCategory({ id: 'cat2', name: '肉・魚', displayOrder: 2 }),
-    createTestCategory({ id: 'cat3', name: '調味料', displayOrder: 3 }),
+    createTestCategory({ id: categoryIds[0], name: '野菜', displayOrder: 1 }),
+    createTestCategory({ id: categoryIds[1], name: '肉・魚', displayOrder: 2 }),
+    createTestCategory({ id: categoryIds[2], name: '調味料', displayOrder: 3 }),
   ]
 
   const units = [
-    createTestUnit({ id: 'unit1', name: '個', symbol: '個', type: 'COUNT' }),
-    createTestUnit({ id: 'unit2', name: 'グラム', symbol: 'g', type: 'WEIGHT' }),
-    createTestUnit({ id: 'unit3', name: 'ミリリットル', symbol: 'ml', type: 'VOLUME' }),
+    createTestUnit({ id: unitIds[0], name: '個', symbol: '個', type: 'COUNT' }),
+    createTestUnit({ id: unitIds[1], name: 'グラム', symbol: 'g', type: 'WEIGHT' }),
+    createTestUnit({ id: unitIds[2], name: 'ミリリットル', symbol: 'ml', type: 'VOLUME' }),
   ]
 
   const ingredients = [
     createTestIngredient({
-      id: 'ing1',
+      id: ingredientIds[0],
       name: 'トマト',
-      categoryId: 'cat1',
-      userId: 'user1',
+      categoryId: categoryIds[0],
+      userId: userId,
       quantity: 5,
-      unitId: 'unit1',
+      unitId: unitIds[0],
     }),
     createTestIngredient({
-      id: 'ing2',
+      id: ingredientIds[1],
       name: '鶏肉',
-      categoryId: 'cat2',
-      userId: 'user1',
+      categoryId: categoryIds[1],
+      userId: userId,
       quantity: 300,
-      unitId: 'unit2',
+      unitId: unitIds[1],
     }),
     createTestIngredient({
-      id: 'ing3',
+      id: ingredientIds[2],
       name: '醤油',
-      categoryId: 'cat3',
-      userId: 'user1',
+      categoryId: categoryIds[2],
+      userId: userId,
       quantity: 500,
-      unitId: 'unit3',
+      unitId: unitIds[2],
     }),
   ]
 

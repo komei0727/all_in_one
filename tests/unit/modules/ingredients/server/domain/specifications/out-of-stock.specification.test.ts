@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+
 import { OutOfStockSpecification } from '@/modules/ingredients/server/domain/specifications/out-of-stock.specification'
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
 import {
   IngredientStock,
   StorageLocation,
   StorageType,
   UnitId,
 } from '@/modules/ingredients/server/domain/value-objects'
+
+import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('OutOfStockSpecification', () => {
   let builder: IngredientBuilder
@@ -23,7 +25,7 @@ describe('OutOfStockSpecification', () => {
       // 在庫量0の食材は在庫切れと判定
       const stock = new IngredientStock({
         quantity: 0,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -36,7 +38,7 @@ describe('OutOfStockSpecification', () => {
       // 在庫がある食材は在庫切れではない
       const stock = new IngredientStock({
         quantity: 0.1,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -54,7 +56,7 @@ describe('OutOfStockSpecification', () => {
       // 十分な在庫がある場合
       const stock = new IngredientStock({
         quantity: 100,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -67,7 +69,7 @@ describe('OutOfStockSpecification', () => {
       // 0.0は在庫切れ
       const zeroStock = new IngredientStock({
         quantity: 0.0,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -78,7 +80,7 @@ describe('OutOfStockSpecification', () => {
       // 0.001は在庫あり
       const minimalStock = new IngredientStock({
         quantity: 0.001,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -99,7 +101,7 @@ describe('OutOfStockSpecification', () => {
       // 在庫0のケース
       const stock0 = new IngredientStock({
         quantity: 0,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 
@@ -110,7 +112,7 @@ describe('OutOfStockSpecification', () => {
       // 在庫ありのケース
       const stock1 = new IngredientStock({
         quantity: 1,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
 

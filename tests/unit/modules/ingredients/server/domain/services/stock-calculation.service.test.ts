@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { faker } from '@faker-js/faker/locale/ja'
 
-import { StockCalculationService } from '@/modules/ingredients/server/domain/services/stock-calculation.service'
 import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
+import { StockCalculationService } from '@/modules/ingredients/server/domain/services/stock-calculation.service'
 import {
   CategoryId,
   UnitId,
@@ -12,6 +11,7 @@ import {
 } from '@/modules/ingredients/server/domain/value-objects'
 
 import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('StockCalculationService', () => {
   const stockCalculationService = new StockCalculationService()
@@ -23,7 +23,7 @@ describe('StockCalculationService', () => {
         .withIngredientStock(
           new IngredientStock({
             quantity: 10,
-            unitId: new UnitId('unit1'),
+            unitId: new UnitId(testDataHelpers.unitId()),
             storageLocation: new StorageLocation(StorageType.REFRIGERATED),
           })
         )
@@ -42,7 +42,7 @@ describe('StockCalculationService', () => {
         .withIngredientStock(
           new IngredientStock({
             quantity: 3,
-            unitId: new UnitId('unit1'),
+            unitId: new UnitId(testDataHelpers.unitId()),
             storageLocation: new StorageLocation(StorageType.REFRIGERATED),
           })
         )
@@ -61,7 +61,7 @@ describe('StockCalculationService', () => {
         .withIngredientStock(
           new IngredientStock({
             quantity: 5,
-            unitId: new UnitId('unit1'),
+            unitId: new UnitId(testDataHelpers.unitId()),
             storageLocation: new StorageLocation(StorageType.REFRIGERATED),
           })
         )
@@ -83,7 +83,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 10,
-              unitId: new UnitId('unit1'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.REFRIGERATED),
             })
           )
@@ -92,7 +92,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 20,
-              unitId: new UnitId('unit2'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.FROZEN),
             })
           )
@@ -121,7 +121,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 10,
-              unitId: new UnitId('unit1'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.REFRIGERATED),
             })
           )
@@ -130,7 +130,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 5,
-              unitId: new UnitId('unit2'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.FROZEN),
             })
           )
@@ -159,7 +159,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 10,
-              unitId: new UnitId('unit1'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.REFRIGERATED),
             })
           )
@@ -168,17 +168,15 @@ describe('StockCalculationService', () => {
 
       const requirements = [
         { ingredientId: ingredients[0].getId().getValue(), quantity: 5 },
-        { ingredientId: '550e8400-e29b-41d4-a716-446655440999', quantity: 1 }, // 存在しないID
+        { ingredientId: 'ing_' + testDataHelpers.cuid(), quantity: 1 }, // 存在しないID
       ]
 
       // When: 在庫チェック
       const results = stockCalculationService.checkMultipleStocks(ingredients, requirements)
 
       // Then: 存在しない食材はfalse
-      expect(results).toEqual({
-        [ingredients[0].getId().getValue()]: true,
-        '550e8400-e29b-41d4-a716-446655440999': false,
-      })
+      expect(results[ingredients[0].getId().getValue()]).toBe(true)
+      expect(Object.values(results).filter((v) => v === false)).toHaveLength(1)
     })
   })
 
@@ -190,7 +188,7 @@ describe('StockCalculationService', () => {
         .withIngredientStock(
           new IngredientStock({
             quantity: 10,
-            unitId: new UnitId('unit1'),
+            unitId: new UnitId(testDataHelpers.unitId()),
             storageLocation: new StorageLocation(StorageType.REFRIGERATED),
           })
         )
@@ -201,7 +199,7 @@ describe('StockCalculationService', () => {
         .withIngredientStock(
           new IngredientStock({
             quantity: 2,
-            unitId: new UnitId('unit2'),
+            unitId: new UnitId(testDataHelpers.unitId()),
             storageLocation: new StorageLocation(StorageType.REFRIGERATED),
           })
         )
@@ -232,7 +230,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 10,
-              unitId: new UnitId('unit1'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.REFRIGERATED),
             })
           )
@@ -255,9 +253,9 @@ describe('StockCalculationService', () => {
   describe('aggregateByCategory', () => {
     it('カテゴリー別に在庫を集計する', () => {
       // Given: 異なるカテゴリーの食材
-      const categoryId1 = new CategoryId('cat1')
-      const categoryId2 = new CategoryId('cat2')
-      const unitId = new UnitId('unit1')
+      const categoryId1 = new CategoryId(testDataHelpers.categoryId())
+      const categoryId2 = new CategoryId(testDataHelpers.categoryId())
+      const unitId = new UnitId(testDataHelpers.unitId())
 
       const ingredients = [
         new IngredientBuilder()
@@ -297,11 +295,11 @@ describe('StockCalculationService', () => {
 
       // Then: カテゴリー別に集計される
       expect(aggregated).toEqual({
-        cat1: {
+        [categoryId1.getValue()]: {
           totalQuantity: 15,
           ingredientCount: 2,
         },
-        cat2: {
+        [categoryId2.getValue()]: {
           totalQuantity: 20,
           ingredientCount: 1,
         },
@@ -310,9 +308,9 @@ describe('StockCalculationService', () => {
 
     it('削除済みの食材は集計から除外される', () => {
       // Given: 削除済みを含む食材
-      const categoryId = new CategoryId('cat1')
-      const unitId = new UnitId('unit1')
-      const userId = 'user-123'
+      const categoryId = new CategoryId(testDataHelpers.categoryId())
+      const unitId = new UnitId(testDataHelpers.unitId())
+      const userId = testDataHelpers.userId()
 
       const activeIngredient = new IngredientBuilder()
         .withUserId(userId)
@@ -346,7 +344,7 @@ describe('StockCalculationService', () => {
 
       // Then: 削除済みは含まれない
       expect(aggregated).toEqual({
-        cat1: {
+        [categoryId.getValue()]: {
           totalQuantity: 10,
           ingredientCount: 1,
         },
@@ -368,7 +366,7 @@ describe('StockCalculationService', () => {
   describe('calculateTotalStock', () => {
     it('同じ単位の食材の合計在庫を計算する', () => {
       // Given: 同じ単位の食材
-      const unitId = new UnitId('unit1')
+      const unitId = new UnitId(testDataHelpers.unitId())
       const ingredients = [
         new IngredientBuilder()
           .withIngredientStock(
@@ -400,7 +398,7 @@ describe('StockCalculationService', () => {
       ]
 
       // When: 合計在庫を計算
-      const total = stockCalculationService.calculateTotalStock(ingredients, 'unit1')
+      const total = stockCalculationService.calculateTotalStock(ingredients, unitId.getValue())
 
       // Then: 合計値が返される
       expect(total).toBe(18)
@@ -413,7 +411,7 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 10,
-              unitId: new UnitId('unit1'),
+              unitId: new UnitId(testDataHelpers.unitId()),
               storageLocation: new StorageLocation(StorageType.REFRIGERATED),
             })
           )
@@ -422,24 +420,25 @@ describe('StockCalculationService', () => {
           .withIngredientStock(
             new IngredientStock({
               quantity: 5,
-              unitId: new UnitId('unit2'), // 異なる単位
+              unitId: new UnitId(testDataHelpers.unitId()), // 異なる単位
               storageLocation: new StorageLocation(StorageType.REFRIGERATED),
             })
           )
           .build(),
       ]
 
-      // When: unit1の合計在庫を計算
-      const total = stockCalculationService.calculateTotalStock(ingredients, 'unit1')
+      // When: 指定単位の合計在庫を計算
+      const targetUnitId = ingredients[0].getIngredientStock().getUnitId().getValue()
+      const total = stockCalculationService.calculateTotalStock(ingredients, targetUnitId)
 
-      // Then: unit1のみの合計
+      // Then: 指定単位のみの合計
       expect(total).toBe(10)
     })
 
     it('削除済みの食材は除外される', () => {
       // Given: 削除済みを含む食材
-      const unitId = new UnitId('unit1')
-      const userId = 'user-123'
+      const unitId = new UnitId(testDataHelpers.unitId())
+      const userId = testDataHelpers.userId()
 
       const activeIngredient = new IngredientBuilder()
         .withUserId(userId)
@@ -467,7 +466,7 @@ describe('StockCalculationService', () => {
       const ingredients = [activeIngredient, deletedIngredient]
 
       // When: 合計在庫を計算
-      const total = stockCalculationService.calculateTotalStock(ingredients, 'unit1')
+      const total = stockCalculationService.calculateTotalStock(ingredients, unitId.getValue())
 
       // Then: 削除済みは含まれない
       expect(total).toBe(10)

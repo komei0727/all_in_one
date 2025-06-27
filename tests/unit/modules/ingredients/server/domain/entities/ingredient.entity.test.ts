@@ -1,11 +1,10 @@
-import { describe, expect, it } from 'vitest'
 import { faker } from '@faker-js/faker/locale/ja'
+import { describe, expect, it } from 'vitest'
 
 import {
   IngredientId,
   IngredientName,
   CategoryId,
-  Quantity,
   Memo,
   Price,
   ExpiryInfo,
@@ -16,6 +15,7 @@ import {
 } from '@/modules/ingredients/server/domain/value-objects'
 
 import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('Ingredient', () => {
   describe('constructor', () => {
@@ -52,7 +52,7 @@ describe('Ingredient', () => {
       })
       const ingredientStock = new IngredientStock({
         quantity: 3,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
         threshold: 1,
       })
@@ -82,7 +82,7 @@ describe('Ingredient', () => {
       // Given: 在庫付きの食材を作成
       const ingredientStock = new IngredientStock({
         quantity: 10,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
       const ingredient = new IngredientBuilder()
@@ -101,7 +101,7 @@ describe('Ingredient', () => {
       // Given: 少ない在庫の食材
       const ingredientStock = new IngredientStock({
         quantity: 2,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
       const ingredient = new IngredientBuilder()
@@ -119,7 +119,7 @@ describe('Ingredient', () => {
       // Given: 在庫付きの食材を作成
       const ingredientStock = new IngredientStock({
         quantity: 5,
-        unitId: new UnitId('unit1'),
+        unitId: new UnitId(testDataHelpers.unitId()),
         storageLocation: new StorageLocation(StorageType.REFRIGERATED),
       })
       const ingredient = new IngredientBuilder()

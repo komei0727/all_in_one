@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
-// テスト対象のUserIntegrationService
-import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 
-// 依存関係
-import { UserRepository } from '@/modules/user-authentication/server/domain/repositories/user.repository'
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+// テスト対象のUserIntegrationService
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
+import { UserRepository } from '@/modules/user-authentication/server/domain/repositories/user.repository'
+import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
+
+import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
 
 // モックリポジトリ
 const mockUserRepository = {
@@ -62,7 +62,7 @@ describe('UserIntegrationService', () => {
         .build()
 
       const existingUser = new User({
-        id: new UserId('user-123'),
+        id: UserId.generate(),
         nextAuthId: 'existing-user',
         email: new Email('old@example.com'),
         profile: UserProfile.createDefault('既存ユーザー'),
@@ -129,7 +129,7 @@ describe('UserIntegrationService', () => {
       // Arrange（準備）
       const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
       const deactivatedUser = new User({
-        id: new UserId('user-123'),
+        id: UserId.generate(),
         nextAuthId: nextAuthUser.id,
         email: new Email(nextAuthUser.email),
         profile: UserProfile.createDefault('無効ユーザー'),
@@ -165,7 +165,7 @@ describe('UserIntegrationService', () => {
   describe('プロフィール更新との統合', () => {
     it('ユーザープロフィールを更新できる', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = UserId.generate()
       const existingUser = new User({
         id: userId,
         nextAuthId: 'next-auth-123',
@@ -199,7 +199,7 @@ describe('UserIntegrationService', () => {
 
     it('存在しないユーザーのプロフィール更新はエラーが発生する', async () => {
       // Arrange（準備）
-      const userId = new UserId('non-existent-user')
+      const userId = UserId.generate()
       const newProfile = UserProfile.createDefault('新しい名前')
 
       mockUserRepository.findById.mockResolvedValue(null)
@@ -207,13 +207,13 @@ describe('UserIntegrationService', () => {
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
       await expect(service.updateUserProfile(userId, newProfile)).rejects.toThrow(
-        'User not found: {"userId":"non-existent-user"}'
+        /User not found: \{"userId":/
       )
     })
 
     it('無効化されたユーザーのプロフィール更新はエラーが発生する', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = UserId.generate()
       const deactivatedUser = new User({
         id: userId,
         nextAuthId: 'next-auth-123',
@@ -240,7 +240,7 @@ describe('UserIntegrationService', () => {
   describe('ユーザー無効化', () => {
     it('ユーザーを無効化できる', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = UserId.generate()
       const activeUser = new User({
         id: userId,
         nextAuthId: 'next-auth-123',
@@ -267,7 +267,7 @@ describe('UserIntegrationService', () => {
 
     it('存在しないユーザーの無効化はエラーが発生する', async () => {
       // Arrange（準備）
-      const userId = new UserId('non-existent-user')
+      const userId = UserId.generate()
 
       mockUserRepository.findById.mockResolvedValue(null)
 
@@ -275,12 +275,12 @@ describe('UserIntegrationService', () => {
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
       await expect(
         service.deactivateUser(userId, 'USER_REQUEST', userId.getValue())
-      ).rejects.toThrow('User not found: {"userId":"non-existent-user"}')
+      ).rejects.toThrow(/User not found: \{"userId":/)
     })
 
     it('既に無効化されたユーザーの再無効化はエラーが発生する', async () => {
       // Arrange（準備）
-      const userId = new UserId('user-123')
+      const userId = UserId.generate()
       const deactivatedUser = new User({
         id: userId,
         nextAuthId: 'next-auth-123',
@@ -307,7 +307,7 @@ describe('UserIntegrationService', () => {
       // Arrange（準備）
       const activeUsers = [
         new User({
-          id: new UserId('user-1'),
+          id: UserId.generate(),
           nextAuthId: 'next-auth-1',
           email: new Email('user1@example.com'),
           profile: UserProfile.createDefault('ユーザー1'),
@@ -317,7 +317,7 @@ describe('UserIntegrationService', () => {
           lastLoginAt: new Date(),
         }),
         new User({
-          id: new UserId('user-2'),
+          id: UserId.generate(),
           nextAuthId: 'next-auth-2',
           email: new Email('user2@example.com'),
           profile: UserProfile.createDefault('ユーザー2'),
