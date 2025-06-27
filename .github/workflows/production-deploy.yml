@@ -1,4 +1,4 @@
-name: Main Branch CI
+name: Production Deploy
 
 on:
   push:
@@ -8,15 +8,13 @@ on:
 env:
   NODE_VERSION: '20.19.2'
 
-# GitHub Pagesにデプロイするための権限設定
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
+  deployments: write
 
 jobs:
   ci:
-    name: CI Pipeline
+    name: Production CI Pipeline
     runs-on: ubuntu-latest
 
     services:
@@ -80,17 +78,10 @@ jobs:
       #   env:
       #     DATABASE_URL: file:./test.db
 
-      - name: Run all tests with coverage
-        run: pnpm test:coverage
+      - name: Run all tests
+        run: pnpm test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/all_in_one_test
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 7
 
       - name: Build
         run: pnpm build
@@ -104,33 +95,37 @@ jobs:
           path: .next/
           retention-days: 7
 
-  # カバレッジレポートをGitHub Pagesにデプロイ
-  deploy-coverage:
-    name: Deploy Coverage to GitHub Pages
-    needs: ci
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download coverage reports
-        uses: actions/download-artifact@v4
+      # Vercel本番デプロイの確認
+      - name: Wait for Vercel Production
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
+        id: waitForVercel
         with:
-          name: coverage-report
-          path: ./coverage
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 600
+          environment: production
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Production Deploy Summary
+        run: |
+          echo "✅ Successfully deployed to production!"
+          echo "Production URL: ${{ steps.waitForVercel.outputs.url }}"
+          echo "Deployment ID: ${{ steps.waitForVercel.outputs.deploymentId }}"
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      # GitHubリリースの自動作成（オプション）
+      - name: Create GitHub Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          path: ./coverage
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          tag_name: release-${{ github.sha }}
+          release_name: Production Release ${{ github.sha }}
+          body: |
+            ## 🚀 Production Deployment
+            
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.actor }}
+            **Message:** ${{ github.event.head_commit.message }}
+            
+            **Production URL:** ${{ steps.waitForVercel.outputs.url }}
+          draft: false
+          prerelease: false
