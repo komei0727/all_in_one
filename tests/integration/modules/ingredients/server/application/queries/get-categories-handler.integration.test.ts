@@ -6,6 +6,7 @@ import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/applicat
 import { GetCategoriesQuery } from '@/modules/ingredients/server/application/queries/get-categories.query'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -88,7 +89,7 @@ describe('GetCategoriesHandler Integration Tests', () => {
 
     it('新しいカテゴリーを追加しても表示順で取得される', async () => {
       // Given: 新しいカテゴリーを追加
-      const newCategoryId = faker.string.uuid()
+      const newCategoryId = testDataHelpers.categoryId()
       const newCategoryName = `テストカテゴリー_${faker.string.alphanumeric(6)}`
       await prisma.category.create({
         data: {
@@ -129,7 +130,7 @@ describe('GetCategoriesHandler Integration Tests', () => {
       const sameOrder = 999
       const categoryIds = []
       for (let i = 0; i < 3; i++) {
-        const id = faker.string.uuid()
+        const id = testDataHelpers.categoryId()
         categoryIds.push(id)
         await prisma.category.create({
           data: {
@@ -162,7 +163,7 @@ describe('GetCategoriesHandler Integration Tests', () => {
     it('大量のカテゴリーがあっても高速に取得できる', async () => {
       // Given: 100個のカテゴリーを追加
       const categories = Array.from({ length: 100 }, (_, i) => ({
-        id: faker.string.uuid(),
+        id: testDataHelpers.categoryId(),
         name: `カテゴリー${i}_${faker.string.alphanumeric(4)}`,
         displayOrder: 100 + i,
         isActive: true,

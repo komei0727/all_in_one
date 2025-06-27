@@ -12,7 +12,7 @@ import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastru
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
-import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
+import { CreateIngredientCommandBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -272,7 +272,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
   describe('異常系', () => {
     it('存在しないカテゴリーIDの場合エラーになる', async () => {
       // Given: 存在しないカテゴリーIDを持つコマンド
-      const nonExistentCategoryId = faker.string.uuid()
+      const nonExistentCategoryId = testDataHelpers.categoryId()
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())
@@ -297,7 +297,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
     it('存在しない単位IDの場合エラーになる', async () => {
       // Given: 存在しない単位IDを持つコマンド
-      const nonExistentUnitId = faker.string.uuid()
+      const nonExistentUnitId = testDataHelpers.unitId()
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId('test-user-' + faker.string.uuid())

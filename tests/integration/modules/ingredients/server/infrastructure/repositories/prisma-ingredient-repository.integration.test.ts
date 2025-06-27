@@ -14,7 +14,7 @@ import {
 } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -143,6 +143,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('既存の食材を更新できる', async () => {
       // Given: 既存の食材を作成
+      const testDataIds = getTestDataIds()
       const ingredientId = IngredientId.generate()
       const userId = 'test-user-123'
       const oldName = faker.food.ingredient()
@@ -196,7 +197,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
   describe('findById', () => {
     it('IDで食材を検索できる', async () => {
       // Given: テストデータを作成
-      const ingredientId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const ingredientName = faker.food.ingredient()
       const ingredientMemo = faker.lorem.sentence()
@@ -239,7 +241,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('存在しないIDの場合nullを返す', async () => {
       // When: 存在しないIDで検索
       const userId = 'test-user-123'
-      const nonExistentId = faker.string.uuid()
+      const nonExistentId = testDataHelpers.ingredientId()
       const found = await repository.findById(userId, new IngredientId(nonExistentId))
 
       // Then: nullが返される
@@ -248,7 +250,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('論理削除された食材は検索されない', async () => {
       // Given: 論理削除された食材
-      const ingredientId = faker.string.uuid()
+      const testDataIds = getTestDataIds()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const deletedIngredientName = faker.food.ingredient()
       await prisma.ingredient.create({
@@ -277,7 +280,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('名前で食材を検索できる', async () => {
       // Given: テストデータ
       const testDataIds = getTestDataIds()
-      const ingredientId = faker.string.uuid()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const ingredientName = faker.food.ingredient()
       await prisma.ingredient.create({
@@ -306,8 +309,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       const testDataIds = getTestDataIds()
       const duplicateName = faker.food.ingredient()
       const userId = 'test-user-123'
-      const id1 = faker.string.uuid()
-      const id2 = faker.string.uuid()
+      const id1 = testDataHelpers.ingredientId()
+      const id2 = testDataHelpers.ingredientId()
       await prisma.ingredient.createMany({
         data: [
           {
@@ -351,7 +354,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       await prisma.ingredient.createMany({
         data: [
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: names[0],
             categoryId: testDataIds.categories.vegetable,
@@ -361,7 +364,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
             storageLocationType: 'REFRIGERATED',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: names[1],
             categoryId: testDataIds.categories.meatFish,
@@ -371,7 +374,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
             storageLocationType: 'FROZEN',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: names[2],
             categoryId: testDataIds.categories.seasoning,
@@ -403,7 +406,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       await prisma.ingredient.createMany({
         data: [
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: activeName,
             categoryId: testDataIds.categories.vegetable,
@@ -413,7 +416,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
             storageLocationType: 'REFRIGERATED',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId,
             name: deletedName,
             categoryId: testDataIds.categories.vegetable,
@@ -441,14 +444,14 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       const testDataIds = getTestDataIds()
       const userId1 = 'test-user-123'
       const userId2 = 'test-user-456'
-      const name1 = faker.food.ingredient()
-      const name2 = faker.food.ingredient()
-      const name3 = faker.food.ingredient()
+      const name1 = `${faker.food.ingredient()}_user1_1`
+      const name2 = `${faker.food.ingredient()}_user1_2`
+      const name3 = `${faker.food.ingredient()}_user2_1`
 
       await prisma.ingredient.createMany({
         data: [
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId: userId1,
             name: name1,
             categoryId: testDataIds.categories.vegetable,
@@ -458,7 +461,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
             storageLocationType: 'REFRIGERATED',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId: userId1,
             name: name2,
             categoryId: testDataIds.categories.meatFish,
@@ -468,7 +471,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
             storageLocationType: 'FROZEN',
           },
           {
-            id: faker.string.uuid(),
+            id: testDataHelpers.ingredientId(),
             userId: userId2,
             name: name3,
             categoryId: testDataIds.categories.vegetable,
@@ -496,7 +499,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('食材を論理削除できる', async () => {
       // Given: 食材を作成
       const testDataIds = getTestDataIds()
-      const ingredientId = faker.string.uuid()
+      const ingredientId = testDataHelpers.ingredientId()
       const userId = 'test-user-123'
       const ingredientName = faker.food.ingredient()
       await prisma.ingredient.create({
@@ -532,7 +535,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('存在しないカテゴリーIDで保存するとエラーになる', async () => {
       // Given: 存在しないカテゴリーIDを持つ食材
       const testDataIds = getTestDataIds()
-      const nonExistentCategoryId = faker.string.uuid()
+      const nonExistentCategoryId = testDataHelpers.categoryId()
       const stock = new IngredientStock({
         quantity: 10,
         unitId: new UnitId(testDataIds.units.piece),
@@ -551,7 +554,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('存在しない単位IDで保存するとエラーになる', async () => {
       // Given: 存在しない単位IDを持つ在庫
-      const nonExistentUnitId = faker.string.uuid()
+      const nonExistentUnitId = testDataHelpers.unitId()
       const stock = new IngredientStock({
         quantity: 10,
         unitId: new UnitId(nonExistentUnitId),

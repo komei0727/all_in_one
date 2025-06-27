@@ -1,11 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
-import { PrismaClient } from '@/generated/prisma-test'
 import { ZodError } from 'zod'
-import {
-  UserIdBuilder,
-  EmailBuilder,
-  NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
+
+import { PrismaClient } from '@/generated/prisma-test'
+
 
 // テスト対象のハンドラー
 import { ProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/profile-handler'
@@ -14,6 +11,8 @@ import { ProfileApiHandler } from '@/modules/user-authentication/server/api/hand
 import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
+
+import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
 
 // テストヘルパー
 import {

@@ -1,21 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
+
 import { PrismaClient } from '@/generated/prisma-test'
-import {
-  UserIdBuilder,
-  EmailBuilder,
-  UserProfileBuilder,
-  NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
 
 // テスト対象のサービス
 import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
-// ドメインオブジェクト
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
-import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
 
 // テストヘルパー
 import {
@@ -191,7 +183,7 @@ describe('UserApplicationService 統合テスト', () => {
 
       await expect(
         applicationService.createOrUpdateFromNextAuth(duplicateEmailUser)
-      ).rejects.toThrow('メールアドレスが既に使用されています')
+      ).rejects.toThrow("User with email 'duplicate@example.com' already exists")
     })
   })
 
@@ -447,7 +439,7 @@ describe('UserApplicationService 統合テスト', () => {
         })
       }
 
-      const active = await applicationService.createOrUpdateFromNextAuth(activeUser)
+      const _active = await applicationService.createOrUpdateFromNextAuth(activeUser)
       const deactivated = await applicationService.createOrUpdateFromNextAuth(deactivatedUser)
       await applicationService.deactivateUser(deactivated.id)
 

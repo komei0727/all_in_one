@@ -6,6 +6,7 @@ import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/q
 import { GetUnitsQuery } from '@/modules/ingredients/server/application/queries/get-units.query'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
+import { testDataHelpers } from '../../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -89,7 +90,7 @@ describe('GetUnitsHandler Integration Tests', () => {
 
     it('新しい単位を追加しても表示順で取得される', async () => {
       // Given: 新しい単位を追加（ユニークなシンボルを確保）
-      const newUnitId = faker.string.uuid()
+      const newUnitId = testDataHelpers.unitId()
       const newUnitName = `テスト単位_${faker.string.alphanumeric(6)}`
       const newUnitSymbol = faker.string.alphanumeric(5)
       await prisma.unit.create({
@@ -134,7 +135,7 @@ describe('GetUnitsHandler Integration Tests', () => {
       const sameOrder = 999
       const unitIds = []
       for (let i = 0; i < 3; i++) {
-        const id = faker.string.uuid()
+        const id = testDataHelpers.unitId()
         unitIds.push(id)
         await prisma.unit.create({
           data: {
@@ -175,7 +176,7 @@ describe('GetUnitsHandler Integration Tests', () => {
       for (const unitType of unitTypes) {
         await prisma.unit.create({
           data: {
-            id: faker.string.uuid(),
+            id: testDataHelpers.unitId(),
             name: unitType.name,
             symbol: unitType.symbol,
             displayOrder: faker.number.int({ min: 10, max: 20 }),
@@ -200,7 +201,7 @@ describe('GetUnitsHandler Integration Tests', () => {
     it('大量の単位があっても高速に取得できる', async () => {
       // Given: 100個の単位を追加
       const units = Array.from({ length: 100 }, (_, i) => ({
-        id: faker.string.uuid(),
+        id: testDataHelpers.unitId(),
         name: `単位${i}_${faker.string.alphanumeric(4)}`,
         symbol: `s${i}_${faker.string.alphanumeric(2)}`, // ユニークなシンボルを生成
         displayOrder: 100 + i,
@@ -282,7 +283,7 @@ describe('GetUnitsHandler Integration Tests', () => {
       for (const unit of specialUnits) {
         await prisma.unit.create({
           data: {
-            id: faker.string.uuid(),
+            id: testDataHelpers.unitId(),
             name: unit.name,
             symbol: unit.symbol,
             displayOrder: faker.number.int({ min: 10, max: 20 }),

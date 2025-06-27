@@ -344,9 +344,9 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
           domainUserId: faker.string.uuid(),
         },
       } as any)
-      // Given: 存在しないカテゴリーID
+      // Given: 存在しないカテゴリーID（正しいプレフィックス形式）
       const testDataIds = getTestDataIds()
-      const nonExistentCategoryId = faker.string.uuid()
+      const nonExistentCategoryId = testDataHelpers.categoryId() // cat_プレフィックス付きのID
       const command = new CreateIngredientCommandBuilder()
         .withCategoryId(nonExistentCategoryId)
         .withQuantity(5, testDataIds.units.piece)
@@ -380,9 +380,9 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
           domainUserId: faker.string.uuid(),
         },
       } as any)
-      // Given: 存在しない単位ID
+      // Given: 存在しない単位ID（正しいプレフィックス形式）
       const testDataIds = getTestDataIds()
-      const nonExistentUnitId = faker.string.uuid()
+      const nonExistentUnitId = testDataHelpers.unitId() // unt_プレフィックス付きのID
       const command = new CreateIngredientCommandBuilder()
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(5, nonExistentUnitId)
