@@ -1,5 +1,9 @@
-import { UserApplicationService } from '../../application/services/user-application.service'
-import { updateProfileSchema, UpdateProfileRequest } from '../validators/profile-update.validator'
+import {
+  updateProfileSchema,
+  type UpdateProfileRequest,
+} from '../validators/profile-update.validator'
+
+import type { UserApplicationService } from '../../application/services/user-application.service'
 
 /**
  * プロフィールAPIハンドラー

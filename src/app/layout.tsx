@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+
 import { Inter } from 'next/font/google'
 
 import { Toaster } from '@/modules/shared/client/components/ui/toaster'

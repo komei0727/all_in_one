@@ -16,8 +16,9 @@ import {
   TableRow,
 } from '@/modules/shared/client/components/ui/table'
 
-import type { IngredientResponse } from '../types'
 import { IngredientsListMobile } from './ingredients-list-mobile'
+
+import type { IngredientResponse } from '../types'
 
 interface IngredientsListProps {
   ingredients: IngredientResponse['ingredient'][]

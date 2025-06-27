@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+
 import { useSession } from 'next-auth/react'
 
-type UserProfile = {
+interface UserProfile {
   id: string
   email: string
   displayName: string | null
@@ -25,6 +26,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   // フォームの状態
   const [displayName, setDisplayName] = useState('')
@@ -46,7 +48,7 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         const response = await fetch('/api/auth/user/profile')
-        const data = await response.json()
+        const data = (await response.json()) as { user: UserProfile; message?: string }
 
         if (response.ok) {
           setProfile(data.user)
@@ -56,14 +58,14 @@ export default function ProfilePage() {
         } else {
           setError(data.message || 'プロフィールの取得に失敗しました')
         }
-      } catch (error) {
+      } catch (_error) {
         setError('プロフィールの取得に失敗しました')
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchProfile()
+    void fetchProfile()
   }, [session])
 
   // プロフィールを更新
@@ -71,6 +73,7 @@ export default function ProfilePage() {
     e.preventDefault()
     setIsUpdating(true)
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch('/api/auth/user/profile', {
@@ -85,15 +88,15 @@ export default function ProfilePage() {
         }),
       })
 
-      const data = await response.json()
+      const data = (await response.json()) as { user: UserProfile; message?: string }
 
       if (response.ok) {
         setProfile(data.user)
-        alert('プロフィールが更新されました')
+        setSuccess('プロフィールが更新されました')
       } else {
         setError(data.message || 'プロフィールの更新に失敗しました')
       }
-    } catch (error) {
+    } catch (_error) {
       setError('プロフィールの更新に失敗しました')
     } finally {
       setIsUpdating(false)
@@ -145,7 +148,13 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <form onSubmit={handleUpdate} className="space-y-6">
+              {success && (
+                <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-4">
+                  <p className="text-sm text-green-600">{success}</p>
+                </div>
+              )}
+
+              <form onSubmit={(e) => void handleUpdate(e)} className="space-y-6">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                     メールアドレス（変更不可）

@@ -1,4 +1,4 @@
-import { IngredientDto } from './ingredient.dto'
+import type { IngredientDto } from './ingredient.dto'
 
 /**
  * 食材一覧DTO

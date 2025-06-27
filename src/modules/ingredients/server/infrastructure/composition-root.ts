@@ -9,9 +9,10 @@ import { CreateIngredientHandler } from '../application/commands/create-ingredie
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
-import { CategoryRepository } from '../domain/repositories/category-repository.interface'
-import { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
-import { UnitRepository } from '../domain/repositories/unit-repository.interface'
+
+import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
+import type { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
+import type { UnitRepository } from '../domain/repositories/unit-repository.interface'
 
 /**
  * Composition Root - Dependency Injection Container

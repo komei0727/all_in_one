@@ -1,7 +1,8 @@
-import { GetUnitsQuery } from './get-units.query'
-import { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 import { UnitListDTO } from '../dtos/unit-list.dto'
 import { UnitDTO } from '../dtos/unit.dto'
+
+import type { GetUnitsQuery } from './get-units.query'
+import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 
 /**
  * GetUnitsQueryHandler

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 import { auth } from '@/auth'
 import { GetIngredientsApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-ingredients.handler'
@@ -34,14 +34,17 @@ export async function POST(request: NextRequest) {
     }
 
     // リクエストボディの取得
-    const body = await request.json()
+    const body = (await request.json()) as unknown
 
     // DIコンテナからAPIハンドラーを取得
     const compositionRoot = CompositionRoot.getInstance()
     const apiHandler = compositionRoot.getCreateIngredientApiHandler()
 
     // ハンドラーの実行（ドメインユーザーIDを渡す）
-    const result = await apiHandler.handle(body, session.user.domainUserId)
+    const result = await apiHandler.handle(
+      body as Parameters<typeof apiHandler.handle>[0],
+      session.user.domainUserId
+    )
 
     // 成功レスポンス（201 Created）
     return NextResponse.json(result, { status: 201 })

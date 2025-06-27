@@ -1,4 +1,4 @@
-import { Ingredient } from '../entities/ingredient.entity'
+import type { Ingredient } from '../entities/ingredient.entity'
 
 /**
  * 期限チェックサービス
@@ -20,7 +20,7 @@ export class ExpiryCheckService {
    * @param days 判定する日数（デフォルト7日）
    * @returns 指定日数以内に期限切れになる食材リスト
    */
-  getExpiringSoonIngredients(ingredients: Ingredient[], days: number = 7): Ingredient[] {
+  getExpiringSoonIngredients(ingredients: Ingredient[], days = 7): Ingredient[] {
     return ingredients.filter((ingredient) => {
       if (ingredient.isDeleted()) {
         return false

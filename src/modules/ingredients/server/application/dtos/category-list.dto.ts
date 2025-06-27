@@ -1,4 +1,4 @@
-import { CategoryDTO } from './category.dto'
+import type { CategoryDTO } from './category.dto'
 
 /**
  * カテゴリ一覧DTO
@@ -12,11 +12,11 @@ export class CategoryListDTO {
    * JSONシリアライズ用のオブジェクトを返す
    */
   toJSON(): {
-    categories: Array<{
+    categories: {
       id: string
       name: string
       displayOrder: number
-    }>
+    }[]
   } {
     return {
       categories: this.categories.map((category) => category.toJSON()),

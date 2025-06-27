@@ -1,4 +1,4 @@
-import { DomainEvent } from './domain-event.base'
+import type { DomainEvent } from './domain-event.base'
 
 /**
  * イベントハンドラーインターフェース

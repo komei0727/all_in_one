@@ -1,4 +1,4 @@
-import { UnitDTO } from './unit.dto'
+import type { UnitDTO } from './unit.dto'
 
 /**
  * 単位一覧DTO
@@ -12,12 +12,12 @@ export class UnitListDTO {
    * JSONシリアライズ用のオブジェクトを返す
    */
   toJSON(): {
-    units: Array<{
+    units: {
       id: string
       name: string
       symbol: string
       displayOrder: number
-    }>
+    }[]
   } {
     return {
       units: this.units.map((unit) => unit.toJSON()),

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
@@ -53,10 +53,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // リクエストボディの解析
-    let requestData
+    let requestData: unknown
     try {
-      requestData = await request.json()
-    } catch (error) {
+      requestData = (await request.json()) as unknown
+    } catch (_error) {
       return NextResponse.json(
         {
           error: 'Invalid request',
@@ -73,7 +73,10 @@ export async function PUT(request: NextRequest) {
     const profileApiHandler = new ProfileApiHandler(userApplicationService)
 
     // プロフィール更新
-    const updatedUser = await profileApiHandler.updateProfile(session.user.id, requestData)
+    const updatedUser = await profileApiHandler.updateProfile(
+      session.user.id,
+      requestData as Parameters<typeof profileApiHandler.updateProfile>[1]
+    )
 
     return NextResponse.json({
       user: updatedUser,

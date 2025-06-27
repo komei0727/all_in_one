@@ -1,5 +1,5 @@
-import { Unit } from '../entities/unit.entity'
-import { UnitId } from '../value-objects'
+import type { Unit } from '../entities/unit.entity'
+import type { UnitId } from '../value-objects'
 
 /**
  * UnitRepository Interface

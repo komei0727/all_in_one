@@ -1,8 +1,9 @@
-import { PrismaClient } from '@/generated/prisma'
+import type { PrismaClient } from '@/generated/prisma'
 
 import { Unit } from '../../domain/entities/unit.entity'
-import { UnitRepository } from '../../domain/repositories/unit-repository.interface'
-import { UnitId } from '../../domain/value-objects'
+
+import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
+import type { UnitId } from '../../domain/value-objects'
 
 /**
  * PrismaUnitRepository

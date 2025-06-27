@@ -1,7 +1,8 @@
 import { AppError } from '@/modules/shared/server/errors/app.error'
 
-import { GetIngredientsHandler } from '../../../application/queries/get-ingredients.handler'
 import { GetIngredientsQuery } from '../../../application/queries/get-ingredients.query'
+
+import type { GetIngredientsHandler } from '../../../application/queries/get-ingredients.handler'
 
 /**
  * 食材一覧取得APIハンドラー

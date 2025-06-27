@@ -1,8 +1,9 @@
-import { PrismaClient } from '@/generated/prisma'
+import type { PrismaClient } from '@/generated/prisma'
 
 import { Category } from '../../domain/entities/category.entity'
-import { CategoryRepository } from '../../domain/repositories/category-repository.interface'
-import { CategoryId } from '../../domain/value-objects'
+
+import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
+import type { CategoryId } from '../../domain/value-objects'
 
 /**
  * PrismaCategoryRepository

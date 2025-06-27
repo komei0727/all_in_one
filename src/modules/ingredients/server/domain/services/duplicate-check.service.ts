@@ -1,4 +1,4 @@
-import { Ingredient } from '../entities/ingredient.entity'
+import type { Ingredient } from '../entities/ingredient.entity'
 
 /**
  * 食材重複判定サービス

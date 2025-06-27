@@ -1,8 +1,8 @@
-import { DomainEventPublisher } from '@/modules/shared/server/domain/events/domain-event-publisher.interface'
+import type { DomainEventPublisher } from '@/modules/shared/server/domain/events/domain-event-publisher.interface'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import type { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 
-import { User, NextAuthUser } from '../entities/user.entity'
+import { User, type NextAuthUser } from '../entities/user.entity'
 import { NextAuthIntegrationFailedEvent } from '../events/nextauth-integration-failed.event'
 import {
   UserNotFoundException,
@@ -11,8 +11,9 @@ import {
   AlreadyDeactivatedException,
   ProfileUpdateNotAllowedException,
 } from '../exceptions'
-import { UserRepository } from '../repositories/user.repository'
-import { UserProfile } from '../value-objects/user-profile.vo'
+
+import type { UserRepository } from '../repositories/user.repository'
+import type { UserProfile } from '../value-objects/user-profile.vo'
 
 /**
  * ユーザー統合サービス

@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CalendarIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -145,7 +146,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-6">
         {/* 食材名 */}
         <FormField
           control={form.control}

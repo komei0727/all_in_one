@@ -1,8 +1,8 @@
-import { PrismaClient } from '@/generated/prisma'
+import type { PrismaClient } from '@/generated/prisma'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-import { UserRepository } from '@/modules/user-authentication/server/domain/repositories/user.repository'
+import type { UserRepository } from '@/modules/user-authentication/server/domain/repositories/user.repository'
 import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
@@ -14,7 +14,7 @@ import { UserStatus } from '@/modules/user-authentication/server/domain/value-ob
  * ドメインモデルのUserエンティティを永続化する
  */
 // Prismaクライアントの型を柔軟に受け入れるための型定義
-type PrismaClientLike = PrismaClient | { [key: string]: any }
+type PrismaClientLike = PrismaClient | Record<string, any>
 
 export class PrismaUserRepository implements UserRepository {
   constructor(private readonly prisma: PrismaClientLike) {}
@@ -136,7 +136,7 @@ export class PrismaUserRepository implements UserRepository {
         },
       })
       return true
-    } catch (error) {
+    } catch (_error) {
       // レコードが存在しない場合
       return false
     }

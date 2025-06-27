@@ -9,11 +9,11 @@ export class UserSyncedWithNextAuthEvent extends DomainEvent {
     aggregateId: string,
     public readonly nextAuthId: string,
     public readonly syncedFields: ('email' | 'name' | 'lastLoginAt')[],
-    public readonly changes: Array<{
+    public readonly changes: {
       field: string
       oldValue: any
       newValue: any
-    }>
+    }[]
   ) {
     super(aggregateId)
   }
