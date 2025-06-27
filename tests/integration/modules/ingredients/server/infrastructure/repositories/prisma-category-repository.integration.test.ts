@@ -7,6 +7,7 @@ import {
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 describe('PrismaCategoryRepository Integration Tests', () => {
@@ -52,8 +53,9 @@ describe('PrismaCategoryRepository Integration Tests', () => {
 
     it('IDでカテゴリーを取得できる', async () => {
       // When: IDでカテゴリーを検索
+      const testDataIds = getTestDataIds()
       const category = await prisma.category.findUnique({
-        where: { id: 'cat00001' },
+        where: { id: testDataIds.categories.vegetable },
       })
 
       // Then: カテゴリーが取得できる
@@ -64,8 +66,9 @@ describe('PrismaCategoryRepository Integration Tests', () => {
 
     it('アクティブなカテゴリーを取得できる', async () => {
       // Given: 1つのカテゴリーを非アクティブに
+      const testDataIds = getTestDataIds()
       await prisma.category.update({
-        where: { id: 'cat00002' },
+        where: { id: testDataIds.categories.meatFish },
         data: { isActive: false },
       })
 
@@ -77,18 +80,19 @@ describe('PrismaCategoryRepository Integration Tests', () => {
 
       // Then: アクティブなカテゴリーのみ取得される
       expect(categories).toHaveLength(2)
-      expect(categories.find((c) => c.id === 'cat00002')).toBeUndefined()
+      expect(categories.find((c) => c.id === testDataIds.categories.meatFish)).toBeUndefined()
     })
 
     it('カテゴリーを更新できる', async () => {
       // Given: 更新後のユニークな名前を準備
+      const testDataIds = getTestDataIds()
       const uniqueName = `更新テストカテゴリー_${faker.string.alphanumeric(8)}`
       const updatedCategory = new CategoryBuilder().withName(uniqueName).build()
       const updatedName = updatedCategory.getName()
 
       // When: カテゴリー名を更新
       const updated = await prisma.category.update({
-        where: { id: 'cat00001' },
+        where: { id: testDataIds.categories.vegetable },
         data: { name: updatedName },
       })
 
@@ -98,13 +102,14 @@ describe('PrismaCategoryRepository Integration Tests', () => {
 
     it('カテゴリーを削除できる', async () => {
       // When: カテゴリーを削除
+      const testDataIds = getTestDataIds()
       await prisma.category.delete({
-        where: { id: 'cat00003' },
+        where: { id: testDataIds.categories.seasoning },
       })
 
       // Then: カテゴリーが削除されている
       const deleted = await prisma.category.findUnique({
-        where: { id: 'cat00003' },
+        where: { id: testDataIds.categories.seasoning },
       })
       expect(deleted).toBeNull()
     })

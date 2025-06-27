@@ -1,5 +1,7 @@
 import { execSync } from 'child_process'
 
+import { createId } from '@paralleldrive/cuid2'
+
 import { PrismaClient } from '../../src/generated/prisma-test'
 
 let prismaClient: PrismaClient | null = null
@@ -89,29 +91,83 @@ export async function withTransaction<T>(fn: (prisma: PrismaClient) => Promise<T
 }
 
 /**
+ * テストデータのIDを保持
+ */
+export interface TestDataIds {
+  categories: {
+    vegetable: string
+    meatFish: string
+    seasoning: string
+  }
+  units: {
+    piece: string
+    gram: string
+    milliliter: string
+  }
+}
+
+let testDataIds: TestDataIds | null = null
+
+/**
+ * テストデータのIDを取得
+ */
+export function getTestDataIds(): TestDataIds {
+  if (!testDataIds) {
+    throw new Error('Test data has not been seeded yet. Call seedTestData() first.')
+  }
+  return testDataIds
+}
+
+/**
  * テストデータのシード
  * 基本的なマスターデータを投入
  */
-export async function seedTestData(): Promise<void> {
+export async function seedTestData(): Promise<TestDataIds> {
   const prisma = getTestPrismaClient()
+
+  // ID生成（新しいID形式）
+  const categoryIds = {
+    vegetable: 'cat_' + createId(),
+    meatFish: 'cat_' + createId(),
+    seasoning: 'cat_' + createId(),
+  }
+
+  const unitIds = {
+    piece: 'unt_' + createId(),
+    gram: 'unt_' + createId(),
+    milliliter: 'unt_' + createId(),
+  }
 
   // カテゴリーの作成
   await prisma.category.createMany({
     data: [
-      { id: 'cat00001', name: '野菜', displayOrder: 1 },
-      { id: 'cat00002', name: '肉・魚', displayOrder: 2 },
-      { id: 'cat00003', name: '調味料', displayOrder: 3 },
+      { id: categoryIds.vegetable, name: '野菜', displayOrder: 1 },
+      { id: categoryIds.meatFish, name: '肉・魚', displayOrder: 2 },
+      { id: categoryIds.seasoning, name: '調味料', displayOrder: 3 },
     ],
   })
 
   // 単位の作成
   await prisma.unit.createMany({
     data: [
-      { id: 'unit0001', name: '個', symbol: '個', type: 'COUNT', displayOrder: 1 },
-      { id: 'unit0002', name: 'グラム', symbol: 'g', type: 'WEIGHT', displayOrder: 2 },
-      { id: 'unit0003', name: 'ミリリットル', symbol: 'ml', type: 'VOLUME', displayOrder: 3 },
+      { id: unitIds.piece, name: '個', symbol: '個', type: 'COUNT', displayOrder: 1 },
+      { id: unitIds.gram, name: 'グラム', symbol: 'g', type: 'WEIGHT', displayOrder: 2 },
+      {
+        id: unitIds.milliliter,
+        name: 'ミリリットル',
+        symbol: 'ml',
+        type: 'VOLUME',
+        displayOrder: 3,
+      },
     ],
   })
+
+  testDataIds = {
+    categories: categoryIds,
+    units: unitIds,
+  }
+
+  return testDataIds
 }
 
 /**
@@ -129,6 +185,7 @@ export async function setupIntegrationTest(): Promise<void> {
  */
 export async function cleanupIntegrationTest(): Promise<void> {
   await resetDatabase()
+  testDataIds = null // IDをリセット
 }
 
 /**

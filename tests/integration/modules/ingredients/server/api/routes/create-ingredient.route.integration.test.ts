@@ -17,6 +17,7 @@ import {
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 // @/auth はvitest configでモック済み
@@ -69,10 +70,11 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       } as any)
 
       // Given: 有効なリクエストボディ
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
         .withUserId(testUserId)
-        .withCategoryId('cat00001') // 実在するカテゴリーID
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001') // 実在する単位ID
+        .withCategoryId(testDataIds.categories.vegetable) // 実在するカテゴリーID
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece) // 実在する単位ID
         .withStorageLocation({
           type: faker.helpers.arrayElement([
             StorageType.REFRIGERATED,
@@ -132,12 +134,13 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       } as any)
 
       // Given: 最小限の必須フィールドのみのリクエスト
+      const testDataIds = getTestDataIds()
       const minimalCommand = {
         name: faker.food.ingredient(),
-        categoryId: 'cat00001',
+        categoryId: testDataIds.categories.vegetable,
         quantity: {
           amount: faker.number.int({ min: 1, max: 10 }),
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
         },
         storageLocation: {
           type: StorageType.REFRIGERATED,
@@ -175,11 +178,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       } as any)
 
       // Given: 全フィールドを含むリクエスト
+      const testDataIds = getTestDataIds()
       const fullCommand = new CreateIngredientCommandBuilder()
         .withUserId(testUserId)
-        .withCategoryId('cat00001')
+        .withCategoryId(testDataIds.categories.vegetable)
         .withMemo(faker.lorem.sentence())
-        .withQuantity(faker.number.int({ min: 1, max: 20 }), 'unit0001')
+        .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
           type: StorageType.FROZEN,
           detail: '冷凍庫の引き出し',
@@ -225,12 +229,13 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: 必須フィールドが欠けているリクエスト
+      const testDataIds = getTestDataIds()
       const invalidCommand = {
         // nameがない
-        categoryId: 'cat00001',
+        categoryId: testDataIds.categories.vegetable,
         quantity: {
           amount: 5,
-          unitId: 'unit0001',
+          unitId: testDataIds.units.piece,
         },
         storageLocation: {
           type: StorageType.REFRIGERATED,
@@ -266,11 +271,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: 50文字を超える食材名
+      const testDataIds = getTestDataIds()
       const longName = faker.string.alphanumeric(51)
       const command = new CreateIngredientCommandBuilder()
         .withName(longName)
-        .withCategoryId('cat00001')
-        .withQuantity(5, 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(5, testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
         .build()
@@ -302,9 +308,10 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: 無効な数量
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('cat00001')
-        .withQuantity(0, 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(0, testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
         .build()
@@ -338,10 +345,11 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: 存在しないカテゴリーID
+      const testDataIds = getTestDataIds()
       const nonExistentCategoryId = faker.string.uuid()
       const command = new CreateIngredientCommandBuilder()
         .withCategoryId(nonExistentCategoryId)
-        .withQuantity(5, 'unit0001')
+        .withQuantity(5, testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
         .build()
@@ -373,9 +381,10 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: 存在しない単位ID
+      const testDataIds = getTestDataIds()
       const nonExistentUnitId = faker.string.uuid()
       const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('cat00001')
+        .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(5, nonExistentUnitId)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
@@ -406,9 +415,10 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       vi.mocked(auth).mockResolvedValue(null as any)
 
       // Given: 有効なリクエストボディ
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('cat00001')
-        .withQuantity(5, 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(5, testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
         .build()
@@ -442,9 +452,10 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       } as any)
 
       // Given: 有効なリクエストボディ
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('cat00001')
-        .withQuantity(5, 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(5, testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
         .build()
@@ -503,9 +514,10 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: Content-Typeが不正だが有効なJSON
+      const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withCategoryId('cat00001')
-        .withQuantity(5, 'unit0001')
+        .withCategoryId(testDataIds.categories.vegetable)
+        .withQuantity(5, testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
         .withPurchaseDate(testDataHelpers.todayString())
         .build()
@@ -537,11 +549,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
         },
       } as any)
       // Given: 3つの異なる食材作成リクエスト（SQLiteの制限を考慮して数を減らす）
+      const testDataIds = getTestDataIds()
       const commands = Array.from({ length: 3 }, (_, i) =>
         new CreateIngredientCommandBuilder()
           .withName(`並行テスト食材${i}_${faker.string.alphanumeric(4)}`)
-          .withCategoryId('cat00001')
-          .withQuantity(faker.number.int({ min: 1, max: 10 }), 'unit0001')
+          .withCategoryId(testDataIds.categories.vegetable)
+          .withQuantity(faker.number.int({ min: 1, max: 10 }), testDataIds.units.piece)
           .withStorageLocation({ type: StorageType.REFRIGERATED })
           .withPurchaseDate(testDataHelpers.todayString())
           .build()

@@ -6,11 +6,13 @@ import { UnitId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 
 import { UnitBuilder } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
+  getTestDataIds,
 } from '../../../../../../helpers/database.helper'
 
 describe('PrismaUnitRepository Integration Tests', () => {
@@ -54,8 +56,9 @@ describe('PrismaUnitRepository Integration Tests', () => {
 
     it('非アクティブな単位は取得されない', async () => {
       // Given: 1つの単位を非アクティブにする
+      const testDataIds = getTestDataIds()
       await prisma.unit.update({
-        where: { id: 'unit0002' },
+        where: { id: testDataIds.units.gram },
         data: { isActive: false },
       })
 
@@ -64,7 +67,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
 
       // Then: アクティブな単位のみ取得される
       expect(units).toHaveLength(2)
-      expect(units.find((u) => u.getId() === 'unit0002')).toBeUndefined()
+      expect(units.find((u) => u.getId() === testDataIds.units.gram)).toBeUndefined()
     })
 
     it('新しい単位を追加してもアクティブな単位のみ取得される', async () => {
@@ -76,7 +79,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
 
       await prisma.unit.create({
         data: {
-          id: faker.string.uuid(),
+          id: testDataHelpers.unitId(),
           name: uniqueName1,
           symbol: uniqueSymbol1,
           displayOrder: faker.number.int({ min: 10, max: 20 }),
@@ -86,7 +89,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
       })
       await prisma.unit.create({
         data: {
-          id: faker.string.uuid(),
+          id: testDataHelpers.unitId(),
           name: uniqueName2,
           symbol: uniqueSymbol2,
           displayOrder: faker.number.int({ min: 21, max: 30 }),
@@ -117,7 +120,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
       for (const unit of units) {
         await prisma.unit.create({
           data: {
-            id: faker.string.uuid(),
+            id: testDataHelpers.unitId(),
             name: unit.name,
             symbol: faker.string.alphanumeric(2),
             displayOrder: unit.order,
@@ -141,11 +144,12 @@ describe('PrismaUnitRepository Integration Tests', () => {
   describe('findById', () => {
     it('IDで単位を取得できる', async () => {
       // When: IDで単位を検索
-      const unit = await repository.findById(new UnitId('unit0001'))
+      const testDataIds = getTestDataIds()
+      const unit = await repository.findById(new UnitId(testDataIds.units.piece))
 
       // Then: 単位が取得できる
       expect(unit).toBeDefined()
-      expect(unit?.getId()).toBe('unit0001')
+      expect(unit?.getId()).toBe(testDataIds.units.piece)
       expect(unit?.getName()).toBe('個')
       expect(unit?.getSymbol()).toBe('個')
       expect(unit?.getDisplayOrder()).toBe(1)
@@ -153,7 +157,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
 
     it('存在しないIDの場合nullを返す', async () => {
       // When: 存在しないIDで検索
-      const nonExistentId = faker.string.uuid()
+      const nonExistentId = testDataHelpers.unitId() // 新しいID形式を生成
       const unit = await repository.findById(new UnitId(nonExistentId))
 
       // Then: nullが返される
@@ -194,17 +198,18 @@ describe('PrismaUnitRepository Integration Tests', () => {
 
     it('非アクティブな単位も取得できる', async () => {
       // Given: 単位を非アクティブにする
+      const testDataIds = getTestDataIds()
       await prisma.unit.update({
-        where: { id: 'unit0003' },
+        where: { id: testDataIds.units.milliliter },
         data: { isActive: false },
       })
 
       // When: IDで検索
-      const unit = await repository.findById(new UnitId('unit0003'))
+      const unit = await repository.findById(new UnitId(testDataIds.units.milliliter))
 
       // Then: 非アクティブでも取得できる
       expect(unit).toBeDefined()
-      expect(unit?.getId()).toBe('unit0003')
+      expect(unit?.getId()).toBe(testDataIds.units.milliliter)
       expect(unit?.getName()).toBe('ミリリットル')
     })
   })
@@ -258,7 +263,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
       // Given: 同じ表示順の単位を作成
       const sameOrder = 999
       const units = Array.from({ length: 3 }, (_, i) => ({
-        id: faker.string.uuid(),
+        id: testDataHelpers.unitId(),
         name: `単位${i}_${faker.string.alphanumeric(4)}`,
         symbol: faker.string.alphanumeric(2),
         displayOrder: sameOrder,
@@ -281,7 +286,7 @@ describe('PrismaUnitRepository Integration Tests', () => {
     it('特殊文字を含む単位名・記号を正しく扱える', async () => {
       // Given: 特殊文字を含む単位
       const specialUnit = {
-        id: faker.string.uuid(),
+        id: testDataHelpers.unitId(),
         name: '㎡（平方メートル）',
         symbol: '㎡',
         displayOrder: faker.number.int({ min: 100, max: 200 }),
