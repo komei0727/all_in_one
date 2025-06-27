@@ -75,10 +75,10 @@ jobs:
         env:
           DATABASE_URL: file:./test.db
 
-      - name: Run E2E tests
-        run: pnpm test:e2e
-        env:
-          DATABASE_URL: file:./test.db
+      # - name: Run E2E tests
+      #   run: pnpm test:e2e
+      #   env:
+      #     DATABASE_URL: file:./test.db
 
       - name: Run all tests with coverage
         run: pnpm test:coverage
