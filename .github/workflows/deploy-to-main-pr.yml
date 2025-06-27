@@ -1,0 +1,121 @@
+name: Deploy to Production PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: '20.19.2'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  production-readiness-check:
+    name: Production Readiness Check
+    runs-on: ubuntu-latest
+    if: github.head_ref == 'deploy'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      # 本番デプロイ前の最終チェック
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Lint check
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      # Prismaマイグレーションの確認
+      - name: Check for pending migrations
+        run: |
+          echo "🔍 Checking for pending database migrations..."
+          # マイグレーションステータスの確認（本番環境とのdiff）
+          pnpm prisma migrate status || true
+
+      # 環境変数の確認
+      - name: Check required environment variables
+        run: |
+          echo "🔐 Checking required environment variables..."
+          required_vars=(
+            "DATABASE_URL"
+            "NEXTAUTH_URL"
+            "NEXTAUTH_SECRET"
+          )
+
+          missing_vars=()
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var:-}" ]; then
+              missing_vars+=("$var")
+            fi
+          done
+
+          if [ ${#missing_vars[@]} -gt 0 ]; then
+            echo "⚠️  Warning: The following environment variables will need to be set in production:"
+            printf '%s\n' "${missing_vars[@]}"
+          else
+            echo "✅ All required environment variables are documented"
+          fi
+
+      # 破壊的変更の警告
+      - name: Check for breaking changes
+        run: |
+          echo "⚠️  Production Deployment Checklist:"
+          echo "1. Database migrations have been reviewed"
+          echo "2. Environment variables are configured in Vercel"
+          echo "3. No breaking API changes"
+          echo "4. Preview environment has been tested"
+
+      # PRコメントにデプロイ情報を追加
+      - name: Comment deployment info
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `## 🚀 Production Deployment Ready
+
+            ### Pre-deployment Checklist:
+            - [ ] All tests pass
+            - [ ] Code has been reviewed
+            - [ ] Database migrations are ready
+            - [ ] Environment variables are configured
+            - [ ] Preview environment tested
+
+            ### Deployment Flow:
+            1. Merge this PR to \`main\` branch
+            2. Production deployment will start automatically
+            3. Monitor deployment in Vercel dashboard
+
+            ⚠️ **Important**: This will deploy to production immediately after merge.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
