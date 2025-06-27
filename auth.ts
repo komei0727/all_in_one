@@ -14,7 +14,7 @@ import { PrismaUserRepository } from '@/modules/user-authentication/server/infra
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   // Prismaアダプターの設定
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma as any),
   debug: true,
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
