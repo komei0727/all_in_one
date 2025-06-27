@@ -15,7 +15,12 @@ export function getEmailConfig() {
         host,
         port,
         secure: false,
-        auth: undefined,
+        // MailHogは認証不要
+        tls: {
+          rejectUnauthorized: false,
+        },
+        // 認証を明示的に無効化
+        auth: false as any,
       },
       from,
     }
