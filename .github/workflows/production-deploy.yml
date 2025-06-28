@@ -95,21 +95,60 @@ jobs:
           path: .next/
           retention-days: 7
 
-      # Vercel本番デプロイの確認（ヘルスチェックエンドポイントで確認）
-      - name: Wait for Vercel Production with Health Check
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
+      # Vercel本番デプロイの確認（カスタムヘルスチェック）
+      - name: Wait for Vercel Production with Custom Health Check
         id: waitForVercel
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 600
-          environment: production
-          path: 'https://all-in-one-orcin.vercel.app/api/health'
+        run: |
+          echo "⏳ Waiting for production deployment health check..."
+
+          # デプロイURL
+          DEPLOYMENT_URL="https://all-in-one-orcin.vercel.app"
+          HEALTH_URL="${DEPLOYMENT_URL}/api/health"
+
+          # リトライ設定
+          MAX_ATTEMPTS=30
+          DELAY_SECONDS=20
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "🔄 Health check attempt $i/$MAX_ATTEMPTS..."
+            
+            # ヘルスチェック実行
+            if response=$(curl -s -w "%{http_code}" "$HEALTH_URL" --connect-timeout 10 --max-time 30); then
+              http_code="${response: -3}"
+              body="${response%???}"
+              
+              echo "📊 HTTP Status: $http_code"
+              
+              # HTTPステータスが200でstatus: okの場合
+              if [ "$http_code" = "200" ]; then
+                if echo "$body" | jq -e '.status == "ok"' > /dev/null 2>&1; then
+                  echo "✅ Health check passed!"
+                  echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+                  SUCCESS=true
+                  break
+                fi
+              fi
+            else
+              echo "❌ Connection failed"
+            fi
+            
+            if [ $i -lt $MAX_ATTEMPTS ]; then
+              echo "⏱️ Waiting ${DELAY_SECONDS}s before next attempt..."
+              sleep $DELAY_SECONDS
+            fi
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "💥 Health check failed after $MAX_ATTEMPTS attempts"
+            exit 1
+          fi
 
       - name: Production Deploy Summary
         run: |
           echo "✅ Successfully deployed to production!"
-          echo "Production URL: ${{ steps.waitForVercel.outputs.url }}"
-          echo "Deployment ID: ${{ steps.waitForVercel.outputs.deploymentId }}"
+          echo "Production URL: ${{ steps.waitForVercel.outputs.deployment_url }}"
+          echo "Commit SHA: ${{ github.sha }}"
 
       # GitHubリリースの自動作成（オプション）
       - name: Create GitHub Release
@@ -127,6 +166,6 @@ jobs:
             **Author:** ${{ github.actor }}
             **Message:** ${{ github.event.head_commit.message }}
 
-            **Production URL:** ${{ steps.waitForVercel.outputs.url }}
+            **Production URL:** ${{ steps.waitForVercel.outputs.deployment_url }}
           draft: false
           prerelease: false
