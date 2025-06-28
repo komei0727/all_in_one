@@ -1,13 +1,13 @@
-# SUDOモデリング - 食材管理コンテキスト
+# SUDOモデリング - 食材・在庫管理コンテキスト
 
 ## 概要
 
-本ドキュメントは、食材管理コンテキスト（Ingredient Management Context）に特化したSUDOモデリングの成果物です。
-このコンテキストは、食材の登録・管理・期限管理を中心とした、アプリケーションの中核機能を提供します。
+本ドキュメントは、食材・在庫管理コンテキスト（Ingredient & Inventory Management Context）に特化したSUDOモデリングの成果物です。
+このコンテキストは、食材の登録・管理・期限管理に加え、買い物サポート機能を統合した、アプリケーションの中核機能を提供します。
 
 ## 1. システム関連図（System Context Diagram）
 
-食材管理コンテキストと外部アクター、他コンテキストとの関係を示します。
+食材・在庫管理コンテキストと外部アクター、他コンテキストとの関係を示します。
 
 ```mermaid
 graph TB
@@ -15,45 +15,46 @@ graph TB
         USER[認証済みユーザー<br/>- 田中健太<br/>- 佐藤美咲<br/>- 山田・鈴木]
     end
 
-    subgraph "食材管理コンテキスト"
-        IM[食材管理システム]
+    subgraph "食材・在庫管理コンテキスト"
+        IIM[食材・在庫管理システム]
     end
 
     subgraph "他のコンテキスト"
         UA[ユーザー認証<br/>コンテキスト]
-        SS[買い物サポート<br/>コンテキスト]
         NT[通知サービス]
         SK[共有カーネル]
     end
 
     subgraph "外部システム"
         TIMER[システムタイマー<br/>日次バッチ]
+        MOBILE[モバイルデバイス<br/>買い物モード]
     end
 
     %% アクターとの関係
-    USER -->|食材登録・管理| IM
-    IM -->|在庫情報提供| USER
+    USER -->|食材登録・管理| IIM
+    USER -->|買い物モード利用| IIM
+    IIM -->|在庫情報提供| USER
+    IIM -->|買い物支援| USER
 
     %% 他コンテキストとの関係
-    UA -->|UserId提供| IM
-    IM -->|認証確認| UA
-    IM -->|在庫データ提供| SS
-    IM -->|期限通知イベント| NT
-    IM -->|基本型使用| SK
+    UA -->|UserId提供| IIM
+    IIM -->|認証確認| UA
+    IIM -->|期限通知イベント| NT
+    IIM -->|基本型使用| SK
 
     %% 外部システムとの関係
-    TIMER -->|期限チェック起動| IM
+    TIMER -->|期限チェック起動| IIM
+    MOBILE -->|モバイルアクセス| IIM
 
-    style IM fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px
+    style IIM fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px
     style UA fill:#74c0fc,stroke:#339af0,stroke-width:2px
-    style SS fill:#ff8787,stroke:#c92a2a,stroke-width:2px
     style NT fill:#ffe066,stroke:#fab005,stroke-width:2px
     style SK fill:#ffd43b,stroke:#fab005,stroke-width:2px
 ```
 
 ## 2. ユースケース図（Use Case Diagram）
 
-食材管理コンテキストの主要なユースケースを示します。すべてのユーザー操作は認証が前提となります。
+食材・在庫管理コンテキストの主要なユースケースを示します。すべてのユーザー操作は認証が前提となります。
 
 ```mermaid
 graph TB
@@ -62,21 +63,31 @@ graph TB
         TIMER((タイマー))
     end
 
-    subgraph "食材管理コンテキスト"
-        UC1[食材を登録する]
-        UC2[食材情報を更新する]
-        UC3[食材を削除する]
-        UC4[在庫を消費する]
-        UC5[在庫を補充する]
-        UC6[食材一覧を見る]
-        UC7[期限切れ食材を確認する]
-        UC8[カテゴリー別に表示する]
-        UC9[保存場所別に表示する]
+    subgraph "食材・在庫管理コンテキスト"
+        subgraph "食材管理機能"
+            UC1[食材を登録する]
+            UC2[食材情報を更新する]
+            UC3[食材を削除する]
+            UC4[在庫を消費する]
+            UC5[在庫を補充する]
+            UC6[食材一覧を見る]
+            UC7[期限切れ食材を確認する]
+            UC8[カテゴリー別に表示する]
+            UC9[保存場所別に表示する]
+        end
+
+        subgraph "買い物サポート機能"
+            UC12[買い物モードを開始する]
+            UC13[在庫を素早く確認する]
+            UC14[最近確認した食材を見る]
+            UC15[カテゴリー別クイックアクセス]
+        end
+
         UC10[期限チェックを実行する]
         UC11[期限通知を生成する]
     end
 
-    %% ユーザーのユースケース
+    %% ユーザーのユースケース（食材管理）
     USER --> UC1
     USER --> UC2
     USER --> UC3
@@ -86,6 +97,12 @@ graph TB
     USER --> UC7
     USER --> UC8
     USER --> UC9
+
+    %% ユーザーのユースケース（買い物サポート）
+    USER --> UC12
+    USER --> UC13
+    USER --> UC14
+    USER --> UC15
 
     %% タイマーのユースケース
     TIMER --> UC10
@@ -97,11 +114,14 @@ graph TB
     UC1 -.->|<<include>>| UC6
     UC4 -.->|<<include>>| UC6
     UC5 -.->|<<include>>| UC6
+    UC12 -.->|<<include>>| UC13
+    UC13 -.->|<<extend>>| UC15
+    UC13 -.->|<<extend>>| UC14
 ```
 
 ## 3. ドメインモデル図（Domain Model Diagram）
 
-食材管理コンテキストの中核となるドメインモデルを示します。UserIdはユーザー認証コンテキストから提供される値オブジェクトです。
+食材・在庫管理コンテキストの中核となるドメインモデルを示します。UserIdはユーザー認証コンテキストから提供される値オブジェクトです。
 
 ```mermaid
 classDiagram
@@ -149,6 +169,28 @@ classDiagram
         +getDisplayDate(): string
     }
 
+    class ShoppingSession {
+        -ShoppingSessionId id
+        -UserId userId
+        -StartedAt startedAt
+        -CompletedAt completedAt
+        -CheckedItems[] checkedItems
+        +start(): void
+        +checkItem(ingredientId: IngredientId): void
+        +complete(): void
+        +getDuration(): number
+    }
+
+    class QuickAccessView {
+        <<view>>
+        -UserId userId
+        -RecentItems[] recentItems
+        -CategoryGroups[] groups
+        +getRecentItems(limit: number): Ingredient[]
+        +getByCategory(categoryId: CategoryId): Ingredient[]
+        +updateLastAccessed(ingredientId: IngredientId): void
+    }
+
     class Category {
         -CategoryId id
         -CategoryName name
@@ -183,6 +225,7 @@ classDiagram
         +ExpiryCheckService
         +DuplicateCheckService
         +StockCalculationService
+        +ShoppingAssistService
     }
 
     %% 関連
@@ -191,8 +234,13 @@ classDiagram
     Ingredient "0..*" --> "1" Category : belongs to
     Ingredient --> UserId : has
     IngredientStock "1" --> "1" Unit : measured in
+    ShoppingSession --> UserId : has
+    ShoppingSession "0..*" --> "0..*" Ingredient : checks
+    QuickAccessView --> UserId : has
+    QuickAccessView "1" --> "0..*" Ingredient : displays
     IngredientRepository ..> Ingredient : manages
     DomainService ..> Ingredient : uses
+    DomainService ..> ShoppingSession : uses
 ```
 
 ## 4. オブジェクト図（Object Diagram）
@@ -282,6 +330,30 @@ stateDiagram-v2
     end note
 ```
 
+### シナリオ4: 買い物モードでの在庫確認
+
+```mermaid
+graph LR
+    subgraph "買い物セッション"
+        SESSION[session:ShoppingSession<br/>id='ss_001'<br/>userId='user_01HX5K3J2BXVMH3Z4K5N6P7Q8R'<br/>startedAt='2025-01-24 18:30']
+
+        CHECK1[check1:ItemCheck<br/>ingredientId='ing1'<br/>name='鶏もも肉'<br/>stock='在庫あり'<br/>checkedAt='18:31']
+        CHECK2[check2:ItemCheck<br/>ingredientId='ing2'<br/>name='トマト'<br/>stock='在庫なし'<br/>checkedAt='18:32']
+    end
+
+    subgraph "クイックアクセスビュー"
+        QAV[quickAccess:QuickAccessView<br/>userId='user_01HX5K3J2BXVMH3Z4K5N6P7Q8R']
+        RECENT["recentItems:<br/>['トマト', '鶏もも肉', '牛乳']"]
+        CAT_VIEW["categoryView:<br/>野菜: ['トマト', 'キャベツ']<br/>肉類: ['鶏もも肉', '豚肉']"]
+    end
+
+    SESSION --> CHECK1
+    SESSION --> CHECK2
+    QAV --> RECENT
+    QAV --> CAT_VIEW
+    CHECK2 -->|updates| RECENT
+```
+
 ## 5. コンテキスト内の重要な不変条件
 
 1. **認証の必須性**
@@ -309,8 +381,14 @@ stateDiagram-v2
    - 同一ユーザー内で「名前＋賞味期限＋保存場所」の組み合わせは一意
 
 6. **削除の制約**
+
    - 論理削除のみ（履歴保持）
    - カテゴリー・単位は使用中は削除不可
+
+7. **買い物モードの制約**
+   - 買い物セッションは同時に1つのみアクティブ
+   - 在庫確認は読み取り専用（買い物モードでは更新不可）
+   - クイックアクセスの履歴は最新20件まで保持
 
 ## 6. 他コンテキストとの連携
 
@@ -320,17 +398,12 @@ stateDiagram-v2
 - 認証状態の確認API
 - セッション検証
 
-### 買い物サポートコンテキストへの情報提供
-
-- 在庫状態の照会API
-- 期限情報の提供
-- カテゴリー別データの提供
-
 ### 通知サービスへのイベント発行
 
 - `IngredientExpiringSoon`: 期限3日前
 - `StockDepleted`: 在庫切れ
 - `IngredientExpired`: 期限切れ
+- `ShoppingSessionCompleted`: 買い物セッション完了
 
 ### 共有カーネルの利用
 
@@ -345,3 +418,4 @@ stateDiagram-v2
 | ---------- | ------------------------------------------ | ---------- |
 | 2025-06-24 | 初版作成                                   | @komei0727 |
 | 2025-06-24 | ユーザー認証コンテキストとの統合に伴う修正 | Claude     |
+| 2025-06-28 | 買い物サポート機能の統合に伴う修正         | Claude     |

@@ -1,4 +1,8 @@
-import { type PrismaClient, Prisma } from '@/generated/prisma'
+import {
+  type PrismaClient,
+  Prisma,
+  type StorageLocation as PrismaStorageLocation,
+} from '@/generated/prisma'
 
 import { Ingredient } from '../../domain/entities/ingredient.entity'
 import {
@@ -8,7 +12,7 @@ import {
   Memo,
   Price,
   StorageLocation,
-  type StorageType,
+  StorageType,
   UnitId,
   ExpiryInfo,
   IngredientStock,
@@ -46,7 +50,9 @@ export class PrismaIngredientRepository implements IngredientRepository {
         unitId: ingredientStock.getUnitId().getValue(),
         threshold: ingredientStock.getThreshold(),
         // 保存場所
-        storageLocationType: ingredientStock.getStorageLocation().getType(),
+        storageLocationType: this.mapStorageTypeToPrismaStorageLocation(
+          ingredientStock.getStorageLocation().getType()
+        ),
         storageLocationDetail: ingredientStock.getStorageLocation().getDetail() || null,
         // 期限情報
         bestBeforeDate: expiryInfo?.getBestBeforeDate() || null,
@@ -67,7 +73,9 @@ export class PrismaIngredientRepository implements IngredientRepository {
         unitId: ingredientStock.getUnitId().getValue(),
         threshold: ingredientStock.getThreshold(),
         // 保存場所
-        storageLocationType: ingredientStock.getStorageLocation().getType(),
+        storageLocationType: this.mapStorageTypeToPrismaStorageLocation(
+          ingredientStock.getStorageLocation().getType()
+        ),
         storageLocationDetail: ingredientStock.getStorageLocation().getDetail() || null,
         // 期限情報
         bestBeforeDate: expiryInfo?.getBestBeforeDate() || null,
@@ -285,7 +293,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     const results = await this.prisma.ingredient.findMany({
       where: {
         userId,
-        storageLocationType: location,
+        storageLocationType: this.mapStorageTypeToPrismaStorageLocation(location),
         deletedAt: null,
       },
       orderBy: { createdAt: 'desc' },
@@ -376,7 +384,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     const where: Prisma.IngredientWhereInput = {
       userId,
       name: name.getValue(),
-      storageLocationType: location.getType(),
+      storageLocationType: this.mapStorageTypeToPrismaStorageLocation(location.getType()),
       storageLocationDetail: location.getDetail() || null,
       deletedAt: null,
     }
@@ -584,6 +592,40 @@ export class PrismaIngredientRepository implements IngredientRepository {
   }
 
   /**
+   * PrismaのStorageLocationをドメインのStorageTypeに変換
+   */
+  private mapPrismaStorageLocationToStorageType(
+    prismaLocation: PrismaStorageLocation
+  ): StorageType {
+    switch (prismaLocation) {
+      case 'REFRIGERATED':
+        return StorageType.REFRIGERATED
+      case 'FROZEN':
+        return StorageType.FROZEN
+      case 'ROOM_TEMPERATURE':
+        return StorageType.ROOM_TEMPERATURE
+      default:
+        throw new Error(`Unknown storage location type: ${prismaLocation}`)
+    }
+  }
+
+  /**
+   * ドメインのStorageTypeをPrismaのStorageLocationに変換
+   */
+  private mapStorageTypeToPrismaStorageLocation(storageType: StorageType): PrismaStorageLocation {
+    switch (storageType) {
+      case StorageType.REFRIGERATED:
+        return 'REFRIGERATED'
+      case StorageType.FROZEN:
+        return 'FROZEN'
+      case StorageType.ROOM_TEMPERATURE:
+        return 'ROOM_TEMPERATURE'
+      default:
+        throw new Error(`Unknown storage type: ${storageType}`)
+    }
+  }
+
+  /**
    * Prismaの結果をエンティティに変換
    */
   private toEntity(data: {
@@ -597,7 +639,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     quantity: number
     unitId: string
     threshold: number | null
-    storageLocationType: StorageLocation
+    storageLocationType: PrismaStorageLocation
     storageLocationDetail: string | null
     bestBeforeDate: Date | null
     useByDate: Date | null
@@ -610,7 +652,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       quantity: data.quantity,
       unitId: new UnitId(data.unitId),
       storageLocation: new StorageLocation(
-        data.storageLocationType as unknown as StorageType,
+        this.mapPrismaStorageLocationToStorageType(data.storageLocationType),
         data.storageLocationDetail || undefined
       ),
       threshold: data.threshold,

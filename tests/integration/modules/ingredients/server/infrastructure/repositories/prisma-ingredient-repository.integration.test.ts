@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { faker } from '@faker-js/faker/locale/ja'
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
@@ -21,6 +20,7 @@ import {
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
+  createTestUser,
 } from '../../../../../../helpers/database.helper'
 
 // テストデータ生成用のヘルパー関数
@@ -44,7 +44,7 @@ const createIngredientForIntegrationTest = () => {
   })
 
   return new IngredientBuilder()
-    .withUserId('test-user-' + faker.string.uuid())
+    .withUserId(testDataIds.users.defaultUser.domainUserId)
     .withCategoryId(testDataIds.categories.vegetable) // 実在するカテゴリーID
     .withIngredientStock(stock)
     .withPrice(
@@ -145,7 +145,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       // Given: 既存の食材を作成
       const testDataIds = getTestDataIds()
       const ingredientId = IngredientId.generate()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const oldName = faker.food.ingredient()
       const oldMemo = faker.lorem.sentence()
       await prisma.ingredient.create({
@@ -199,7 +199,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       // Given: テストデータを作成
       const testDataIds = getTestDataIds()
       const ingredientId = testDataHelpers.ingredientId()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const ingredientName = faker.food.ingredient()
       const ingredientMemo = faker.lorem.sentence()
       const stockQuantity = faker.number.float({ min: 1, max: 20, fractionDigits: 2 })
@@ -240,7 +240,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
     it('存在しないIDの場合nullを返す', async () => {
       // When: 存在しないIDで検索
-      const userId = 'test-user-123'
+      const testDataIds = getTestDataIds()
+      const userId = testDataIds.users.defaultUser.domainUserId
       const nonExistentId = testDataHelpers.ingredientId()
       const found = await repository.findById(userId, new IngredientId(nonExistentId))
 
@@ -252,7 +253,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       // Given: 論理削除された食材
       const testDataIds = getTestDataIds()
       const ingredientId = testDataHelpers.ingredientId()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const deletedIngredientName = faker.food.ingredient()
       await prisma.ingredient.create({
         data: {
@@ -281,7 +282,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       // Given: テストデータ
       const testDataIds = getTestDataIds()
       const ingredientId = testDataHelpers.ingredientId()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const ingredientName = faker.food.ingredient()
       await prisma.ingredient.create({
         data: {
@@ -308,7 +309,8 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       // Given: 同名の食材を複数作成
       const testDataIds = getTestDataIds()
       const duplicateName = faker.food.ingredient()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
+      const altUser = await createTestUser({ email: 'alt-user@example.com' })
       const id1 = testDataHelpers.ingredientId()
       const id2 = testDataHelpers.ingredientId()
       await prisma.ingredient.createMany({
@@ -325,7 +327,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
           },
           {
             id: id2,
-            userId: 'test-user-456',
+            userId: altUser.domainUserId,
             name: duplicateName,
             categoryId: testDataIds.categories.meatFish,
             purchaseDate: new Date(),
@@ -349,7 +351,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('すべての食材を取得できる', async () => {
       // Given: 複数の食材を作成
       const testDataIds = getTestDataIds()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const names = Array.from({ length: 3 }, () => faker.food.ingredient())
       await prisma.ingredient.createMany({
         data: [
@@ -400,7 +402,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('論理削除された食材は含まれない', async () => {
       // Given: 削除済みと通常の食材
       const testDataIds = getTestDataIds()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const activeName = faker.food.ingredient()
       const deletedName = faker.food.ingredient()
       await prisma.ingredient.createMany({
@@ -442,8 +444,9 @@ describe('PrismaIngredientRepository Integration Tests', () => {
     it('ユーザーIDで食材を検索できる', async () => {
       // Given: 複数ユーザーの食材
       const testDataIds = getTestDataIds()
-      const userId1 = 'test-user-123'
-      const userId2 = 'test-user-456'
+      const userId1 = testDataIds.users.defaultUser.domainUserId
+      const altUser = await createTestUser({ email: 'alt-user2@example.com' })
+      const userId2 = altUser.domainUserId
       const name1 = `${faker.food.ingredient()}_user1_1`
       const name2 = `${faker.food.ingredient()}_user1_2`
       const name3 = `${faker.food.ingredient()}_user2_1`
@@ -500,7 +503,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       // Given: 食材を作成
       const testDataIds = getTestDataIds()
       const ingredientId = testDataHelpers.ingredientId()
-      const userId = 'test-user-123'
+      const userId = testDataIds.users.defaultUser.domainUserId
       const ingredientName = faker.food.ingredient()
       await prisma.ingredient.create({
         data: {
@@ -543,7 +546,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       const ingredient = new IngredientBuilder()
-        .withUserId('test-user-123')
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(nonExistentCategoryId)
         .withIngredientStock(stock)
         .build()
@@ -563,7 +566,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
 
       const testDataIds = getTestDataIds()
       const ingredient = new IngredientBuilder()
-        .withUserId('test-user-123')
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withIngredientStock(stock)
         .build()
@@ -585,7 +588,7 @@ describe('PrismaIngredientRepository Integration Tests', () => {
       })
 
       const ingredient = new IngredientBuilder()
-        .withUserId('test-user-123')
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withIngredientStock(stock)
         .withPrice(new Price(precisePrice))

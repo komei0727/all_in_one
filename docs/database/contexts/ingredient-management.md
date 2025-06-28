@@ -53,6 +53,9 @@
 - `idx_ingredients_user_name_deleted` - ユーザー別食材名検索（削除済み除外）
 - `idx_ingredients_expiry_dates` - 期限によるソート（best_before_date, use_by_date）
 - `idx_ingredients_storage_location` - 保存場所別検索
+- `idx_ingredients_user_category_deleted` - ユーザー・カテゴリー・削除状態の複合インデックス（買い物モード最適化）
+- `idx_ingredients_quantity_threshold` - 在庫状態判定用（quantity, threshold）
+- `idx_ingredients_updated_at` - 最終更新日時順ソート
 
 ### （削除）ingredient_stocks（食材在庫）テーブル
 
@@ -121,11 +124,161 @@
 - `idx_units_display_order` - 表示順ソート
 - `idx_units_is_active` - 有効な単位のフィルタリング
 
+### shopping_sessions（買い物セッション）テーブル
+
+買い物モードでの活動セッションを管理するテーブル。
+
+| カラム名     | 型        | 制約                   | 説明                                |
+| ------------ | --------- | ---------------------- | ----------------------------------- |
+| id           | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                |
+| user_id      | TEXT      | NOT NULL               | ユーザーID（セッションの所有者）    |
+| status       | TEXT      | NOT NULL               | セッション状態（ACTIVE/COMPLETED）  |
+| started_at   | TIMESTAMP | NOT NULL DEFAULT NOW() | セッション開始日時                  |
+| completed_at | TIMESTAMP | NULL                   | セッション完了日時                  |
+| device_type  | TEXT      | NULL                   | デバイスタイプ（mobile/tablet/web） |
+| location     | JSONB     | NULL                   | 位置情報（店舗名等）                |
+| metadata     | JSONB     | NULL                   | その他のメタデータ                  |
+| created_at   | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                            |
+| updated_at   | TIMESTAMP | NOT NULL               | 更新日時                            |
+
+**制約**:
+
+- `check_session_status` - ステータスは定義された値のみ
+  ```sql
+  CHECK (status IN ('ACTIVE', 'COMPLETED'))
+  ```
+- `check_completion_consistency` - 完了時刻は開始時刻以降
+  ```sql
+  CHECK (completed_at IS NULL OR completed_at >= started_at)
+  ```
+
+**ユニーク制約**:
+
+- `unique_active_session_per_user` - ユーザー毎に1つのアクティブセッション
+  ```sql
+  UNIQUE (user_id) WHERE status = 'ACTIVE'
+  ```
+
+**インデックス**:
+
+- `idx_shopping_sessions_user_status` - ユーザー別・ステータス別検索
+- `idx_shopping_sessions_started_at` - 開始日時順ソート
+- `idx_shopping_sessions_active` - アクティブセッション検索（WHERE status = 'ACTIVE'）
+
+### shopping_session_items（買い物セッション確認履歴）テーブル
+
+買い物セッション中に確認した食材の履歴を記録するテーブル。
+
+| カラム名        | 型        | 制約                   | 説明                                        |
+| --------------- | --------- | ---------------------- | ------------------------------------------- |
+| id              | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                        |
+| session_id      | TEXT      | NOT NULL, FOREIGN KEY  | 買い物セッションID                          |
+| ingredient_id   | TEXT      | NOT NULL, FOREIGN KEY  | 食材ID                                      |
+| ingredient_name | TEXT      | NOT NULL               | 確認時点の食材名（スナップショット）        |
+| stock_status    | TEXT      | NOT NULL               | 在庫状態（IN_STOCK/OUT_OF_STOCK/LOW_STOCK） |
+| expiry_status   | TEXT      | NULL                   | 期限状態（FRESH/EXPIRING_SOON/EXPIRED）     |
+| checked_at      | TIMESTAMP | NOT NULL DEFAULT NOW() | 確認日時                                    |
+| metadata        | JSONB     | NULL                   | その他の確認時メタデータ                    |
+
+**制約**:
+
+- `check_stock_status` - 在庫状態は定義された値のみ
+  ```sql
+  CHECK (stock_status IN ('IN_STOCK', 'OUT_OF_STOCK', 'LOW_STOCK'))
+  ```
+- `check_expiry_status` - 期限状態は定義された値のみ
+  ```sql
+  CHECK (expiry_status IS NULL OR expiry_status IN ('FRESH', 'EXPIRING_SOON', 'EXPIRED'))
+  ```
+
+**ユニーク制約**:
+
+- `unique_session_ingredient_check` - セッション内での食材重複確認防止
+  ```sql
+  UNIQUE (session_id, ingredient_id)
+  ```
+
+**インデックス**:
+
+- `idx_session_items_session_id` - セッション別確認履歴検索
+- `idx_session_items_ingredient_id` - 食材別確認履歴検索
+- `idx_session_items_checked_at` - 確認日時順ソート
+- `idx_session_items_stock_status` - 在庫状態別分析
+
+### quick_access_view（クイックアクセスビュー）
+
+最近確認した食材とよく確認する食材を効率的に取得するためのマテリアライズドビュー。
+
+```sql
+CREATE MATERIALIZED VIEW quick_access_view AS
+SELECT
+  user_id,
+  ingredient_id,
+  ingredient_name,
+  last_checked_at,
+  check_count,
+  avg_days_between_checks,
+  'RECENT' as access_type
+FROM (
+  -- 最近確認した食材（過去30日以内）
+  SELECT
+    s.user_id,
+    si.ingredient_id,
+    si.ingredient_name,
+    MAX(si.checked_at) as last_checked_at,
+    COUNT(*) as check_count,
+    CASE
+      WHEN COUNT(*) > 1 THEN
+        EXTRACT(DAYS FROM (MAX(si.checked_at) - MIN(si.checked_at))) / (COUNT(*) - 1)
+      ELSE NULL
+    END as avg_days_between_checks
+  FROM shopping_sessions s
+  JOIN shopping_session_items si ON s.id = si.session_id
+  WHERE si.checked_at >= NOW() - INTERVAL '30 days'
+  GROUP BY s.user_id, si.ingredient_id, si.ingredient_name
+  ORDER BY last_checked_at DESC
+  LIMIT 20
+)
+UNION ALL
+SELECT
+  user_id,
+  ingredient_id,
+  ingredient_name,
+  last_checked_at,
+  check_count,
+  avg_days_between_checks,
+  'FREQUENT' as access_type
+FROM (
+  -- よく確認する食材（確認回数上位）
+  SELECT
+    s.user_id,
+    si.ingredient_id,
+    si.ingredient_name,
+    MAX(si.checked_at) as last_checked_at,
+    COUNT(*) as check_count,
+    CASE
+      WHEN COUNT(*) > 1 THEN
+        EXTRACT(DAYS FROM (MAX(si.checked_at) - MIN(si.checked_at))) / (COUNT(*) - 1)
+      ELSE NULL
+    END as avg_days_between_checks
+  FROM shopping_sessions s
+  JOIN shopping_session_items si ON s.id = si.session_id
+  WHERE si.checked_at >= NOW() - INTERVAL '90 days'
+  GROUP BY s.user_id, si.ingredient_id, si.ingredient_name
+  HAVING COUNT(*) >= 3
+  ORDER BY check_count DESC, last_checked_at DESC
+  LIMIT 20
+);
+
+CREATE UNIQUE INDEX idx_quick_access_view_user_ingredient_type
+  ON quick_access_view (user_id, ingredient_id, access_type);
+```
+
 ## ドメインイベント用テーブル
 
 ### domain_events（ドメインイベント）テーブル
 
-ドメインイベントを永続化するイベントストア。
+ドメインイベントを永続化するイベントストア。アウトボックスパターンに対応。
 
 | カラム名       | 型        | 制約                   | 説明                           |
 | -------------- | --------- | ---------------------- | ------------------------------ |
@@ -138,6 +291,8 @@
 | occurred_at    | TIMESTAMP | NOT NULL               | イベント発生日時               |
 | user_id        | TEXT      | NOT NULL               | イベント発生ユーザーID         |
 | correlation_id | TEXT      | NULL                   | 相関ID（関連イベントの追跡用） |
+| published      | BOOLEAN   | NOT NULL DEFAULT FALSE | 発行済みフラグ                 |
+| published_at   | TIMESTAMP | NULL                   | 発行日時                       |
 | created_at     | TIMESTAMP | NOT NULL DEFAULT NOW() | 記録日時                       |
 
 **インデックス**:
@@ -146,26 +301,85 @@
 - `idx_domain_events_type_occurred` - イベントタイプと発生日時
 - `idx_domain_events_correlation` - 相関IDによる関連イベント検索
 - `idx_domain_events_occurred_at` - 発生日時順ソート
+- `idx_domain_events_unpublished` - 未発行イベント検索（WHERE published = FALSE）
+- `idx_domain_events_user_type` - ユーザー別・イベントタイプ別検索
 
 ## パフォーマンス考慮事項
 
 ### インデックス戦略
 
-- 頻繁に検索される条件（カテゴリー、保存場所、期限）にインデックスを設定
-- 論理削除を考慮した複合インデックスの活用
-- ビューの基盤となるテーブルに適切なインデックスを配置
+#### 食材テーブル（ingredients）
 
-### パーティショニング検討
+- **基本検索**: ユーザー別、カテゴリー別、削除状態の複合インデックス
+- **買い物モード**: カテゴリー別食材取得の最適化（`idx_ingredients_user_category_deleted`）
+- **在庫判定**: 数量と閾値の複合インデックス（在庫状態の高速判定）
+- **期限管理**: 期限日の複合インデックス（期限切れ・期限間近の検索）
 
-将来的なデータ量増加に備えて：
+#### 買い物セッション関連テーブル
 
-- `ingredient_stock_histories`テーブルは月別パーティションを検討
-- `domain_events`テーブルは年月別パーティションを検討
+- **アクティブセッション検索**: `status = 'ACTIVE'`の条件付きインデックス
+- **履歴分析**: セッションID別、食材ID別、確認日時の複合インデックス
+- **統計集計**: マテリアライズドビュー（`quick_access_view`）の活用
+
+### パーティショニング戦略
+
+将来的なデータ量増加に備えた分割：
+
+#### 履歴テーブル
+
+- `ingredient_stock_histories`: 月別パーティション（operated_at基準）
+- `shopping_session_items`: 四半期別パーティション（checked_at基準）
+- `domain_events`: 年月別パーティション（occurred_at基準）
+
+#### パーティション保持期間
+
+- 在庫履歴: 3年間（税務要件を考慮）
+- 買い物履歴: 2年間（分析用途）
+- ドメインイベント: 1年間（監査ログ）
 
 ### クエリ最適化
 
-- 論理削除フィルタは全クエリに適用されるため、`deleted_at IS NULL`条件を含む複合インデックスを活用
-- 集計クエリは定期的にマテリアライズドビューとして更新することを検討
+#### 買い物モード最適化
+
+```sql
+-- カテゴリー別食材取得（最適化クエリ例）
+SELECT i.id, i.name, i.quantity, i.threshold,
+       CASE
+         WHEN i.quantity = 0 THEN 'OUT_OF_STOCK'
+         WHEN i.threshold IS NOT NULL AND i.quantity <= i.threshold THEN 'LOW_STOCK'
+         ELSE 'IN_STOCK'
+       END as stock_status
+FROM ingredients i
+WHERE i.user_id = $1
+  AND i.category_id = $2
+  AND i.deleted_at IS NULL
+ORDER BY
+  CASE
+    WHEN i.quantity = 0 THEN 1
+    WHEN i.threshold IS NOT NULL AND i.quantity <= i.threshold THEN 2
+    ELSE 3
+  END,
+  i.name;
+```
+
+#### 統計集計の最適化
+
+- **マテリアライズドビューの定期更新**: 1時間毎
+- **集計クエリのキャッシュ**: Redis活用（5分TTL）
+- **バッチ処理**: 夜間バッチで重い集計処理を実行
+
+### メモリ最適化
+
+#### 接続プール設定
+
+- **最大接続数**: 20（Webアプリ用）+ 5（バッチ処理用）
+- **アイドルタイムアウト**: 30分
+- **接続ライフタイム**: 1時間
+
+#### クエリプランキャッシュ
+
+- **Prepared Statement**: 頻繁に実行されるクエリで活用
+- **Query Plan Cache**: PostgreSQLの自動最適化を活用
 
 ## セキュリティ考慮事項
 
@@ -194,6 +408,72 @@ CREATE POLICY "Users can view own stock history" ON ingredient_stock_histories
       SELECT id FROM ingredients WHERE user_id = auth.uid()
     )
   );
+
+-- 買い物セッションは所有者のみ操作可能
+CREATE POLICY "Users can manage own shopping sessions" ON shopping_sessions
+  FOR ALL USING (user_id = auth.uid());
+
+-- 買い物履歴は所有者のみ参照可能
+CREATE POLICY "Users can view own shopping history" ON shopping_session_items
+  FOR SELECT USING (
+    session_id IN (
+      SELECT id FROM shopping_sessions WHERE user_id = auth.uid()
+    )
+  );
+
+-- クイックアクセスビューは所有者のみ参照可能
+CREATE POLICY "Users can view own quick access" ON quick_access_view
+  FOR SELECT USING (user_id = auth.uid());
+
+-- ドメインイベントは所有者のみ参照可能（管理用）
+CREATE POLICY "Users can view own domain events" ON domain_events
+  FOR SELECT USING (user_id = auth.uid());
+```
+
+### 集約境界とトランザクション管理
+
+#### 集約ルート経由のアクセス保証
+
+```sql
+-- 在庫履歴は必ず有効な食材IDを参照
+ALTER TABLE ingredient_stock_histories
+ADD CONSTRAINT fk_stock_history_ingredient
+FOREIGN KEY (ingredient_id)
+REFERENCES ingredients(id)
+ON DELETE RESTRICT;
+
+-- 買い物履歴は必ず有効なセッションと食材を参照
+ALTER TABLE shopping_session_items
+ADD CONSTRAINT fk_session_item_session
+FOREIGN KEY (session_id)
+REFERENCES shopping_sessions(id)
+ON DELETE CASCADE;
+
+ALTER TABLE shopping_session_items
+ADD CONSTRAINT fk_session_item_ingredient
+FOREIGN KEY (ingredient_id)
+REFERENCES ingredients(id)
+ON DELETE RESTRICT;
+```
+
+#### 一貫性制約
+
+```sql
+-- アクティブセッション数制限（ユーザー毎に1つまで）
+CREATE UNIQUE INDEX idx_unique_active_session
+ON shopping_sessions (user_id)
+WHERE status = 'ACTIVE';
+
+-- セッション内食材重複防止
+CREATE UNIQUE INDEX idx_unique_session_ingredient
+ON shopping_session_items (session_id, ingredient_id);
+
+-- 論理削除された食材の一意性制約
+CREATE UNIQUE INDEX idx_unique_active_ingredient
+ON ingredients (user_id, name,
+                best_before_date, use_by_date,
+                storage_location_type, storage_location_detail)
+WHERE deleted_at IS NULL;
 ```
 
 ## 更新履歴
@@ -202,3 +482,4 @@ CREATE POLICY "Users can view own stock history" ON ingredient_stock_histories
 | ---------- | ----------------------------------------------------------------------------------------------- | ---------- |
 | 2025-06-22 | 初版作成 - DDD設計に基づくテーブル構成                                                          | @komei0727 |
 | 2025-06-24 | 集約設計に合わせて修正：ingredient_stocksをingredientsに統合、user_id追加、CASCADE→RESTRICT変更 | Claude     |
+| 2025-06-28 | 買い物サポート機能統合：買い物セッションテーブル追加、インデックス最適化、パフォーマンス改善    | Claude     |

@@ -47,6 +47,10 @@ export async function resetDatabase(): Promise<void> {
     prisma.ingredientStockHistory.deleteMany(),
     prisma.domainEvent.deleteMany(),
 
+    // 買い物セッション関連（外部キー制約のため先に削除）
+    prisma.shoppingSessionItem.deleteMany(),
+    prisma.shoppingSession.deleteMany(),
+
     // メインテーブル
     prisma.ingredient.deleteMany(),
 
@@ -104,6 +108,13 @@ export interface TestDataIds {
     gram: string
     milliliter: string
   }
+  users: {
+    defaultUser: {
+      nextAuthId: string
+      domainUserId: string
+      email: string
+    }
+  }
 }
 
 let testDataIds: TestDataIds | null = null
@@ -127,15 +138,22 @@ export async function seedTestData(): Promise<TestDataIds> {
 
   // ID生成（新しいID形式）
   const categoryIds = {
-    vegetable: 'cat_' + createId(),
-    meatFish: 'cat_' + createId(),
-    seasoning: 'cat_' + createId(),
+    vegetable: `cat_${createId()}`,
+    meatFish: `cat_${createId()}`,
+    seasoning: `cat_${createId()}`,
   }
 
   const unitIds = {
-    piece: 'unt_' + createId(),
-    gram: 'unt_' + createId(),
-    milliliter: 'unt_' + createId(),
+    piece: `unt_${createId()}`,
+    gram: `unt_${createId()}`,
+    milliliter: `unt_${createId()}`,
+  }
+
+  // ユーザーID生成
+  const userIds = {
+    nextAuthId: `nextauth_${createId()}`,
+    domainUserId: `usr_${createId()}`,
+    email: 'test@example.com',
   }
 
   // カテゴリーの作成
@@ -162,12 +180,70 @@ export async function seedTestData(): Promise<TestDataIds> {
     ],
   })
 
+  // テストユーザーの作成
+  // NextAuthユーザーを先に作成
+  await prisma.user.create({
+    data: {
+      id: userIds.nextAuthId,
+      email: userIds.email,
+      emailVerified: new Date(),
+    },
+  })
+
+  // ドメインユーザーを作成
+  await prisma.domainUser.create({
+    data: {
+      id: userIds.domainUserId,
+      nextAuthId: userIds.nextAuthId,
+      email: userIds.email,
+      displayName: 'Test User',
+    },
+  })
+
   testDataIds = {
     categories: categoryIds,
     units: unitIds,
+    users: {
+      defaultUser: userIds,
+    },
   }
 
   return testDataIds
+}
+
+/**
+ * テスト用ユーザーを作成
+ */
+export async function createTestUser(userData?: {
+  email?: string
+  displayName?: string
+}): Promise<{ nextAuthId: string; domainUserId: string; email: string }> {
+  const prisma = getTestPrismaClient()
+
+  const nextAuthId = `nextauth_${createId()}`
+  const domainUserId = `usr_${createId()}`
+  const email = userData?.email || `test-${createId()}@example.com`
+
+  // NextAuthユーザーを先に作成
+  await prisma.user.create({
+    data: {
+      id: nextAuthId,
+      email,
+      emailVerified: new Date(),
+    },
+  })
+
+  // ドメインユーザーを作成
+  await prisma.domainUser.create({
+    data: {
+      id: domainUserId,
+      nextAuthId,
+      email,
+      displayName: userData?.displayName || 'Test User',
+    },
+  })
+
+  return { nextAuthId, domainUserId, email }
 }
 
 /**

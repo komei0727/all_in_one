@@ -224,10 +224,10 @@ describe('ExpiryInfo', () => {
     })
 
     it('異なる値の場合はfalse', () => {
-      const expiryInfo1 = new ExpiryInfoBuilder().withRandomFutureBestBeforeDate().build()
-      const expiryInfo2 = new ExpiryInfoBuilder().withRandomFutureBestBeforeDate().build()
+      const expiryInfo1 = new ExpiryInfoBuilder().withBestBeforeDaysFromNow(10).build()
+      const expiryInfo2 = new ExpiryInfoBuilder().withBestBeforeDaysFromNow(20).build()
 
-      // ランダムに生成した日付は異なるはず
+      // 異なる日付で作成したので異なるはず
       expect(expiryInfo1.equals(expiryInfo2)).toBe(false)
     })
 
