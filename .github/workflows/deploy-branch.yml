@@ -113,7 +113,11 @@ jobs:
             echo "🔄 Health check attempt $i/$MAX_ATTEMPTS..."
 
             # ヘルスチェック実行
-            if response=$(curl -s -w "%{http_code}" "$HEALTH_URL" --connect-timeout 10 --max-time 30); then
+            if response=$(curl -s -w "%{http_code}" "$HEALTH_URL" \
+              --connect-timeout 10 \
+              --max-time 30 \
+              -H "User-Agent: GitHub-Actions-Health-Check" \
+              -H "Accept: application/json"); then
               http_code="${response: -3}"
               body="${response%???}"
 
@@ -127,6 +131,8 @@ jobs:
                   SUCCESS=true
                   break
                 fi
+              else
+                echo "❌ Error response: $body"
               fi
             else
               echo "❌ Connection failed"
