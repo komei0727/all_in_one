@@ -84,16 +84,17 @@ describe('GET /api/health', () => {
         status: 'connected',
         responseTime: expect.stringMatching(/^\d+ms$/),
       },
-      deployment: {
-        id: null, // テスト環境ではnull
-        commit: null, // テスト環境ではnull
-        url: null, // テスト環境ではnull
-      },
       checks: {
         ready: true,
         healthy: true,
       },
     })
+    // deployment部分は別途検証（urlが環境により異なるため）
+    expect(data.deployment).toMatchObject({
+      id: null,
+      commit: null,
+    })
+    expect(data.deployment).toHaveProperty('url')
     expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
   })
 
