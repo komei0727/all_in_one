@@ -102,7 +102,7 @@ jobs:
 
           # デプロイURL（Preview環境）
           DEPLOYMENT_URL="https://all-in-one-git-deploy-komei0727s-projects.vercel.app"
-          HEALTH_URL="${DEPLOYMENT_URL}/api/health?detailed=true"
+          HEALTH_URL="${DEPLOYMENT_URL}/api/health"
 
           # リトライ設定
           MAX_ATTEMPTS=20
@@ -118,22 +118,15 @@ jobs:
               body="${response%???}"
               
               echo "📊 HTTP Status: $http_code"
-              echo "📋 Response: $body"
               
-              # HTTPステータスが200の場合
+              # HTTPステータスが200でstatus: okの場合
               if [ "$http_code" = "200" ]; then
-                # JSONレスポンスからステータスを確認
                 if echo "$body" | jq -e '.status == "ok"' > /dev/null 2>&1; then
-                  echo "✅ Health check passed! Preview deployment is ready."
+                  echo "✅ Health check passed!"
                   echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-                  echo "health_status=healthy" >> $GITHUB_OUTPUT
                   SUCCESS=true
                   break
-                else
-                  echo "❌ Service returned error status"
                 fi
-              else
-                echo "❌ HTTP error: $http_code"
               fi
             else
               echo "❌ Connection failed"
@@ -147,8 +140,6 @@ jobs:
 
           if [ "$SUCCESS" = false ]; then
             echo "💥 Health check failed after $MAX_ATTEMPTS attempts"
-            echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-            echo "health_status=failed" >> $GITHUB_OUTPUT
             exit 1
           fi
 
@@ -156,7 +147,6 @@ jobs:
         run: |
           echo "🚀 Deploy branch has been updated and deployed to preview environment"
           echo "Preview URL: ${{ steps.waitForVercel.outputs.deployment_url }}"
-          echo "Health Status: ${{ steps.waitForVercel.outputs.health_status }}"
 
   # カバレッジレポートをGitHub Pagesにデプロイ
   deploy-coverage:
