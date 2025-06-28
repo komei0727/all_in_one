@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { faker } from '@faker-js/faker/locale/ja'
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
@@ -28,7 +27,7 @@ import {
 const createTestCommand = () => {
   const testDataIds = getTestDataIds()
   return new CreateIngredientCommandBuilder()
-    .withUserId('test-user-' + faker.string.uuid())
+    .withUserId(testDataIds.users.defaultUser.domainUserId) // 実在するユーザーIDを使用
     .withCategoryId(testDataIds.categories.vegetable) // 統合テストなので実在するカテゴリーID
     .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece) // 統合テストなので実在する単位ID
     .withStorageLocation({
@@ -117,7 +116,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       // Given: メモなしのコマンド
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
@@ -142,7 +141,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       // Given: 価格なしのコマンド
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
@@ -167,7 +166,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       // Given: 期限なしのコマンド
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({ type: StorageType.REFRIGERATED })
@@ -193,7 +192,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const testDataIds = getTestDataIds()
       for (const storageType of storageTypes) {
         const command = new CreateIngredientCommandBuilder()
-          .withUserId('test-user-' + faker.string.uuid())
+          .withUserId(testDataIds.users.defaultUser.domainUserId)
           .withName(`${faker.food.ingredient()}_${storageType}`)
           .withCategoryId(testDataIds.categories.vegetable)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
@@ -220,7 +219,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
       for (const categoryId of categories) {
         const command = new CreateIngredientCommandBuilder()
-          .withUserId('test-user-' + faker.string.uuid())
+          .withUserId(testDataIds.users.defaultUser.domainUserId)
           .withName(`${faker.food.ingredient()}_${categoryId}`)
           .withCategoryId(categoryId)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
@@ -249,7 +248,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
       for (const unitId of units) {
         const command = new CreateIngredientCommandBuilder()
-          .withUserId('test-user-' + faker.string.uuid())
+          .withUserId(testDataIds.users.defaultUser.domainUserId)
           .withName(`${faker.food.ingredient()}_${unitId}`)
           .withCategoryId(testDataIds.categories.vegetable)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), unitId)
@@ -278,7 +277,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const nonExistentCategoryId = testDataHelpers.categoryId()
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(nonExistentCategoryId)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
@@ -303,7 +302,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const nonExistentUnitId = testDataHelpers.unitId()
       const testDataIds = getTestDataIds()
       const command = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), nonExistentUnitId)
         .withStorageLocation({
@@ -349,7 +348,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const sameName = faker.food.ingredient()
       const testDataIds = getTestDataIds()
       const command1 = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withName(sameName)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
@@ -363,7 +362,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         .withPurchaseDate(new Date().toISOString())
         .build()
       const command2 = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withName(sameName)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
@@ -391,7 +390,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const testDataIds = getTestDataIds()
       const precisePrice = faker.number.float({ min: 100, max: 9999, fractionDigits: 2 })
       const command = new CreateIngredientCommandBuilder()
-        .withUserId('test-user-' + faker.string.uuid())
+        .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({

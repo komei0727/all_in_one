@@ -2,22 +2,35 @@
 import { createId } from '@paralleldrive/cuid2'
 import cuid from 'cuid'
 
-import { PrismaClient, StorageLocation, UnitType, Prisma } from '@/generated/prisma'
+import {
+  PrismaClient,
+  StorageLocation,
+  UnitType,
+  SessionStatus,
+  StockStatus,
+  ExpiryStatus,
+  Prisma,
+} from '@/generated/prisma'
 
 const prisma = new PrismaClient()
 
 // ID生成ヘルパー
 const generateId = {
-  category: () => 'cat_' + createId(),
-  unit: () => 'unt_' + createId(),
-  ingredient: () => 'ing_' + createId(),
-  user: () => 'usr_' + createId(),
+  category: () => `cat_${createId()}`,
+  unit: () => `unt_${createId()}`,
+  ingredient: () => `ing_${createId()}`,
+  user: () => `usr_${createId()}`,
+  session: () => `ses_${createId()}`,
+  sessionItem: () => `sit_${createId()}`,
 }
 
 async function main() {
   console.log('Starting seed...')
 
   // Delete existing data (順序に注意 - 外部キー制約を考慮)
+  await prisma.shoppingSessionItem.deleteMany()
+  await prisma.shoppingSession.deleteMany()
+  await prisma.ingredientStockHistory.deleteMany()
   await prisma.ingredient.deleteMany()
   await prisma.unit.deleteMany()
   await prisma.category.deleteMany()
@@ -44,7 +57,7 @@ async function main() {
   console.log(`Created NextAuth user: ${nextAuthUser.email}`)
 
   // Create domain user
-  const userId = 'usr_' + createId() // プレフィックス付きCUID v2形式
+  const userId = `usr_${createId()}` // プレフィックス付きCUID v2形式
   const domainUser = await prisma.domainUser.create({
     data: {
       id: userId,
@@ -233,14 +246,16 @@ async function main() {
       data: {
         id: generateId.ingredient(),
         name: 'トマト',
-        userId: userId,
+        userId,
         categoryId: categoryIds.vegetable,
         memo: '有機栽培',
         purchaseDate: now,
         price: new Prisma.Decimal(300),
         quantity: 3,
         unitId: unitIds.piece,
+        threshold: 2,
         storageLocationType: StorageLocation.REFRIGERATED,
+        storageLocationDetail: '野菜室',
         useByDate: nextWeek,
       },
     }),
@@ -248,13 +263,15 @@ async function main() {
       data: {
         id: generateId.ingredient(),
         name: '鶏もも肉',
-        userId: userId,
+        userId,
         categoryId: categoryIds.meatFish,
         purchaseDate: now,
         price: new Prisma.Decimal(450),
         quantity: 500,
         unitId: unitIds.gram,
+        threshold: 200,
         storageLocationType: StorageLocation.REFRIGERATED,
+        storageLocationDetail: 'チルド室',
         useByDate: tomorrow,
         bestBeforeDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
       },
@@ -263,13 +280,15 @@ async function main() {
       data: {
         id: generateId.ingredient(),
         name: '牛乳',
-        userId: userId,
+        userId,
         categoryId: categoryIds.dairy,
         purchaseDate: now,
         price: new Prisma.Decimal(250),
         quantity: 1,
         unitId: unitIds.liter,
+        threshold: 0.5,
         storageLocationType: StorageLocation.REFRIGERATED,
+        storageLocationDetail: 'ドアポケット',
         useByDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
       },
     }),
@@ -277,14 +296,16 @@ async function main() {
       data: {
         id: generateId.ingredient(),
         name: '卵',
-        userId: userId,
+        userId,
         categoryId: categoryIds.dairy,
         memo: 'Lサイズ',
         purchaseDate: now,
         price: new Prisma.Decimal(280),
         quantity: 10,
         unitId: unitIds.pack,
+        threshold: 5,
         storageLocationType: StorageLocation.REFRIGERATED,
+        storageLocationDetail: '上段',
         useByDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
       },
     }),
@@ -292,19 +313,151 @@ async function main() {
       data: {
         id: generateId.ingredient(),
         name: '醤油',
-        userId: userId,
+        userId,
         categoryId: categoryIds.seasoning,
         purchaseDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
         price: new Prisma.Decimal(350),
         quantity: 1,
         unitId: unitIds.bottle,
+        threshold: 0.2,
         storageLocationType: StorageLocation.ROOM_TEMPERATURE,
+        storageLocationDetail: '食器棚',
         useByDate: nextMonth,
       },
     }),
   ])
 
   console.log(`Created ${ingredients.length} sample ingredients`)
+
+  // Create sample shopping sessions and items
+  const sessionId = generateId.session()
+  const shoppingSession = await prisma.shoppingSession.create({
+    data: {
+      id: sessionId,
+      userId,
+      status: SessionStatus.COMPLETED,
+      startedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2時間前に開始
+      completedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1時間前に完了
+      deviceType: 'mobile',
+      location: JSON.stringify({ placeName: 'スーパーマーケット ABC' }),
+      metadata: JSON.stringify({ totalDuration: 3600 }),
+    },
+  })
+  console.log(`Created shopping session: ${shoppingSession.id}`)
+
+  // Create sample session items (確認履歴)
+  const sessionItems = await Promise.all([
+    prisma.shoppingSessionItem.create({
+      data: {
+        id: generateId.sessionItem(),
+        sessionId,
+        ingredientId: ingredients[0].id, // トマト
+        ingredientName: 'トマト',
+        stockStatus: StockStatus.LOW_STOCK,
+        expiryStatus: ExpiryStatus.FRESH,
+        checkedAt: new Date(now.getTime() - 90 * 60 * 1000), // 90分前
+        metadata: JSON.stringify({ note: '品質良好' }),
+      },
+    }),
+    prisma.shoppingSessionItem.create({
+      data: {
+        id: generateId.sessionItem(),
+        sessionId,
+        ingredientId: ingredients[1].id, // 鶏もも肉
+        ingredientName: '鶏もも肉',
+        stockStatus: StockStatus.OUT_OF_STOCK,
+        expiryStatus: null,
+        checkedAt: new Date(now.getTime() - 85 * 60 * 1000), // 85分前
+      },
+    }),
+    prisma.shoppingSessionItem.create({
+      data: {
+        id: generateId.sessionItem(),
+        sessionId,
+        ingredientId: ingredients[2].id, // 牛乳
+        ingredientName: '牛乳',
+        stockStatus: StockStatus.IN_STOCK,
+        expiryStatus: ExpiryStatus.EXPIRING_SOON,
+        checkedAt: new Date(now.getTime() - 80 * 60 * 1000), // 80分前
+      },
+    }),
+  ])
+
+  console.log(`Created shopping session with ${sessionItems.length} checked items`)
+
+  // Create sample stock histories
+  const stockHistories = await Promise.all([
+    prisma.ingredientStockHistory.create({
+      data: {
+        id: cuid(),
+        ingredientId: ingredients[0].id, // トマト
+        operationType: 'CONSUME',
+        quantityChange: -1,
+        quantityBefore: 4,
+        quantityAfter: 3,
+        reason: '夕食で使用',
+        operatedAt: new Date(now.getTime() - 24 * 60 * 60 * 1000), // 1日前
+        operatedBy: userId,
+      },
+    }),
+    prisma.ingredientStockHistory.create({
+      data: {
+        id: cuid(),
+        ingredientId: ingredients[1].id, // 鶏もも肉
+        operationType: 'REPLENISH',
+        quantityChange: 500,
+        quantityBefore: 0,
+        quantityAfter: 500,
+        reason: '購入',
+        operatedAt: now,
+        operatedBy: userId,
+      },
+    }),
+  ])
+
+  console.log(`Created ${stockHistories.length} stock history records`)
+
+  // Create sample domain events
+  const domainEvents = await Promise.all([
+    prisma.domainEvent.create({
+      data: {
+        id: cuid(),
+        aggregateId: ingredients[0].id,
+        aggregateType: 'Ingredient',
+        eventType: 'IngredientCreated',
+        eventData: JSON.stringify({
+          ingredientId: ingredients[0].id,
+          name: ingredients[0].name,
+          categoryId: ingredients[0].categoryId,
+          userId,
+        }),
+        eventVersion: 1,
+        occurredAt: now,
+        userId,
+        published: true,
+        publishedAt: now,
+      },
+    }),
+    prisma.domainEvent.create({
+      data: {
+        id: cuid(),
+        aggregateId: sessionId,
+        aggregateType: 'ShoppingSession',
+        eventType: 'ShoppingSessionStarted',
+        eventData: JSON.stringify({
+          sessionId,
+          userId,
+          deviceType: 'mobile',
+        }),
+        eventVersion: 1,
+        occurredAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+        userId,
+        published: false, // 未発行イベントのサンプル
+      },
+    }),
+  ])
+
+  console.log(`Created ${domainEvents.length} domain events`)
   console.log('Seed completed!')
 }
 

@@ -96,6 +96,8 @@ model DomainUser {
 
   // Relations
   nextAuthUser      User            @relation(fields: [nextAuthId], references: [id], onDelete: Cascade)
+  ingredients       Ingredient[]    @relation("UserIngredients")
+  shoppingSessions  ShoppingSession[] @relation("UserShoppingSessions")
 
   @@index([nextAuthId])
   @@index([email])
@@ -170,9 +172,11 @@ model Ingredient {
   deletedAt              DateTime?        // 論理削除
 
   // Relations
+  user                   DomainUser       @relation("UserIngredients", fields: [userId], references: [id], onDelete: Restrict)
   category               Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   unit                   Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   stockHistories         IngredientStockHistory[]
+  shoppingSessionItems   ShoppingSessionItem[]
 
   // ユニーク制約: 同一ユーザー内での食材・期限・保存場所の組み合わせ重複を防ぐ
   @@unique([userId, name, bestBeforeDate, useByDate, storageLocationType, storageLocationDetail, deletedAt])
@@ -182,6 +186,9 @@ model Ingredient {
   @@index([userId, name, deletedAt])
   @@index([bestBeforeDate, useByDate])
   @@index([storageLocationType])
+  @@index([userId, categoryId, deletedAt]) // 買い物モード最適化用
+  @@index([quantity, threshold])           // 在庫状態判定用
+  @@index([updatedAt])                     // 最終更新日時順ソート用
   @@map("ingredients")
 }
 
@@ -211,7 +218,60 @@ model IngredientStockHistory {
 
 // ==================== EVENT STORE ====================
 
-// Domain events model - event sourcing
+// ==================== SHOPPING SUPPORT TABLES ====================
+
+// Shopping session model - manages shopping mode sessions
+model ShoppingSession {
+  id           String          @id @default(cuid())
+  userId       String          // ユーザーID（セッション所有者）
+  status       String          // セッション状態 (SQLite: String)
+  startedAt    DateTime        @default(now())
+  completedAt  DateTime?       // セッション完了日時
+  deviceType   String?         // デバイスタイプ（mobile/tablet/web）
+  location     String?         // 位置情報（SQLite: String）
+  metadata     String?         // その他のメタデータ（SQLite: String）
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  user         DomainUser      @relation("UserShoppingSessions", fields: [userId], references: [id], onDelete: Restrict)
+  sessionItems ShoppingSessionItem[]
+
+  // Note: SQLite doesn't support conditional unique constraints
+  // Business logic should enforce one active session per user
+  @@index([userId, status])
+  @@index([startedAt])
+  @@index([status])
+  @@map("shopping_sessions")
+}
+
+// Shopping session items model - tracks checked ingredients during shopping
+model ShoppingSessionItem {
+  id             String         @id @default(cuid())
+  sessionId      String         // 買い物セッションID
+  ingredientId   String         // 食材ID
+  ingredientName String         // 確認時点の食材名（スナップショット）
+  stockStatus    String         // 在庫状態 (SQLite: String)
+  expiryStatus   String?        // 期限状態 (SQLite: String)
+  checkedAt      DateTime       @default(now())
+  metadata       String?        // その他の確認時メタデータ（SQLite: String）
+
+  // Relations
+  session        ShoppingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ingredient     Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  // Constraints: セッション内での食材重複確認防止
+  @@unique([sessionId, ingredientId])
+  @@index([sessionId])
+  @@index([ingredientId])
+  @@index([checkedAt])
+  @@index([stockStatus])
+  @@map("shopping_session_items")
+}
+
+// ==================== EVENT STORE ====================
+
+// Domain events model - event sourcing with outbox pattern
 model DomainEvent {
   id               String           @id @default(cuid())
   aggregateId      String           // 集約ID
@@ -222,10 +282,20 @@ model DomainEvent {
   occurredAt       DateTime         // イベント発生日時
   userId           String           // ユーザーID
   correlationId    String?          // 相関ID
+  published        Boolean          @default(false) // 発行済みフラグ（アウトボックスパターン）
+  publishedAt      DateTime?        // 発行日時
   createdAt        DateTime         @default(now())
 
   @@index([aggregateId, aggregateType, occurredAt])
   @@index([eventType, occurredAt])
   @@index([correlationId])
+  @@index([published])                              // 未発行イベント検索用
+  @@index([userId, eventType])                      // ユーザー別・イベントタイプ別検索用
   @@map("domain_events")
 }
+
+// ==================== VIEWS ====================
+
+// Note: QuickAccessView is implemented as a materialized view in the database
+// and accessed through raw queries or views in the application layer.
+// For SQLite tests, this will be implemented as regular queries in test helpers.

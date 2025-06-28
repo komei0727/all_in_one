@@ -44,6 +44,26 @@ enum OperationType {
   ADJUST    // 調整
 }
 
+// Shopping session status enum
+enum SessionStatus {
+  ACTIVE    // アクティブ（買い物中）
+  COMPLETED // 完了
+}
+
+// Stock status enum for shopping mode
+enum StockStatus {
+  IN_STOCK     // 在庫あり
+  OUT_OF_STOCK // 在庫切れ
+  LOW_STOCK    // 在庫不足
+}
+
+// Expiry status enum for shopping mode
+enum ExpiryStatus {
+  FRESH          // 新鮮
+  EXPIRING_SOON  // 期限間近
+  EXPIRED        // 期限切れ
+}
+
 // ==================== NEXTAUTH TABLES ====================
 
 // NextAuth Account model
@@ -126,6 +146,8 @@ model DomainUser {
 
   // Relations
   nextAuthUser      User            @relation(fields: [nextAuthId], references: [id], onDelete: Cascade)
+  ingredients       Ingredient[]    @relation("UserIngredients")
+  shoppingSessions  ShoppingSession[] @relation("UserShoppingSessions")
 
   @@index([nextAuthId])
   @@index([email])
@@ -200,9 +222,11 @@ model Ingredient {
   deletedAt              DateTime?        // 論理削除
 
   // Relations
+  user                   DomainUser       @relation("UserIngredients", fields: [userId], references: [id], onDelete: Restrict)
   category               Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   unit                   Unit             @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   stockHistories         IngredientStockHistory[]
+  shoppingSessionItems   ShoppingSessionItem[]
 
   // ユニーク制約: 同一ユーザー内での食材・期限・保存場所の組み合わせ重複を防ぐ
   @@unique([userId, name, bestBeforeDate, useByDate, storageLocationType, storageLocationDetail, deletedAt])
@@ -212,6 +236,9 @@ model Ingredient {
   @@index([userId, name, deletedAt])
   @@index([bestBeforeDate, useByDate])
   @@index([storageLocationType])
+  @@index([userId, categoryId, deletedAt]) // 買い物モード最適化用
+  @@index([quantity, threshold])           // 在庫状態判定用
+  @@index([updatedAt])                     // 最終更新日時順ソート用
   @@map("ingredients")
 }
 
@@ -241,7 +268,59 @@ model IngredientStockHistory {
 
 // ==================== EVENT STORE ====================
 
-// Domain events model - event sourcing
+// ==================== SHOPPING SUPPORT TABLES ====================
+
+// Shopping session model - manages shopping mode sessions
+model ShoppingSession {
+  id           String          @id @default(cuid())
+  userId       String          // ユーザーID（セッション所有者）
+  status       SessionStatus   // セッション状態
+  startedAt    DateTime        @default(now())
+  completedAt  DateTime?       // セッション完了日時
+  deviceType   String?         // デバイスタイプ（mobile/tablet/web）
+  location     Json?           // 位置情報（店舗名等）
+  metadata     Json?           // その他のメタデータ
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  user         DomainUser      @relation("UserShoppingSessions", fields: [userId], references: [id], onDelete: Restrict)
+  sessionItems ShoppingSessionItem[]
+
+  // Constraints: ユーザー毎に1つのアクティブセッション
+  @@index([userId, status])
+  @@index([startedAt])
+  @@index([status])
+  @@map("shopping_sessions")
+}
+
+// Shopping session items model - tracks checked ingredients during shopping
+model ShoppingSessionItem {
+  id             String         @id @default(cuid())
+  sessionId      String         // 買い物セッションID
+  ingredientId   String         // 食材ID
+  ingredientName String         // 確認時点の食材名（スナップショット）
+  stockStatus    StockStatus    // 在庫状態
+  expiryStatus   ExpiryStatus?  // 期限状態
+  checkedAt      DateTime       @default(now())
+  metadata       Json?          // その他の確認時メタデータ
+
+  // Relations
+  session        ShoppingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ingredient     Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  // Constraints: セッション内での食材重複確認防止
+  @@unique([sessionId, ingredientId])
+  @@index([sessionId])
+  @@index([ingredientId])
+  @@index([checkedAt])
+  @@index([stockStatus])
+  @@map("shopping_session_items")
+}
+
+// ==================== EVENT STORE ====================
+
+// Domain events model - event sourcing with outbox pattern
 model DomainEvent {
   id               String           @id @default(cuid())
   aggregateId      String           // 集約ID
@@ -252,10 +331,21 @@ model DomainEvent {
   occurredAt       DateTime         // イベント発生日時
   userId           String           // ユーザーID
   correlationId    String?          // 相関ID
+  published        Boolean          @default(false) // 発行済みフラグ（アウトボックスパターン）
+  publishedAt      DateTime?        // 発行日時
   createdAt        DateTime         @default(now())
 
   @@index([aggregateId, aggregateType, occurredAt])
   @@index([eventType, occurredAt])
   @@index([correlationId])
+  @@index([published]) // 未発行イベント検索用
+  @@index([userId, eventType]) // ユーザー別・イベントタイプ別検索用
   @@map("domain_events")
 }
+
+// ==================== VIEWS ====================
+
+// Note: QuickAccessView is implemented as a materialized view in the database
+// and accessed through raw queries or views in the application layer.
+// Prisma doesn't directly support materialized views in schema definition,
+// but they can be created via migrations and accessed through raw SQL queries.
