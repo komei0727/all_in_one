@@ -94,19 +94,69 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/all_in_one_test
 
-      # Vercelデプロイの確認（Preview環境、ヘルスチェックエンドポイントで確認）
-      - name: Wait for Vercel Preview with Health Check
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
+      # Vercelデプロイの確認（Preview環境、カスタムヘルスチェック）
+      - name: Wait for Vercel Preview with Custom Health Check
         id: waitForVercel
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 600
-          path: 'https://all-in-one-git-deploy-komei0727s-projects.vercel.app/api/health'
+        run: |
+          echo "⏳ Waiting for preview deployment health check..."
+
+          # デプロイURL（Preview環境）
+          DEPLOYMENT_URL="https://all-in-one-git-deploy-komei0727s-projects.vercel.app"
+          HEALTH_URL="${DEPLOYMENT_URL}/api/health?detailed=true"
+
+          # リトライ設定
+          MAX_ATTEMPTS=20
+          DELAY_SECONDS=15
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "🔄 Health check attempt $i/$MAX_ATTEMPTS..."
+            
+            # ヘルスチェック実行
+            if response=$(curl -s -w "%{http_code}" "$HEALTH_URL" --connect-timeout 10 --max-time 30); then
+              http_code="${response: -3}"
+              body="${response%???}"
+              
+              echo "📊 HTTP Status: $http_code"
+              echo "📋 Response: $body"
+              
+              # HTTPステータスが200の場合
+              if [ "$http_code" = "200" ]; then
+                # JSONレスポンスからステータスを確認
+                if echo "$body" | jq -e '.status == "ok"' > /dev/null 2>&1; then
+                  echo "✅ Health check passed! Preview deployment is ready."
+                  echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+                  echo "health_status=healthy" >> $GITHUB_OUTPUT
+                  SUCCESS=true
+                  break
+                else
+                  echo "❌ Service returned error status"
+                fi
+              else
+                echo "❌ HTTP error: $http_code"
+              fi
+            else
+              echo "❌ Connection failed"
+            fi
+            
+            if [ $i -lt $MAX_ATTEMPTS ]; then
+              echo "⏱️ Waiting ${DELAY_SECONDS}s before next attempt..."
+              sleep $DELAY_SECONDS
+            fi
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "💥 Health check failed after $MAX_ATTEMPTS attempts"
+            echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
 
       - name: Preview Deploy Summary
         run: |
           echo "🚀 Deploy branch has been updated and deployed to preview environment"
-          echo "Preview URL: ${{ steps.waitForVercel.outputs.url }}"
+          echo "Preview URL: ${{ steps.waitForVercel.outputs.deployment_url }}"
+          echo "Health Status: ${{ steps.waitForVercel.outputs.health_status }}"
 
   # カバレッジレポートをGitHub Pagesにデプロイ
   deploy-coverage:
