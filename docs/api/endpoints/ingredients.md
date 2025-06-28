@@ -27,6 +27,9 @@
 - `POST /api/v1/ingredients/{id}/discard` - 食材を廃棄
 - `POST /api/v1/ingredients/{id}/adjust` - 在庫を調整（棚卸し）
 - `POST /api/v1/ingredients/batch-consume` - 複数食材を一括消費
+- `POST /api/v1/ingredients/batch-replenish` - 複数食材を一括補充
+- `POST /api/v1/ingredients/batch-adjust` - 複数食材を一括調整
+- `POST /api/v1/ingredients/batch-discard` - 複数食材を一括廃棄
 
 ### 在庫チェック
 
@@ -48,6 +51,17 @@
 
 - `GET /api/v1/ingredients/{id}/events` - 食材のイベント履歴取得
 - `GET /api/v1/events` - 全体のイベント履歴検索
+
+### 買い物サポート
+
+- `POST /api/v1/shopping/sessions` - 買い物セッション開始
+- `GET /api/v1/shopping/sessions/active` - アクティブセッション取得
+- `PUT /api/v1/shopping/sessions/{id}/complete` - セッション完了
+- `POST /api/v1/shopping/sessions/{id}/check/{ingredientId}` - 食材確認
+- `GET /api/v1/shopping/history` - 買い物履歴取得
+- `GET /api/v1/shopping/quick-access` - クイックアクセス食材取得
+- `GET /api/v1/shopping/categories/{id}/ingredients` - カテゴリー別食材取得（買い物用）
+- `GET /api/v1/shopping/statistics` - 買い物統計取得
 
 ### マスタデータ
 
@@ -1524,6 +1538,698 @@ interface EventsResponse {
 }
 ```
 
+---
+
+## 買い物セッション開始
+
+### 概要
+
+買い物モードを開始し、新しい買い物セッションを作成します。同時にアクティブなセッションは1つまでです。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/shopping/sessions`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### リクエスト
+
+#### リクエストボディ
+
+```typescript
+interface StartShoppingSessionRequest {
+  deviceType?: 'MOBILE' | 'DESKTOP' | 'TABLET' // デバイスタイプ
+  location?: {
+    latitude?: number
+    longitude?: number
+    placeName?: string // 店舗名など
+  }
+  notes?: string // セッション開始時のメモ
+}
+```
+
+### レスポンス
+
+#### 成功時（201 Created）
+
+```typescript
+interface StartShoppingSessionResponse {
+  data: {
+    sessionId: string
+    userId: string
+    status: 'ACTIVE'
+    startedAt: string
+    deviceType?: string
+    location?: {
+      latitude?: number
+      longitude?: number
+      placeName?: string
+    }
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード          | 説明                                   |
+| ---------------- | --------------------- | -------------------------------------- |
+| 409              | ACTIVE_SESSION_EXISTS | 既にアクティブなセッションが存在します |
+| 401              | UNAUTHORIZED          | 認証が必要                             |
+
+---
+
+## アクティブセッション取得
+
+### 概要
+
+現在アクティブな買い物セッションの情報を取得します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/shopping/sessions/active`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ActiveShoppingSessionResponse {
+  data: {
+    sessionId: string
+    userId: string
+    status: 'ACTIVE'
+    startedAt: string
+    duration: number // 秒単位
+    checkedItemsCount: number
+    lastActivityAt: string
+  } | null // アクティブセッションがない場合はnull
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## セッション完了
+
+### 概要
+
+アクティブな買い物セッションを完了させます。
+
+### エンドポイント情報
+
+- **メソッド**: `PUT`
+- **パス**: `/api/v1/shopping/sessions/{id}/complete`
+- **認証**: 必要
+- **権限**: セッションの所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明                     |
+| ---------- | ------ | ---- | ------------------------ |
+| id         | string | Yes  | セッションID（CUID形式） |
+
+#### リクエストボディ
+
+```typescript
+interface CompleteShoppingSessionRequest {
+  notes?: string // 完了時のメモ
+  totalSpent?: number // 総支出額（小数点以下2桁まで）
+}
+```
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface CompleteShoppingSessionResponse {
+  data: {
+    sessionId: string
+    userId: string
+    status: 'COMPLETED'
+    startedAt: string
+    completedAt: string
+    duration: number // 秒単位
+    checkedItemsCount: number
+    totalSpent?: number
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード              | 説明                       |
+| ---------------- | ------------------------- | -------------------------- |
+| 404              | SESSION_NOT_FOUND         | セッションが見つからない   |
+| 409              | SESSION_ALREADY_COMPLETED | セッションは既に完了済み   |
+| 403              | FORBIDDEN                 | セッションの所有者ではない |
+
+---
+
+## 食材確認
+
+### 概要
+
+買い物セッション中に食材の在庫状態を確認し、履歴に記録します。
+
+### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/shopping/sessions/{sessionId}/check/{ingredientId}`
+- **認証**: 必要
+- **権限**: セッションと食材の所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ   | 型     | 必須 | 説明                     |
+| ------------ | ------ | ---- | ------------------------ |
+| sessionId    | string | Yes  | セッションID（CUID形式） |
+| ingredientId | string | Yes  | 食材ID（CUID形式）       |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface CheckIngredientResponse {
+  data: {
+    sessionId: string
+    ingredientId: string
+    ingredientName: string
+    categoryId: string
+    stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+    expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+    currentQuantity: {
+      amount: number
+      unit: {
+        id: string
+        name: string
+        symbol: string
+      }
+    }
+    threshold?: number
+    checkedAt: string
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード      | 説明                     |
+| ---------------- | ----------------- | ------------------------ |
+| 404              | SESSION_NOT_FOUND | セッションが見つからない |
+| 404              | NOT_FOUND         | 食材が見つからない       |
+| 403              | FORBIDDEN         | アクセス権限がない       |
+
+---
+
+## 買い物履歴取得
+
+### 概要
+
+過去の買い物セッションの履歴を取得します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/shopping/history`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明                     |
+| ---------- | ------ | ---- | ---------- | ------------------------ |
+| page       | number | No   | 1          | ページ番号               |
+| limit      | number | No   | 20         | 1ページあたりの件数      |
+| from       | string | No   | -          | 開始日時（ISO 8601形式） |
+| to         | string | No   | -          | 終了日時（ISO 8601形式） |
+| status     | string | No   | -          | ステータスフィルタ       |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ShoppingHistoryResponse {
+  data: Array<{
+    sessionId: string
+    status: 'COMPLETED' | 'ABANDONED'
+    startedAt: string
+    completedAt?: string
+    duration: number // 秒単位
+    checkedItemsCount: number
+    totalSpent?: number
+    deviceType?: string
+    location?: {
+      placeName?: string
+    }
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## クイックアクセス食材取得
+
+### 概要
+
+最近確認した食材やよく確認する食材を取得します。買い物モードでの高速アクセス用です。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/shopping/quick-access`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明               |
+| ---------- | ------ | ---- | ---------- | ------------------ |
+| limit      | number | No   | 20         | 取得件数（最大50） |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface QuickAccessIngredientsResponse {
+  data: {
+    recentlyChecked: Array<{
+      ingredientId: string
+      name: string
+      categoryId: string
+      categoryName: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      lastCheckedAt: string
+    }>
+    frequentlyChecked: Array<{
+      ingredientId: string
+      name: string
+      categoryId: string
+      categoryName: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      checkCount: number
+      lastCheckedAt: string
+    }>
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## カテゴリー別食材取得（買い物用）
+
+### 概要
+
+指定したカテゴリーの食材を買い物モード用の軽量フォーマットで取得します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/shopping/categories/{id}/ingredients`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明                     |
+| ---------- | ------ | ---- | ------------------------ |
+| id         | string | Yes  | カテゴリーID（CUID形式） |
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト  | 説明                            |
+| ---------- | ------ | ---- | ----------- | ------------------------------- |
+| sortBy     | string | No   | stockStatus | ソート項目（stockStatus, name） |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ShoppingCategoryIngredientsResponse {
+  data: {
+    category: {
+      id: string
+      name: string
+    }
+    ingredients: Array<{
+      id: string
+      name: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      lastCheckedAt?: string // セッション内での最終確認時刻
+      currentQuantity: {
+        amount: number
+        unit: {
+          symbol: string
+        }
+      }
+    }>
+    summary: {
+      totalItems: number
+      outOfStockCount: number
+      lowStockCount: number
+      expiringSoonCount: number
+    }
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 買い物統計取得
+
+### 概要
+
+買い物行動の統計情報を取得します。分析やダッシュボード表示に使用します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/shopping/statistics`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明                          |
+| ---------- | ------ | ---- | ---------- | ----------------------------- |
+| period     | string | No   | month      | 集計期間（week, month, year） |
+| from       | string | No   | -          | 開始日時（ISO 8601形式）      |
+| to         | string | No   | -          | 終了日時（ISO 8601形式）      |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface ShoppingStatisticsResponse {
+  data: {
+    overview: {
+      totalSessions: number
+      completedSessions: number
+      abandonedSessions: number
+      averageSessionDuration: number // 秒単位
+      averageCheckedItems: number
+      totalSpent?: number
+    }
+    topCheckedIngredients: Array<{
+      ingredientId: string
+      ingredientName: string
+      categoryName: string
+      checkCount: number
+      outOfStockRate: number // 在庫切れ率（0-1）
+    }>
+    sessionPatterns: {
+      byHour: Array<{
+        hour: number // 0-23
+        sessionCount: number
+      }>
+      byDayOfWeek: Array<{
+        dayOfWeek: number // 0(日)-6(土)
+        sessionCount: number
+      }>
+    }
+    recommendations: Array<{
+      type: 'FREQUENT_OUT_OF_STOCK' | 'NEVER_CHECKED' | 'EXPIRING_OFTEN'
+      ingredientId: string
+      ingredientName: string
+      message: string
+    }>
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+## 買い物サポート専用エラーコード
+
+買い物セッション関連の操作で発生する可能性があるエラーコード：
+
+| コード                    | HTTPステータス | 説明                               | 対処方法                           |
+| ------------------------- | -------------- | ---------------------------------- | ---------------------------------- |
+| ACTIVE_SESSION_EXISTS     | 409            | 既にアクティブなセッションが存在   | 既存セッションを完了してから再開始 |
+| SESSION_NOT_FOUND         | 404            | 指定されたセッションが見つからない | セッションIDを確認                 |
+| SESSION_ALREADY_COMPLETED | 400            | セッションは既に完了済み           | 新しいセッションを開始             |
+| BATCH_VALIDATION_FAILED   | 400            | バッチ操作の検証エラー             | リクエストデータを修正             |
+
+---
+
+## バッチ操作API詳細仕様
+
+### 一括補充（batch-replenish）
+
+#### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/batch-replenish`
+- **認証**: 必要
+- **権限**: 認証ユーザーの食材のみ操作可能
+
+#### リクエスト
+
+```typescript
+interface BatchReplenishRequest {
+  items: Array<{
+    ingredientId: string
+    quantity: number
+    memo?: string
+  }>
+}
+```
+
+#### レスポンス
+
+##### 成功時（200 OK）
+
+```typescript
+interface BatchReplenishResponse {
+  data: {
+    processed: number
+    succeeded: Array<{
+      ingredientId: string
+      ingredientName: string
+      previousQuantity: number
+      newQuantity: number
+      unit: string
+    }>
+    failed: Array<{
+      ingredientId: string
+      error: string
+      reason: string
+    }>
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+### 一括調整（batch-adjust）
+
+#### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/batch-adjust`
+- **認証**: 必要
+- **権限**: 認証ユーザーの食材のみ操作可能
+
+#### リクエスト
+
+```typescript
+interface BatchAdjustRequest {
+  items: Array<{
+    ingredientId: string
+    newQuantity: number
+    reason: 'INVENTORY_COUNT' | 'SYSTEM_CORRECTION' | 'MANUAL_ADJUSTMENT'
+    memo?: string
+  }>
+}
+```
+
+#### レスポンス
+
+##### 成功時（200 OK）
+
+```typescript
+interface BatchAdjustResponse {
+  data: {
+    processed: number
+    succeeded: Array<{
+      ingredientId: string
+      ingredientName: string
+      previousQuantity: number
+      newQuantity: number
+      difference: number
+      unit: string
+      reason: string
+    }>
+    failed: Array<{
+      ingredientId: string
+      error: string
+      reason: string
+    }>
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+### 一括廃棄（batch-discard）
+
+#### エンドポイント情報
+
+- **メソッド**: `POST`
+- **パス**: `/api/v1/ingredients/batch-discard`
+- **認証**: 必要
+- **権限**: 認証ユーザーの食材のみ操作可能
+
+#### リクエスト
+
+```typescript
+interface BatchDiscardRequest {
+  items: Array<{
+    ingredientId: string
+    quantity: number
+    reason: 'EXPIRED' | 'SPOILED' | 'DAMAGED' | 'OTHER'
+    memo?: string
+  }>
+}
+```
+
+#### レスポンス
+
+##### 成功時（200 OK）
+
+```typescript
+interface BatchDiscardResponse {
+  data: {
+    processed: number
+    succeeded: Array<{
+      ingredientId: string
+      ingredientName: string
+      discardedQuantity: number
+      remainingQuantity: number
+      unit: string
+      reason: string
+    }>
+    failed: Array<{
+      ingredientId: string
+      error: string
+      reason: string
+    }>
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## ドメイン制約の明示化
+
+### 食材名制約
+
+- **最小長**: 1文字
+- **最大長**: 50文字
+- **許可文字**: 全角・半角文字、数字、記号（ただし制御文字は除く）
+- **前後空白**: 自動で除去される
+
+### 保存場所詳細制約
+
+- **最大長**: 50文字
+- **例**: "ドアポケット"、"野菜室"、"冷凍庫上段"
+- **空文字**: 許可される（詳細なし）
+
+### 期限日制約
+
+- **形式**: ISO 8601 日付形式（YYYY-MM-DD）
+- **範囲**: 1900年1月1日 ～ 2100年12月31日
+- **賞味期限と消費期限の関係**: 消費期限 ≤ 賞味期限
+- **過去日設定**: 許可される（すでに購入済みの食材の場合）
+
+### セッション制約
+
+- **同時アクティブセッション数**: ユーザーごとに1つまで
+- **セッション継続時間**: 最大8時間（自動タイムアウト）
+- **無操作タイムアウト**: 30分で自動中断
+- **確認履歴**: セッションあたり最大1000件
+
+### 数量制約
+
+- **最小値**: 0（在庫切れ状態）
+- **最大値**: 99999.99（小数点以下2桁まで）
+- **負数**: 許可されない
+
+---
+
 ## 削除ポリシー
 
 ### 論理削除
@@ -1541,6 +2247,7 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 | 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正 | @komei0727 |
 | 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
 | 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加              | @komei0727 |
+| 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化             | Claude     |
 
 ## 関連ドキュメント
 

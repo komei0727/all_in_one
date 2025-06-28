@@ -27,7 +27,7 @@
 # prisma/schema.prisma を編集
 
 # 2. マイグレーションファイルを生成
-pnpm prisma migrate dev --name add_new_feature
+pnpm dotenv -e .env.local -- prisma migrate dev --name add_new_feature
 
 # 例: 新しいカラムを追加
 # pnpm prisma migrate dev --name add_expiry_notification_flag
@@ -86,7 +86,7 @@ pnpm prisma migrate status
 
 ```bash
 # Staging環境にマイグレーションを適用
-pnpm prisma migrate deploy
+pnpm dotenv -e .env.staging -- prisma migrate deploy
 
 # 成功時の出力:
 # Applying migration `20240120000000_add_new_feature`
@@ -98,11 +98,8 @@ pnpm prisma migrate deploy
 #### データの確認
 
 ```bash
-# Prisma Studioで確認
-pnpm prisma studio
-
-# または、Supabase Dashboardで確認
-# https://app.supabase.com/project/[PROJECT-ID]/editor
+または、Supabase Dashboardで確認
+https://app.supabase.com/project/[PROJECT-ID]/editor
 ```
 
 ### 4. Production環境への適用
@@ -129,7 +126,7 @@ export DIRECT_URL="postgresql://postgres.ngcuunfkonnrwrlvdebs:[PASSWORD]@aws-0-a
 pnpm prisma migrate status
 
 # 本番環境に適用
-pnpm prisma migrate deploy
+pnpm dotenv -e .env.production -- prisma migrate deploy
 ```
 
 ### 5. シードデータの管理
