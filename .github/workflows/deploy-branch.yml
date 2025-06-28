@@ -101,8 +101,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
-          path: '/api/health' # ヘルスチェックエンドポイントを直接チェック
-          # deployブランチのプレビューURLを待機
+          path: 'https://all-in-one-git-deploy-komei0727s-projects.vercel.app/api/health'
 
       - name: Preview Deploy Summary
         run: |
