@@ -25,9 +25,11 @@ vi.mock('../../../../../package.json', () => ({
  * - データベース接続状態の確認
  * - エラーハンドリング
  * - 認証不要でのアクセス
+ * - 詳細レスポンス機能
  */
 describe('GET /api/health', () => {
   const mockRequest = new NextRequest('http://localhost:3000/api/health')
+  const mockDetailedRequest = new NextRequest('http://localhost:3000/api/health?detailed=true')
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -55,9 +57,44 @@ describe('GET /api/health', () => {
       service: 'all-in-one-api',
       version: '1.2.3',
       database: 'connected',
+      environment: expect.any(String),
     })
     expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
     expect(mockQueryRaw).toHaveBeenCalledWith(['SELECT 1'])
+  })
+
+  it('詳細パラメータ付きで拡張情報を返す', async () => {
+    // detailed=trueパラメータで詳細レスポンスを返すテスト
+    // Arrange
+    const mockQueryRaw = vi.fn().mockResolvedValueOnce([{ '?column?': 1 }])
+    ;(prisma.$queryRaw as any) = mockQueryRaw
+
+    // Act
+    const response = await GET(mockDetailedRequest)
+    const data = await response.json()
+
+    // Assert
+    expect(response.status).toBe(200)
+    expect(data).toMatchObject({
+      status: 'ok',
+      service: 'all-in-one-api',
+      version: '1.2.3',
+      environment: expect.any(String),
+      database: {
+        status: 'connected',
+        responseTime: expect.stringMatching(/^\d+ms$/),
+      },
+      deployment: {
+        id: null, // テスト環境ではnull
+        commit: null, // テスト環境ではnull
+        url: null, // テスト環境ではnull
+      },
+      checks: {
+        ready: true,
+        healthy: true,
+      },
+    })
+    expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
   })
 
   it('データベース接続エラー時はdatabase: errorを返す', async () => {
@@ -77,7 +114,27 @@ describe('GET /api/health', () => {
       service: 'all-in-one-api',
       version: '1.2.3',
       database: 'error',
+      environment: expect.any(String),
     })
+  })
+
+  it('データベースエラー時の詳細レスポンスでready: falseを返す', async () => {
+    // detailed=trueかつデータベースエラー時のテスト
+    // Arrange
+    const mockQueryRaw = vi.fn().mockRejectedValueOnce(new Error('Connection failed'))
+    ;(prisma.$queryRaw as any) = mockQueryRaw
+
+    // Act
+    const response = await GET(mockDetailedRequest)
+    const data = await response.json()
+
+    // Assert
+    expect(response.status).toBe(200)
+    expect(data.checks).toMatchObject({
+      ready: false, // データベース接続失敗でready: false
+      healthy: false, // エラー状態でhealthy: false
+    })
+    expect(data.database.status).toBe('error')
   })
 
   it('認証なしでアクセス可能である', async () => {
