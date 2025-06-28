@@ -80,7 +80,6 @@ describe('GET /api/health', () => {
     })
   })
 
-
   it('認証なしでアクセス可能である', async () => {
     // 認証ヘッダーなしでもアクセスできることを確認
     // Arrange
@@ -113,7 +112,7 @@ describe('GET /api/health - エラーハンドリング', () => {
     // Arrange
     const mockQueryRaw = vi.fn().mockRejectedValueOnce(new Error('Database error'))
     ;(prisma.$queryRaw as any) = mockQueryRaw
-    
+
     // package.jsonのインポートでエラーを発生させる
     vi.doMock('../../../../../package.json', () => {
       throw new Error('Unexpected error')
