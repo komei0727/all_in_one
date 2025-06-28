@@ -103,7 +103,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
           environment: production
-          path: '/api/health' # ヘルスチェックエンドポイントを直接チェック
+          path: 'https://all-in-one-orcin.vercel.app/api/health'
 
       - name: Production Deploy Summary
         run: |
