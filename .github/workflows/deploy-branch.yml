@@ -94,13 +94,14 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/all_in_one_test
 
-      # Vercelデプロイの確認（Preview環境）
-      - name: Wait for Vercel Preview
+      # Vercelデプロイの確認（Preview環境、ヘルスチェックエンドポイントで確認）
+      - name: Wait for Vercel Preview with Health Check
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
         id: waitForVercel
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
+          path: '/api/health' # ヘルスチェックエンドポイントを直接チェック
           # deployブランチのプレビューURLを待機
 
       - name: Preview Deploy Summary
