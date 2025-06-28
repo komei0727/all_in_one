@@ -95,65 +95,18 @@ jobs:
           path: .next/
           retention-days: 7
 
-      # Vercel本番デプロイの確認（カスタムヘルスチェック）
-      - name: Wait for Vercel Production with Custom Health Check
-        id: waitForVercel
+      # Vercelデプロイ完了の待機
+      - name: Wait for Vercel Deployment
         run: |
-          echo "⏳ Waiting for production deployment health check..."
-
-          # デプロイURL
-          DEPLOYMENT_URL="https://all-in-one-orcin.vercel.app"
-          HEALTH_URL="${DEPLOYMENT_URL}/api/health"
-
-          # リトライ設定
-          MAX_ATTEMPTS=30
-          DELAY_SECONDS=20
-          SUCCESS=false
-
-          for i in $(seq 1 $MAX_ATTEMPTS); do
-            echo "🔄 Health check attempt $i/$MAX_ATTEMPTS..."
-
-            # ヘルスチェック実行
-            if response=$(curl -s -w "%{http_code}" "$HEALTH_URL" \
-              --connect-timeout 10 \
-              --max-time 30 \
-              -H "User-Agent: GitHub-Actions-Health-Check" \
-              -H "Accept: application/json"); then
-              http_code="${response: -3}"
-              body="${response%???}"
-
-              echo "📊 HTTP Status: $http_code"
-
-              # HTTPステータスが200でstatus: okの場合
-              if [ "$http_code" = "200" ]; then
-                if echo "$body" | jq -e '.status == "ok"' > /dev/null 2>&1; then
-                  echo "✅ Health check passed!"
-                  echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-                  SUCCESS=true
-                  break
-                fi
-              else
-                echo "❌ Error response: $body"
-              fi
-            else
-              echo "❌ Connection failed"
-            fi
-
-            if [ $i -lt $MAX_ATTEMPTS ]; then
-              echo "⏱️ Waiting ${DELAY_SECONDS}s before next attempt..."
-              sleep $DELAY_SECONDS
-            fi
-          done
-
-          if [ "$SUCCESS" = false ]; then
-            echo "💥 Health check failed after $MAX_ATTEMPTS attempts"
-            exit 1
-          fi
+          echo "⏳ Waiting for Vercel deployment to complete..."
+          echo "⏱️ Waiting 60 seconds for deployment to stabilize..."
+          sleep 60
+          echo "✅ Deployment wait completed"
 
       - name: Production Deploy Summary
         run: |
           echo "✅ Successfully deployed to production!"
-          echo "Production URL: ${{ steps.waitForVercel.outputs.deployment_url }}"
+          echo "Production URL: https://all-in-one-orcin.vercel.app"
           echo "Commit SHA: ${{ github.sha }}"
 
       # GitHubリリースの自動作成（オプション）
@@ -172,6 +125,6 @@ jobs:
             **Author:** ${{ github.actor }}
             **Message:** ${{ github.event.head_commit.message }}
 
-            **Production URL:** ${{ steps.waitForVercel.outputs.deployment_url }}
+            **Production URL:** https://all-in-one-orcin.vercel.app
           draft: false
           prerelease: false

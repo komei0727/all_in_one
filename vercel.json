@@ -66,6 +66,5 @@
       "main": true,
       "deploy": true
     }
-  },
-  "public": true
+  }
 }
