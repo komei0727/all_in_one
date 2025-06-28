@@ -95,14 +95,15 @@ jobs:
           path: .next/
           retention-days: 7
 
-      # Vercel本番デプロイの確認
-      - name: Wait for Vercel Production
+      # Vercel本番デプロイの確認（ヘルスチェックエンドポイントで確認）
+      - name: Wait for Vercel Production with Health Check
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
         id: waitForVercel
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
           environment: production
+          path: '/api/health' # ヘルスチェックエンドポイントを直接チェック
 
       - name: Production Deploy Summary
         run: |

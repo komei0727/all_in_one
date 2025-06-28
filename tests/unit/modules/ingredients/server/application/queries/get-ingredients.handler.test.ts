@@ -5,8 +5,8 @@ import { GetIngredientsHandler } from '@/modules/ingredients/server/application/
 import { GetIngredientsQuery } from '@/modules/ingredients/server/application/queries/get-ingredients.query'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 
-import { IngredientBuilder } from '../../../../__fixtures__/builders/entities/ingredient.builder'
-import { testDataHelpers } from '../../../../__fixtures__/builders/faker.config'
+import { IngredientBuilder } from '../../../../../../__fixtures__/builders/entities/ingredient.builder'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('GetIngredientsHandler', () => {
   let handler: GetIngredientsHandler
@@ -50,8 +50,10 @@ describe('GetIngredientsHandler', () => {
     ]
 
     // モックの設定
-    vi.mocked(mockRepository.findMany).mockResolvedValue(ingredients)
-    vi.mocked(mockRepository.count).mockResolvedValue(2)
+    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    findManyMock.mockResolvedValue(ingredients)
+    countMock.mockResolvedValue(2)
 
     // クエリの実行
     const userId = testDataHelpers.userId()
@@ -68,7 +70,7 @@ describe('GetIngredientsHandler', () => {
 
     // リポジトリの呼び出し確認
     expect(mockRepository.findMany).toHaveBeenCalledWith({
-      userId: userId,
+      userId,
       page: 1,
       limit: 20,
       search: undefined,
@@ -78,7 +80,7 @@ describe('GetIngredientsHandler', () => {
       sortOrder: undefined,
     })
     expect(mockRepository.count).toHaveBeenCalledWith({
-      userId: userId,
+      userId,
       search: undefined,
       categoryId: undefined,
       expiryStatus: undefined,
@@ -93,8 +95,10 @@ describe('GetIngredientsHandler', () => {
       .withDefaultStock()
       .build()
 
-    vi.mocked(mockRepository.findMany).mockResolvedValue([ingredient])
-    vi.mocked(mockRepository.count).mockResolvedValue(1)
+    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    findManyMock.mockResolvedValue([ingredient])
+    countMock.mockResolvedValue(1)
 
     const userId = testDataHelpers.userId()
     const query = new GetIngredientsQuery(userId, 1, 20, 'トマト', categoryId, 'expired')
@@ -102,11 +106,11 @@ describe('GetIngredientsHandler', () => {
 
     expect(result.items).toHaveLength(1)
     expect(mockRepository.findMany).toHaveBeenCalledWith({
-      userId: userId,
+      userId,
       page: 1,
       limit: 20,
       search: 'トマト',
-      categoryId: categoryId,
+      categoryId,
       expiryStatus: 'expired',
       sortBy: undefined,
       sortOrder: undefined,
@@ -119,8 +123,10 @@ describe('GetIngredientsHandler', () => {
       new IngredientBuilder().withRandomName().withDefaultStock().build(),
     ]
 
-    vi.mocked(mockRepository.findMany).mockResolvedValue(ingredients)
-    vi.mocked(mockRepository.count).mockResolvedValue(2)
+    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    findManyMock.mockResolvedValue(ingredients)
+    countMock.mockResolvedValue(2)
 
     const userId = testDataHelpers.userId()
     const query = new GetIngredientsQuery(
@@ -137,7 +143,7 @@ describe('GetIngredientsHandler', () => {
 
     expect(result.items).toHaveLength(2)
     expect(mockRepository.findMany).toHaveBeenCalledWith({
-      userId: userId,
+      userId,
       page: 1,
       limit: 20,
       search: undefined,
@@ -149,8 +155,10 @@ describe('GetIngredientsHandler', () => {
   })
 
   it('空の結果を返すことができる', async () => {
-    vi.mocked(mockRepository.findMany).mockResolvedValue([])
-    vi.mocked(mockRepository.count).mockResolvedValue(0)
+    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    findManyMock.mockResolvedValue([])
+    countMock.mockResolvedValue(0)
 
     const userId = testDataHelpers.userId()
     const query = new GetIngredientsQuery(userId, 1, 20)
