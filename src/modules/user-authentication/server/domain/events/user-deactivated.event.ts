@@ -18,7 +18,7 @@ export class UserDeactivatedEvent extends DomainEvent {
     return 'user.deactivated'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       reason: this.reason,
       deactivatedBy: this.deactivatedBy,

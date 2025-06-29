@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-import { PrismaClient } from '@/generated/prisma'
+import { type PrismaClient } from '@/generated/prisma'
 import { IngredientId, IngredientName } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 

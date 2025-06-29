@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
+
+import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
+
 import { UserStatusBuilder } from '../../../../../../__fixtures__/builders'
 
 // テスト対象のUserStatusクラス
-import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
 
 describe('UserStatus値オブジェクト', () => {
   describe('正常な値での作成', () => {

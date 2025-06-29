@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { faker } from '@faker-js/faker/locale/ja'
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 

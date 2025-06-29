@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-
 import { Inter } from 'next/font/google'
 
 import { Toaster } from '@/modules/shared/client/components/ui/toaster'
@@ -13,7 +12,6 @@ if (typeof window === 'undefined') {
     try {
       validateEnv()
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Environment validation failed:', error)
       // 本番環境では起動を停止
       if (process.env.NODE_ENV === 'production') {

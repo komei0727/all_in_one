@@ -10,7 +10,7 @@ export class IngredientRestored extends DomainEvent {
     public readonly userId: string,
     public readonly ingredientName: string,
     public readonly restoredFromDate: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     IngredientRestored.validateRequiredFields(ingredientId, userId, ingredientName)
     super(ingredientId, metadata)
@@ -20,7 +20,7 @@ export class IngredientRestored extends DomainEvent {
     return 'IngredientRestored'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       ingredientId: this.ingredientId,
       userId: this.userId,

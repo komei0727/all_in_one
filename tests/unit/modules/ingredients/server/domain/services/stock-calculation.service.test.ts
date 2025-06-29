@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
+import { type Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import { StockCalculationService } from '@/modules/ingredients/server/domain/services/stock-calculation.service'
 import {
   CategoryId,

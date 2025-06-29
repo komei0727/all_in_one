@@ -14,7 +14,7 @@ export class BatchStockUpdate extends DomainEvent {
       newQuantity: number
       unitId: string
     }[],
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     BatchStockUpdate.validateRequiredFields(batchId, userId, updates)
     super(batchId, metadata)
@@ -24,7 +24,7 @@ export class BatchStockUpdate extends DomainEvent {
     return 'BatchStockUpdate'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       batchId: this.batchId,
       userId: this.userId,
@@ -36,7 +36,14 @@ export class BatchStockUpdate extends DomainEvent {
   private static validateRequiredFields(
     batchId: string,
     userId: string,
-    updates: any[] | null
+    updates:
+      | {
+          ingredientId: string
+          previousQuantity: number
+          newQuantity: number
+          unitId: string
+        }[]
+      | null
   ): void {
     if (!batchId?.trim()) throw new Error('バッチIDは必須です')
     if (!userId?.trim()) throw new Error('ユーザーIDは必須です')

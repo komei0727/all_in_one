@@ -1,5 +1,6 @@
-import type { Category, Unit, Ingredient } from '../../src/generated/prisma-test'
 import { testDataHelpers } from '../__fixtures__/builders/faker.config'
+
+import type { Category, Unit, Ingredient } from '../../src/generated/prisma-test'
 
 /**
  * テストデータファクトリー

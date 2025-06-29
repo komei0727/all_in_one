@@ -12,7 +12,7 @@ export class StockConsumed extends DomainEvent {
     public readonly consumedAmount: number,
     public readonly remainingAmount: number,
     public readonly unitId: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     StockConsumed.validateRequiredFields(ingredientId, userId, unitId)
@@ -25,7 +25,7 @@ export class StockConsumed extends DomainEvent {
     return 'StockConsumed'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       ingredientId: this.ingredientId,
       userId: this.userId,

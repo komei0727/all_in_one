@@ -4,87 +4,64 @@ import tseslint from 'typescript-eslint'
 import nextPlugin from '@next/eslint-plugin-next'
 import importPlugin from 'eslint-plugin-import'
 import prettierConfig from 'eslint-config-prettier'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import globals from 'globals'
 
 export default tseslint.config(
-  // 無視するファイル（最初に定義）
+  // 無視するファイル
   {
     ignores: [
-      // ビルド出力
       '.next/**',
       'dist/**',
       'out/**',
       'coverage/**',
-
-      // 生成されたファイル
-      'src/generated/**',
       '*.d.ts',
-
-      // 設定ファイル（ただしTypeScriptのものは除く）
       '*.config.js',
       '*.config.mjs',
-
-      // その他
       '.worktree/**',
       'node_modules/**',
-      '.eslintrc.*',
-
-      // キャッシュ
       '.turbo/**',
       '.vercel/**',
+      'src/generated/**',
     ],
   },
 
-  // ファイルごとの設定
+  // 基本設定
   {
     files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2022,
+      },
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
         },
       },
-      globals: {
-        // ブラウザグローバル
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-
-        // Node.jsグローバル
-        process: 'readonly',
-        global: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-
-        // Next.jsグローバル
-        React: 'readonly',
-      },
     },
   },
 
-  // JavaScript基本設定
+  // ESLint推奨設定
   eslint.configs.recommended,
 
-  // TypeScript設定（ファイルパターンを明示）
+  // TypeScript設定（パフォーマンス最適化版）
   {
     files: ['**/*.ts', '**/*.tsx'],
-    extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    extends: [
+      ...tseslint.configs.recommended,
+      // 型チェックが必要な重要なルールのみ選択的に追加
+    ],
     languageOptions: {
       parserOptions: {
-        project: './tsconfig.json',
-        tsconfigRootDir: __dirname,
+        project: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
-      // TypeScript固有のルール
+      // 基本的なTypeScriptルール
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -96,7 +73,7 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-duplicate-enum-values': 'off',
+      '@typescript-eslint/no-require-imports': 'error',
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         {
@@ -105,26 +82,17 @@ export default tseslint.config(
           fixStyle: 'inline-type-imports',
         },
       ],
-      '@typescript-eslint/no-import-type-side-effects': 'error',
 
-      // 型安全性のルール（厳しすぎるものは警告に）
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-
-      // スタイルルールの調整
-      '@typescript-eslint/prefer-nullish-coalescing': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/no-unnecessary-condition': 'off',
-      '@typescript-eslint/class-literal-property-style': 'off',
-      '@typescript-eslint/no-base-to-string': 'off',
-      '@typescript-eslint/restrict-template-expressions': 'off',
+      // 型安全性ルール（より現実的な設定）
+      '@typescript-eslint/no-unsafe-assignment': 'warn', // 段階的に対応
+      '@typescript-eslint/no-unsafe-call': 'warn', // 段階的に対応
+      '@typescript-eslint/no-unsafe-member-access': 'off', // 将来的に有効化
+      '@typescript-eslint/no-unsafe-return': 'off', // 将来的に有効化
+      '@typescript-eslint/no-unsafe-argument': 'off', // 将来的に有効化
     },
   },
 
-  // Next.jsプラグイン設定
+  // Next.js設定
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     plugins: {
@@ -133,10 +101,11 @@ export default tseslint.config(
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
+      '@next/next/no-html-link-for-pages': 'off', // App Routerでは不要
     },
   },
 
-  // import/orderルール設定
+  // Import順序設定（簡素化版）
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     plugins: {
@@ -145,36 +114,29 @@ export default tseslint.config(
     settings: {
       'import/resolver': {
         typescript: {
-          project: './tsconfig.json',
+          alwaysTryTypes: true,
         },
-        node: true,
       },
     },
     rules: {
       'import/order': [
-        'error',
+        'warn',
         {
           groups: ['builtin', 'external', 'internal', ['parent', 'sibling'], 'index', 'type'],
           pathGroups: [
             {
-              pattern: 'react',
+              pattern: '{react,react/**}',
               group: 'external',
               position: 'before',
             },
             {
-              pattern: 'next',
-              group: 'external',
-              position: 'before',
-            },
-            {
-              pattern: 'next/**',
+              pattern: '{next,next/**}',
               group: 'external',
               position: 'before',
             },
             {
               pattern: '@/**',
               group: 'internal',
-              position: 'after',
             },
           ],
           pathGroupsExcludedImportTypes: ['react', 'next'],
@@ -188,51 +150,49 @@ export default tseslint.config(
     },
   },
 
-  // 一般的なルール
+  // 共通ルール
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     rules: {
-      // 基本的なコード品質ルール
-      'no-console': 'warn',
-      'no-unused-vars': 'off', // TypeScriptのルールを使用
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-alert': 'warn',
-      'no-var': 'error',
       'prefer-const': 'error',
-      'prefer-template': 'error',
-      'object-shorthand': 'error',
-      'prefer-destructuring': [
-        'error',
-        {
-          array: false,
-          object: true,
-        },
-      ],
-
-      // React固有のルール（Next.jsプラグインで大部分はカバーされている）
-      'react/jsx-no-target-blank': 'off', // Next.jsがカバー
-      'react/react-in-jsx-scope': 'off', // Next.jsでは不要
+      'no-var': 'error',
     },
   },
 
-  // テストファイル用の設定
+  // テストファイル用設定
   {
-    files: ['**/*.test.{js,jsx,ts,tsx}', '**/*.spec.{js,jsx,ts,tsx}', 'tests/**/*'],
+    files: [
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/*.spec.{js,jsx,ts,tsx}',
+      'tests/**/*',
+      '**/__tests__/**/*',
+      '**/__fixtures__/**/*',
+    ],
     rules: {
+      // テストでは any 型を許可（モックやテストダブルで必要な場合があるため）
       '@typescript-eslint/no-explicit-any': 'off',
       'no-console': 'off',
+      // テストファイルでは型安全性ルールを無効化
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
     },
   },
 
-  // 設定ファイル用の緩い設定
+  // 設定ファイル用
   {
     files: ['*.config.{ts,mts}', 'vitest.config.*.ts'],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
       'import/order': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 
-  // Prettierとの統合（最後に適用して競合を回避）
+  // Prettier統合（最後に適用）
   prettierConfig
 )

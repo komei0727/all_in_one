@@ -5,6 +5,7 @@ import { ValueObject } from '@/modules/shared/server/domain/value-objects'
  */
 export class SessionStatus extends ValueObject<string> {
   private static readonly VALID_STATUSES = ['ACTIVE', 'COMPLETED', 'ABANDONED'] as const
+  private static readonly VALID_STATUSES_STRINGS: readonly string[] = SessionStatus.VALID_STATUSES
 
   /** アクティブ（実行中）のセッション */
   static readonly ACTIVE = new SessionStatus('ACTIVE')
@@ -32,7 +33,7 @@ export class SessionStatus extends ValueObject<string> {
    * 文字列からSessionStatusを作成する
    */
   static from(value: string): SessionStatus {
-    if (!value || !SessionStatus.VALID_STATUSES.includes(value as any)) {
+    if (!value || !SessionStatus.VALID_STATUSES_STRINGS.includes(value)) {
       throw new Error(`無効なセッションステータス: ${value}`)
     }
 

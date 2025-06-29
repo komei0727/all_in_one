@@ -12,7 +12,7 @@ export class ExpiryDateUpdated extends DomainEvent {
     public readonly previousExpiryDate: Date,
     public readonly newExpiryDate: Date,
     public readonly reason?: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     ExpiryDateUpdated.validateRequiredFields(ingredientId, userId)
@@ -24,8 +24,8 @@ export class ExpiryDateUpdated extends DomainEvent {
     return 'ExpiryDateUpdated'
   }
 
-  protected getPayload(): Record<string, any> {
-    const payload: Record<string, any> = {
+  protected getPayload(): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
       ingredientId: this.ingredientId,
       userId: this.userId,
       previousExpiryDate: this.previousExpiryDate.toISOString(),

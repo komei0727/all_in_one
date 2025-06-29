@@ -1,7 +1,12 @@
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'
+
 /**
  * 環境別メールサーバー設定
  */
-export function getEmailConfig() {
+export function getEmailConfig(): {
+  server: SMTPTransport.Options
+  from: string
+} {
   const host = process.env.EMAIL_SERVER_HOST || 'localhost'
   const port = Number(process.env.EMAIL_SERVER_PORT || '1025')
   const user = process.env.EMAIL_SERVER_USER
@@ -20,7 +25,6 @@ export function getEmailConfig() {
           rejectUnauthorized: false,
         },
         // 認証を明示的に無効化
-        auth: false as any,
       },
       from,
     }

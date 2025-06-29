@@ -11,8 +11,8 @@ export class UserSyncedWithNextAuthEvent extends DomainEvent {
     public readonly syncedFields: ('email' | 'name' | 'lastLoginAt')[],
     public readonly changes: {
       field: string
-      oldValue: any
-      newValue: any
+      oldValue: unknown
+      newValue: unknown
     }[]
   ) {
     super(aggregateId)
@@ -22,7 +22,7 @@ export class UserSyncedWithNextAuthEvent extends DomainEvent {
     return 'user.syncedWithNextAuth'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       nextAuthId: this.nextAuthId,
       syncedFields: this.syncedFields,

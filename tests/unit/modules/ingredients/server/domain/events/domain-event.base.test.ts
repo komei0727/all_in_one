@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { DomainEvent } from '@/modules/shared/server/domain/events/domain-event.base'
 
 // テスト用の具象イベントクラス

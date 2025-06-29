@@ -13,17 +13,19 @@ import { UserStatus } from '@/modules/user-authentication/server/domain/value-ob
  * NextAuthのUserテーブルとドメインのDomainUserテーブルを連携して
  * ドメインモデルのUserエンティティを永続化する
  */
-// Prismaクライアントの型を柔軟に受け入れるための型定義
-type PrismaClientLike = PrismaClient | Record<string, any>
+// DomainUserとNextAuthユーザーの結合型（将来使用予定）
+// type DomainUserWithNextAuth = DomainUser & {
+//   nextAuthUser: PrismaUser | null
+// }
 
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaClientLike) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
   /**
    * ユーザーをIDで検索
    */
   async findById(id: UserId): Promise<User | null> {
-    const domainUser = await (this.prisma as any).domainUser.findUnique({
+    const domainUser = await this.prisma.domainUser.findUnique({
       where: { id: id.getValue() },
       include: {
         nextAuthUser: true,
@@ -41,7 +43,7 @@ export class PrismaUserRepository implements UserRepository {
    * NextAuthIDでユーザーを検索
    */
   async findByNextAuthId(nextAuthId: string): Promise<User | null> {
-    const domainUser = await (this.prisma as any).domainUser.findUnique({
+    const domainUser = await this.prisma.domainUser.findUnique({
       where: { nextAuthId },
       include: {
         nextAuthUser: true,
@@ -59,7 +61,7 @@ export class PrismaUserRepository implements UserRepository {
    * メールアドレスでユーザーを検索
    */
   async findByEmail(email: Email): Promise<User | null> {
-    const domainUser = await (this.prisma as any).domainUser.findUnique({
+    const domainUser = await this.prisma.domainUser.findUnique({
       where: { email: email.getValue() },
       include: {
         nextAuthUser: true,
@@ -92,14 +94,14 @@ export class PrismaUserRepository implements UserRepository {
     }
 
     // 既存ユーザーかどうかを確認
-    const existingUser = await (this.prisma as any).domainUser.findUnique({
+    const existingUser = await this.prisma.domainUser.findUnique({
       where: { id: user.getId().getValue() },
     })
 
     let savedUser
     if (existingUser) {
       // 更新
-      savedUser = await (this.prisma as any).domainUser.update({
+      savedUser = await this.prisma.domainUser.update({
         where: { id: user.getId().getValue() },
         data: userData,
         include: {
@@ -108,7 +110,7 @@ export class PrismaUserRepository implements UserRepository {
       })
     } else {
       // 新規作成
-      savedUser = await (this.prisma as any).domainUser.create({
+      savedUser = await this.prisma.domainUser.create({
         data: {
           id: user.getId().getValue(),
           ...userData,
@@ -128,7 +130,7 @@ export class PrismaUserRepository implements UserRepository {
    */
   async delete(id: UserId): Promise<boolean> {
     try {
-      await (this.prisma as any).domainUser.update({
+      await this.prisma.domainUser.update({
         where: { id: id.getValue() },
         data: {
           status: 'DEACTIVATED',
@@ -146,7 +148,7 @@ export class PrismaUserRepository implements UserRepository {
    * アクティブユーザーのリストを取得
    */
   async findActiveUsers(limit?: number, offset?: number): Promise<User[]> {
-    const domainUsers = await (this.prisma as any).domainUser.findMany({
+    const domainUsers = await this.prisma.domainUser.findMany({
       where: {
         status: 'ACTIVE',
       },
@@ -160,14 +162,14 @@ export class PrismaUserRepository implements UserRepository {
       skip: offset,
     })
 
-    return domainUsers.map((user: any) => this.mapToDomainEntity(user))
+    return domainUsers.map((user) => this.mapToDomainEntity(user))
   }
 
   /**
    * NextAuthIDでユーザーの存在を確認
    */
   async existsByNextAuthId(nextAuthId: string): Promise<boolean> {
-    const count = await (this.prisma as any).domainUser.count({
+    const count = await this.prisma.domainUser.count({
       where: { nextAuthId },
     })
     return count > 0
@@ -177,7 +179,7 @@ export class PrismaUserRepository implements UserRepository {
    * メールアドレスでユーザーの存在を確認
    */
   async existsByEmail(email: Email): Promise<boolean> {
-    const count = await (this.prisma as any).domainUser.count({
+    const count = await this.prisma.domainUser.count({
       where: { email: email.getValue() },
     })
     return count > 0
@@ -190,7 +192,7 @@ export class PrismaUserRepository implements UserRepository {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
 
-    return await (this.prisma as any).domainUser.count({
+    return await this.prisma.domainUser.count({
       where: {
         status: 'ACTIVE',
         lastLoginAt: {

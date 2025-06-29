@@ -10,7 +10,7 @@ export class NextAuthIntegrationFailedEvent extends DomainEvent {
     public readonly email: string | undefined,
     public readonly errorType: 'USER_CREATION_FAILED' | 'SYNC_FAILED' | 'VALIDATION_FAILED',
     public readonly errorMessage: string,
-    public readonly errorDetails: Record<string, any> = {}
+    public readonly errorDetails: Record<string, unknown> = {}
   ) {
     // 統合失敗イベントは集約IDがない場合があるため、NextAuthIDを使用
     super(nextAuthId)
@@ -20,7 +20,7 @@ export class NextAuthIntegrationFailedEvent extends DomainEvent {
     return 'user.nextAuthIntegrationFailed'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       nextAuthId: this.nextAuthId,
       email: this.email,

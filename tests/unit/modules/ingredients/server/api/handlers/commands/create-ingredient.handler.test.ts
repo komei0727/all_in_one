@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 
 import { CreateIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/create-ingredient.handler'
-import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
+import { type CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
-import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
-import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
+import { type CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
+import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
 import { testDataHelpers } from '../../../../../../../__fixtures__/builders/faker.config'
 

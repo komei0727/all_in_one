@@ -5,6 +5,7 @@ import { ValueObject } from '@/modules/shared/server/domain/value-objects'
  */
 export class ExpiryStatus extends ValueObject<string> {
   private static readonly VALID_STATUSES = ['FRESH', 'EXPIRING_SOON', 'EXPIRED'] as const
+  private static readonly VALID_STATUSES_STRINGS: readonly string[] = ExpiryStatus.VALID_STATUSES
   private static readonly EXPIRING_SOON_DAYS = 3 // 期限切れ間近の日数閾値
 
   /** 新鮮 */
@@ -32,7 +33,7 @@ export class ExpiryStatus extends ValueObject<string> {
    * 文字列からExpiryStatusを作成する
    */
   static from(value: string): ExpiryStatus {
-    if (!value || !ExpiryStatus.VALID_STATUSES.includes(value as any)) {
+    if (!value || !ExpiryStatus.VALID_STATUSES_STRINGS.includes(value)) {
       throw new Error(`無効な期限ステータス: ${value}`)
     }
 

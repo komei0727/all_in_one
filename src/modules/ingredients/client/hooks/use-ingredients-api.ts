@@ -39,7 +39,7 @@ export function useCategories() {
       if (!response.ok) {
         throw new Error('カテゴリーの取得に失敗しました')
       }
-      const data = await response.json()
+      const data = (await response.json()) as { categories: Category[] }
       return data.categories
     },
   })
@@ -56,7 +56,7 @@ export function useUnits() {
       if (!response.ok) {
         throw new Error('単位の取得に失敗しました')
       }
-      const data = await response.json()
+      const data = (await response.json()) as { units: Unit[] }
       return data.units
     },
   })
@@ -77,11 +77,11 @@ export function useCreateIngredient() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = (await response.json()) as { error?: { message?: string } }
         throw new Error(error.error?.message || '食材の登録に失敗しました')
       }
 
-      return response.json()
+      return response.json() as Promise<IngredientResponse>
     },
   })
 }
@@ -110,11 +110,11 @@ export function useIngredients(params: IngredientsParams = {}) {
       const response = await fetch(url)
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = (await response.json()) as { error?: { message?: string } }
         throw new Error(error.error?.message || '食材の取得に失敗しました')
       }
 
-      return response.json()
+      return response.json() as Promise<IngredientsListResponse>
     },
   })
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { AggregateRoot } from '@/modules/shared/server/domain/entities/aggregate-root.base'
 import { DomainEvent } from '@/modules/shared/server/domain/events/domain-event.base'
 
@@ -41,7 +42,6 @@ describe('AggregateRoot基底クラス', () => {
     it('ドメインイベントを追加できる', () => {
       // 集約ルートがドメインイベントを追加できることを確認
       const aggregate = new TestAggregate('aggregate-123')
-      const event = new TestDomainEvent('aggregate-123', 'test data')
 
       // Act
       aggregate.doSomething()

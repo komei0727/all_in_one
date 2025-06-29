@@ -5,6 +5,7 @@ import { ValueObject } from '@/modules/shared/server/domain/value-objects'
  */
 export class StockStatus extends ValueObject<string> {
   private static readonly VALID_STATUSES = ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'] as const
+  private static readonly VALID_STATUSES_STRINGS: readonly string[] = StockStatus.VALID_STATUSES
 
   /** 在庫あり */
   static readonly IN_STOCK = new StockStatus('IN_STOCK')
@@ -31,7 +32,7 @@ export class StockStatus extends ValueObject<string> {
    * 文字列からStockStatusを作成する
    */
   static from(value: string): StockStatus {
-    if (!value || !StockStatus.VALID_STATUSES.includes(value as any)) {
+    if (!value || !StockStatus.VALID_STATUSES_STRINGS.includes(value)) {
       throw new Error(`無効な在庫ステータス: ${value}`)
     }
 

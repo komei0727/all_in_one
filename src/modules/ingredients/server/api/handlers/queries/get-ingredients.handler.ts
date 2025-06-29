@@ -2,6 +2,7 @@ import { AppError } from '@/modules/shared/server/errors/app.error'
 
 import { GetIngredientsQuery } from '../../../application/queries/get-ingredients.query'
 
+import type { IngredientDto } from '../../../application/dtos/ingredient.dto'
 import type { GetIngredientsHandler } from '../../../application/queries/get-ingredients.handler'
 
 /**
@@ -17,7 +18,7 @@ export class GetIngredientsApiHandler {
     searchParams: URLSearchParams,
     userId: string
   ): Promise<{
-    ingredients: any[]
+    ingredients: IngredientDto[]
     pagination: {
       total: number
       page: number
@@ -71,19 +72,7 @@ export class GetIngredientsApiHandler {
       const result = await this.getIngredientsHandler.execute(query)
 
       return {
-        ingredients: result.items.map((item) => ({
-          id: item.id,
-          userId: item.userId,
-          name: item.name,
-          category: item.category,
-          price: item.price,
-          purchaseDate: item.purchaseDate,
-          expiryInfo: item.expiryInfo,
-          stock: item.stock,
-          memo: item.memo,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-        })),
+        ingredients: result.items,
         pagination: {
           total: result.total,
           page: result.page,

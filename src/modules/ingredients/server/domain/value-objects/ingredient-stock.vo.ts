@@ -1,4 +1,4 @@
-import { StorageLocation } from './storage-location.vo'
+import { StorageLocation, type StorageType } from './storage-location.vo'
 import { UnitId } from './unit-id.vo'
 import { ValidationException } from '../exceptions'
 
@@ -144,13 +144,16 @@ export class IngredientStock {
   static fromObject(obj: {
     quantity: number
     unitId: string
-    storageLocation: { type: any; detail?: string }
+    storageLocation: { type: string; detail?: string }
     threshold?: number | null
   }): IngredientStock {
     return new IngredientStock({
       quantity: obj.quantity,
       unitId: new UnitId(obj.unitId),
-      storageLocation: StorageLocation.fromObject(obj.storageLocation),
+      storageLocation: StorageLocation.fromObject({
+        type: obj.storageLocation.type as StorageType,
+        detail: obj.storageLocation.detail,
+      }),
       threshold: obj.threshold ?? null,
     })
   }

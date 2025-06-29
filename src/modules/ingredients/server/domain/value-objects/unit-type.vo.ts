@@ -13,6 +13,7 @@ import { RequiredFieldException, InvalidFieldException } from '../exceptions'
  */
 export class UnitType extends ValueObject<string> {
   private static readonly VALID_TYPES = ['COUNT', 'WEIGHT', 'VOLUME'] as const
+  private static readonly VALID_TYPES_STRINGS: readonly string[] = UnitType.VALID_TYPES
 
   constructor(value: string) {
     super(value)
@@ -25,7 +26,7 @@ export class UnitType extends ValueObject<string> {
     }
 
     // 有効な値かチェック
-    if (!UnitType.VALID_TYPES.includes(value as any)) {
+    if (!UnitType.VALID_TYPES_STRINGS.includes(value)) {
       throw new InvalidFieldException(
         '単位タイプ',
         value,

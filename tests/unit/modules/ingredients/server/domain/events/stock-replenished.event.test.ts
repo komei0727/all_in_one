@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { StockReplenished } from '@/modules/ingredients/server/domain/events/stock-replenished.event'
 
 describe('StockReplenished イベント', () => {
@@ -161,12 +162,12 @@ describe('StockReplenished イベント', () => {
       const json = event.toJSON()
 
       // 在庫履歴で必要な情報
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 対象食材
-      expect(json.payload.userId).toBe('user-456') // 補充者
-      expect(json.payload.replenishedAmount).toBe(5) // 補充量
-      expect(json.payload.previousAmount).toBe(2) // 補充前在庫
-      expect(json.payload.newTotalAmount).toBe(7) // 補充後在庫
-      expect(json.payload.unitId).toBe('unit-001') // 単位
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 対象食材
+      expect((json.payload as any).userId).toBe('user-456') // 補充者
+      expect((json.payload as any).replenishedAmount).toBe(5) // 補充量
+      expect((json.payload as any).previousAmount).toBe(2) // 補充前在庫
+      expect((json.payload as any).newTotalAmount).toBe(7) // 補充後在庫
+      expect((json.payload as any).unitId).toBe('unit-001') // 単位
       expect(json.occurredAt).toBeTruthy() // 補充日時
     })
 
@@ -177,10 +178,10 @@ describe('StockReplenished イベント', () => {
       const json = event.toJSON()
 
       // 購入パターン分析で必要な情報
-      expect(json.payload.replenishedAmount).toBe(10) // 購入量分析用
-      expect(json.payload.previousAmount).toBe(0) // 在庫切れからの補充判定用
+      expect((json.payload as any).replenishedAmount).toBe(10) // 購入量分析用
+      expect((json.payload as any).previousAmount).toBe(0) // 在庫切れからの補充判定用
       expect(json.occurredAt).toBeTruthy() // 購入タイミング分析用
-      expect(json.payload.userId).toBe('user-456') // ユーザー別購入パターン分析用
+      expect((json.payload as any).userId).toBe('user-456') // ユーザー別購入パターン分析用
     })
 
     it('在庫レベル監視に必要な情報が含まれている', () => {
@@ -197,9 +198,9 @@ describe('StockReplenished イベント', () => {
       const json = event.toJSON()
 
       // 在庫レベル監視で必要な情報
-      expect(json.payload.previousAmount).toBe(1) // 補充前在庫レベル
-      expect(json.payload.newTotalAmount).toBe(4) // 補充後在庫レベル
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 監視対象特定用
+      expect((json.payload as any).previousAmount).toBe(1) // 補充前在庫レベル
+      expect((json.payload as any).newTotalAmount).toBe(4) // 補充後在庫レベル
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 監視対象特定用
     })
 
     it('自動補充システム連携データが含まれている', () => {
@@ -221,10 +222,10 @@ describe('StockReplenished イベント', () => {
       const json = event.toJSON()
 
       // 自動補充システム連携データ
-      expect(json.payload.userId).toBe('system-auto-replenish') // 自動補充判定用
-      expect(json.metadata.autoReplenish).toBe(true) // 自動補充フラグ
-      expect(json.metadata.triggerThreshold).toBe(2) // 発動閾値
-      expect(json.metadata.replenishRule).toBe('low-stock-trigger') // 補充ルール
+      expect((json.payload as any).userId).toBe('system-auto-replenish') // 自動補充判定用
+      expect((json.metadata as any).autoReplenish).toBe(true) // 自動補充フラグ
+      expect((json.metadata as any).triggerThreshold).toBe(2) // 発動閾値
+      expect((json.metadata as any).replenishRule).toBe('low-stock-trigger') // 補充ルール
     })
   })
 })

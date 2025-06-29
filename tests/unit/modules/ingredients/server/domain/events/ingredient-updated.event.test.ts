@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { IngredientUpdated } from '@/modules/ingredients/server/domain/events/ingredient-updated.event'
 
 describe('IngredientUpdated イベント', () => {
@@ -135,7 +136,7 @@ describe('IngredientUpdated イベント', () => {
 
     it('変更内容がnullの場合はエラーになる', () => {
       expect(() => {
-        // @ts-ignore - テスト用に型チェックを無視
+        // @ts-expect-error - テスト用に型チェックを無視
         new IngredientUpdated('ingredient-123', 'user-456', null)
       }).toThrow('変更内容は必須です')
     })
@@ -156,9 +157,9 @@ describe('IngredientUpdated イベント', () => {
       const json = event.toJSON()
 
       // 変更履歴で必要な情報
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 対象食材
-      expect(json.payload.userId).toBe('user-456') // 変更者
-      expect(json.payload.changes).toEqual(changes) // 変更内容詳細
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 対象食材
+      expect((json.payload as any).userId).toBe('user-456') // 変更者
+      expect((json.payload as any).changes).toEqual(changes) // 変更内容詳細
       expect(json.occurredAt).toBeTruthy() // 変更日時
     })
 
@@ -177,12 +178,12 @@ describe('IngredientUpdated イベント', () => {
       const json = event.toJSON()
 
       // Before/After形式の変更データ
-      expect(json.payload.changes.name.from).toBe('トマト')
-      expect(json.payload.changes.name.to).toBe('プチトマト')
-      expect(json.payload.changes.quantity.from).toBe(3)
-      expect(json.payload.changes.quantity.to).toBe(5)
-      expect(json.payload.changes.expiryDate.from).toBe('2024-01-15')
-      expect(json.payload.changes.expiryDate.to).toBe('2024-01-20')
+      expect((json.payload as any).changes.name.from).toBe('トマト')
+      expect((json.payload as any).changes.name.to).toBe('プチトマト')
+      expect((json.payload as any).changes.quantity.from).toBe(3)
+      expect((json.payload as any).changes.quantity.to).toBe(5)
+      expect((json.payload as any).changes.expiryDate.from).toBe('2024-01-15')
+      expect((json.payload as any).changes.expiryDate.to).toBe('2024-01-20')
     })
 
     it('監査証跡に必要な情報が含まれている', () => {
@@ -202,10 +203,10 @@ describe('IngredientUpdated イベント', () => {
       // 監査証跡で必要な情報
       expect(json.id).toBeTruthy() // イベントID
       expect(json.occurredAt).toBeTruthy() // 変更日時
-      expect(json.payload.userId).toBe('user-456') // 変更者
-      expect(json.metadata.ipAddress).toBe('192.168.1.1') // アクセス元
-      expect(json.metadata.userAgent).toBe('Mozilla/5.0...') // ユーザーエージェント
-      expect(json.metadata.correlationId).toBe('correlation-456') // 相関ID
+      expect((json.payload as any).userId).toBe('user-456') // 変更者
+      expect((json.metadata as any).ipAddress).toBe('192.168.1.1') // アクセス元
+      expect((json.metadata as any).userAgent).toBe('Mozilla/5.0...') // ユーザーエージェント
+      expect((json.metadata as any).correlationId).toBe('correlation-456') // 相関ID
     })
   })
 })

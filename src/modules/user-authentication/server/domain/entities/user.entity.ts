@@ -303,7 +303,7 @@ export class User extends AggregateRoot<UserId> {
       throw new Error('NextAuth IDが一致しません')
     }
 
-    const changes: { field: string; oldValue: any; newValue: any }[] = []
+    const changes: { field: string; oldValue: unknown; newValue: unknown }[] = []
     const syncedFields: ('email' | 'name' | 'lastLoginAt')[] = []
 
     // メールアドレスの同期

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-import { PrismaClient } from '@/generated/prisma'
+import { type PrismaClient } from '@/generated/prisma'
 import { IngredientId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 
@@ -8,7 +8,7 @@ import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.c
 
 describe('PrismaIngredientRepository - 在庫管理メソッド', () => {
   let repository: PrismaIngredientRepository
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let mockPrisma: any
 
   beforeEach(() => {

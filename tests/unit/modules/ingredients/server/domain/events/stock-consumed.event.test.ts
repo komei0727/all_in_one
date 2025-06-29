@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { StockConsumed } from '@/modules/ingredients/server/domain/events/stock-consumed.event'
 
 describe('StockConsumed イベント', () => {
@@ -138,11 +139,11 @@ describe('StockConsumed イベント', () => {
       const json = event.toJSON()
 
       // 消費履歴で必要な情報
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 対象食材
-      expect(json.payload.userId).toBe('user-456') // 消費者
-      expect(json.payload.consumedAmount).toBe(2) // 消費量
-      expect(json.payload.remainingAmount).toBe(3) // 残量
-      expect(json.payload.unitId).toBe('unit-001') // 単位
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 対象食材
+      expect((json.payload as any).userId).toBe('user-456') // 消費者
+      expect((json.payload as any).consumedAmount).toBe(2) // 消費量
+      expect((json.payload as any).remainingAmount).toBe(3) // 残量
+      expect((json.payload as any).unitId).toBe('unit-001') // 単位
       expect(json.occurredAt).toBeTruthy() // 消費日時
     })
 
@@ -153,10 +154,10 @@ describe('StockConsumed イベント', () => {
       const json = event.toJSON()
 
       // 消費パターン分析で必要な情報
-      expect(json.payload.consumedAmount).toBe(2) // 消費量分析用
-      expect(json.payload.remainingAmount).toBe(3) // 在庫推移分析用
+      expect((json.payload as any).consumedAmount).toBe(2) // 消費量分析用
+      expect((json.payload as any).remainingAmount).toBe(3) // 在庫推移分析用
       expect(json.occurredAt).toBeTruthy() // 時系列分析用
-      expect(json.payload.userId).toBe('user-456') // ユーザー別分析用
+      expect((json.payload as any).userId).toBe('user-456') // ユーザー別分析用
     })
 
     it('在庫切れ判定に必要な情報が含まれている', () => {
@@ -172,8 +173,8 @@ describe('StockConsumed イベント', () => {
       const json = event.toJSON()
 
       // 在庫切れ判定で必要な情報
-      expect(json.payload.remainingAmount).toBe(0) // 残量チェック用
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 対象食材特定用
+      expect((json.payload as any).remainingAmount).toBe(0) // 残量チェック用
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 対象食材特定用
     })
   })
 })

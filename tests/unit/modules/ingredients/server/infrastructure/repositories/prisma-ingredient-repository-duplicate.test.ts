@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { PrismaClient } from '@/generated/prisma'
-import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
+
+import { type PrismaClient } from '@/generated/prisma'
 import {
   IngredientName,
   ExpiryInfo,
   StorageLocation,
   StorageType,
 } from '@/modules/ingredients/server/domain/value-objects'
+import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 
 describe('PrismaIngredientRepository - 重複チェックメソッド', () => {
   let repository: PrismaIngredientRepository

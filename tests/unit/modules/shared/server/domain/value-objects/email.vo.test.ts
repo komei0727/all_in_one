@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
+
+import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+
 import { EmailBuilder } from '../../../../../../__fixtures__/builders'
 
 // テスト対象のEmailクラス
-import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 
 describe('Email値オブジェクト（共有カーネル）', () => {
   describe('正常な値での作成', () => {

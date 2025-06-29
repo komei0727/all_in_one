@@ -1,11 +1,15 @@
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import NextAuth from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
+import nodemailer from 'nodemailer'
 
-import { getAuthConfig, getEmailConfig } from './auth.config'
 import { prisma } from '@/lib/prisma'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
+
+import { getAuthConfig, getEmailConfig } from './auth.config'
+
+import type { Adapter } from 'next-auth/adapters'
 
 /**
  * NextAuth v5設定
@@ -19,7 +23,7 @@ const emailConfig = getEmailConfig()
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   // Prismaアダプターの設定
-  adapter: PrismaAdapter(prisma as any),
+  adapter: PrismaAdapter(prisma) as Adapter,
   debug: authConfig.debug,
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
@@ -29,7 +33,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       // メール送信設定
       sendVerificationRequest: async ({ identifier: email, url, provider }) => {
         // Nodemailerトランスポーターの作成
-        const transport = require('nodemailer').createTransport(provider.server)
+        const transport = nodemailer.createTransport(provider.server)
         const result = await transport.sendMail({
           to: email,
           from: provider.from,
@@ -56,7 +60,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           `,
         })
         if (process.env.NODE_ENV === 'development') {
-          console.log('📧 認証メール送信:', { to: email, messageId: result.messageId })
+          console.warn('📧 認証メール送信:', { to: email, messageId: result.messageId })
         }
       },
     }),
@@ -137,7 +141,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           }
 
           await userIntegrationService.createOrUpdateFromNextAuth(nextAuthUser)
-        } catch (error) {
+        } catch (_error) {
           // TODO: 本番環境では適切なロガーに置き換える
         }
       }
