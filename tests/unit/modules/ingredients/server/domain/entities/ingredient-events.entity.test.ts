@@ -1,16 +1,16 @@
 import { faker } from '@faker-js/faker/locale/ja'
 import { describe, expect, it } from 'vitest'
 
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import {
   IngredientCreated,
   StockConsumed,
+  StockDepleted,
   StockReplenished,
   IngredientUpdated,
   IngredientDeleted,
   IngredientExpired,
+  IngredientExpiringSoon,
 } from '@/modules/ingredients/server/domain/events'
-import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { IngredientName, CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 
 import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
@@ -18,22 +18,13 @@ import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.c
 
 describe('Ingredient ドメインイベント発行', () => {
   describe('食材作成イベント', () => {
-    it('新規作成時にIngredientCreatedイベントを発行する', () => {
-      // 食材作成時にイベントが発行されることを確認
+    it('新規作成フラグがtrueの場合、IngredientCreatedイベントを発行する', () => {
+      // 新規作成フラグを設定してエンティティを作成
       const userId = testDataHelpers.userId()
-      const categoryId = testDataHelpers.categoryId()
-      const unitId = testDataHelpers.unitId()
-
-      const ingredient = Ingredient.create({
-        userId,
-        name: 'トマト',
-        categoryId,
-        unitId,
-        quantity: 5,
-        purchaseDate: new Date(),
-        storageLocation: { type: StorageType.REFRIGERATED, detail: '野菜室' },
-        threshold: 2,
-      })
+      const ingredient = new IngredientBuilder()
+        .withUserId(userId)
+        .withIsNew(true) // 新規作成フラグを設定
+        .build()
 
       // Assert
       const events = ingredient.getUncommittedEvents()
@@ -43,10 +34,19 @@ describe('Ingredient ドメインイベント発行', () => {
       const event = events[0] as IngredientCreated
       expect(event.ingredientId).toBe(ingredient.getId().getValue())
       expect(event.userId).toBe(userId)
-      expect(event.ingredientName).toBe('トマト')
-      expect(event.categoryId).toBe(categoryId)
-      expect(event.initialQuantity).toBe(5)
-      expect(event.unitId).toBe(unitId)
+      expect(event.ingredientName).toBe(ingredient.getName().getValue())
+      expect(event.categoryId).toBe(ingredient.getCategoryId().getValue())
+      expect(event.initialQuantity).toBe(ingredient.getIngredientStock().getQuantity())
+      expect(event.unitId).toBe(ingredient.getIngredientStock().getUnitId().getValue())
+    })
+
+    it('新規作成フラグがfalseの場合、IngredientCreatedイベントを発行しない', () => {
+      // 既存エンティティとして作成（デフォルト動作）
+      const ingredient = new IngredientBuilder().build()
+
+      // Assert
+      const events = ingredient.getUncommittedEvents()
+      expect(events).toHaveLength(0)
     })
   })
 
@@ -84,9 +84,16 @@ describe('Ingredient ドメインイベント発行', () => {
 
       // Assert
       const events = ingredient.getUncommittedEvents()
-      expect(events).toHaveLength(1)
-      const event = events[0] as StockConsumed
-      expect(event.remainingAmount).toBe(0)
+      expect(events).toHaveLength(2) // StockConsumed + StockDepleted
+
+      const consumedEvent = events[0] as StockConsumed
+      expect(consumedEvent.remainingAmount).toBe(0)
+
+      const depletedEvent = events[1] as StockDepleted
+      expect(depletedEvent).toBeInstanceOf(StockDepleted)
+      expect(depletedEvent.ingredientId).toBe(ingredient.getId().getValue())
+      expect(depletedEvent.userId).toBe(userId)
+      expect(depletedEvent.ingredientName).toBe(ingredient.getName().getValue())
     })
   })
 
@@ -247,6 +254,50 @@ describe('Ingredient ドメインイベント発行', () => {
       expect(expired).toBe(false)
       const events = ingredient.getUncommittedEvents()
       expect(events).toHaveLength(0)
+    })
+  })
+
+  describe('期限切れ間近イベント', () => {
+    it('期限切れ間近の通知でIngredientExpiringSoonイベントを発行する', () => {
+      // 期限切れ間近の食材を作成
+      const userId = testDataHelpers.userId()
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 5) // 5日後
+
+      const ingredient = new IngredientBuilder()
+        .withUserId(userId)
+        .withName('期限間近の牛乳')
+        .withExpiryInfo({ bestBeforeDate: futureDate })
+        .build()
+      ingredient.markEventsAsCommitted()
+
+      // Act
+      ingredient.notifyExpiringSoon(5)
+
+      // Assert
+      const events = ingredient.getUncommittedEvents()
+      expect(events).toHaveLength(1)
+      expect(events[0]).toBeInstanceOf(IngredientExpiringSoon)
+
+      const event = events[0] as IngredientExpiringSoon
+      expect(event.ingredientId).toBe(ingredient.getId().getValue())
+      expect(event.userId).toBe(userId)
+      expect(event.ingredientName).toBe('期限間近の牛乳')
+      expect(event.remainingDays).toBe(5)
+    })
+
+    it('期限切れの食材では期限切れ間近イベントを発行できない', () => {
+      // 期限切れの食材を作成
+      const pastDate = faker.date.past()
+      const ingredient = new IngredientBuilder()
+        .withExpiryInfo({ bestBeforeDate: pastDate })
+        .build()
+      ingredient.markEventsAsCommitted()
+
+      // Act & Assert
+      expect(() => ingredient.notifyExpiringSoon(0)).toThrow(
+        '期限切れ間近の通知は期限内の食材のみ可能です'
+      )
     })
   })
 

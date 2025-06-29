@@ -143,6 +143,62 @@ describe('Unit Entity', () => {
     })
   })
 
+  describe('getter methods', () => {
+    it('should return correct values from getter methods', () => {
+      // 各getterメソッドが正しい値を返すことを確認
+      // Arrange
+      const unitId = testDataHelpers.unitId()
+      const unit = new UnitBuilder()
+        .withId(unitId)
+        .withName('キログラム')
+        .withSymbol('kg')
+        .withType('WEIGHT')
+        .withDisplayOrder(5)
+        .build()
+
+      // Act & Assert
+      expect(unit.getId()).toBe(unitId)
+      expect(unit.getName()).toBe('キログラム')
+      expect(unit.getSymbol()).toBe('kg')
+      expect(unit.getType()).toBe('WEIGHT')
+      expect(unit.getDisplayOrder()).toBe(5)
+    })
+
+    it('should return correct values for count type unit', () => {
+      // 個数タイプのユニットでgetterメソッドが正しく動作することを確認
+      // Arrange
+      const unit = new UnitBuilder()
+        .withType('COUNT')
+        .withName('個')
+        .withSymbol('個')
+        .withDisplayOrder(10)
+        .build()
+
+      // Act & Assert
+      expect(unit.getName()).toBe('個')
+      expect(unit.getSymbol()).toBe('個')
+      expect(unit.getType()).toBe('COUNT')
+      expect(unit.getDisplayOrder()).toBe(10)
+    })
+
+    it('should return correct values for volume type unit', () => {
+      // 容量タイプのユニットでgetterメソッドが正しく動作することを確認
+      // Arrange
+      const unit = new UnitBuilder()
+        .withType('VOLUME')
+        .withName('リットル')
+        .withSymbol('L')
+        .withDisplayOrder(3)
+        .build()
+
+      // Act & Assert
+      expect(unit.getName()).toBe('リットル')
+      expect(unit.getSymbol()).toBe('L')
+      expect(unit.getType()).toBe('VOLUME')
+      expect(unit.getDisplayOrder()).toBe(3)
+    })
+  })
+
   describe('toJSON', () => {
     it('should return plain object representation', () => {
       // エンティティがプレーンオブジェクトとしてシリアライズできることを確認

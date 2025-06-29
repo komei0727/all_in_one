@@ -62,5 +62,71 @@ describe('StockLevelLow イベント', () => {
         new StockLevelLow('ingredient-123', 'トマト', -1, 3, 'unit-001')
       }).toThrow('現在数量は0以上である必要があります')
     })
+
+    it('食材IDが空の場合はエラーになる', () => {
+      expect(() => {
+        new StockLevelLow('', 'トマト', 1, 3, 'unit-001')
+      }).toThrow('食材IDは必須です')
+    })
+
+    it('食材IDが空白文字のみの場合はエラーになる', () => {
+      expect(() => {
+        new StockLevelLow('   ', 'トマト', 1, 3, 'unit-001')
+      }).toThrow('食材IDは必須です')
+    })
+
+    it('食材名が空の場合はエラーになる', () => {
+      expect(() => {
+        new StockLevelLow('ingredient-123', '', 1, 3, 'unit-001')
+      }).toThrow('食材名は必須です')
+    })
+
+    it('食材名が空白文字のみの場合はエラーになる', () => {
+      expect(() => {
+        new StockLevelLow('ingredient-123', '   ', 1, 3, 'unit-001')
+      }).toThrow('食材名は必須です')
+    })
+
+    it('単位IDが空の場合はエラーになる', () => {
+      expect(() => {
+        new StockLevelLow('ingredient-123', 'トマト', 1, 3, '')
+      }).toThrow('単位IDは必須です')
+    })
+
+    it('単位IDが空白文字のみの場合はエラーになる', () => {
+      expect(() => {
+        new StockLevelLow('ingredient-123', 'トマト', 1, 3, '   ')
+      }).toThrow('単位IDは必須です')
+    })
+  })
+
+  describe('getPayload メソッド', () => {
+    it('緊急度レベルが指定されている場合はペイロードに含まれる', () => {
+      const event = new StockLevelLow('ingredient-123', 'トマト', 1, 3, 'unit-001', 'high')
+      const payload = event.toJSON().payload
+
+      expect(payload).toEqual({
+        ingredientId: 'ingredient-123',
+        ingredientName: 'トマト',
+        currentQuantity: 1,
+        thresholdQuantity: 3,
+        unitId: 'unit-001',
+        urgencyLevel: 'high',
+      })
+    })
+
+    it('緊急度レベルが指定されていない場合はペイロードに含まれない', () => {
+      const event = new StockLevelLow('ingredient-123', 'トマト', 1, 3, 'unit-001')
+      const payload = event.toJSON().payload
+
+      expect(payload).toEqual({
+        ingredientId: 'ingredient-123',
+        ingredientName: 'トマト',
+        currentQuantity: 1,
+        thresholdQuantity: 3,
+        unitId: 'unit-001',
+      })
+      expect(payload).not.toHaveProperty('urgencyLevel')
+    })
   })
 })

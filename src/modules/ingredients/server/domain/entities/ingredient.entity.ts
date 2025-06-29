@@ -3,13 +3,16 @@ import { AggregateRoot } from '@/modules/shared/server/domain/entities/aggregate
 import {
   IngredientCreated,
   StockConsumed,
+  StockDepleted,
   StockReplenished,
   IngredientUpdated,
   IngredientDeleted,
   IngredientExpired,
+  IngredientExpiringSoon,
 } from '../events'
 import { BusinessRuleException } from '../exceptions'
-import {
+
+import type {
   IngredientId,
   IngredientName,
   CategoryId,
@@ -17,9 +20,6 @@ import {
   Price,
   ExpiryInfo,
   IngredientStock,
-  UnitId,
-  StorageLocation,
-  type StorageType,
 } from '../value-objects'
 
 /**
@@ -53,6 +53,7 @@ export class Ingredient extends AggregateRoot {
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
+    isNew?: boolean // 新規作成フラグ
   }) {
     super()
     this.id = params.id
@@ -67,69 +68,21 @@ export class Ingredient extends AggregateRoot {
     this.createdAt = params.createdAt ?? new Date()
     this.updatedAt = params.updatedAt ?? new Date()
     this.deletedAt = params.deletedAt ?? null
-  }
 
-  /**
-   * 食材を新規作成（ファクトリメソッド）
-   */
-  static create(params: {
-    userId: string
-    name: string
-    categoryId: string
-    unitId: string
-    quantity: number
-    purchaseDate: Date
-    storageLocation: { type: StorageType; detail?: string }
-    threshold?: number | null
-    memo?: string | null
-    price?: number | null
-    expiryInfo?: { bestBeforeDate: Date; useByDate?: Date | null } | null
-  }): Ingredient {
-    const id = IngredientId.generate()
-    const ingredientName = new IngredientName(params.name)
-    const categoryId = new CategoryId(params.categoryId)
-    const unitId = new UnitId(params.unitId)
-    const ingredientStock = new IngredientStock({
-      quantity: params.quantity,
-      unitId,
-      storageLocation: new StorageLocation(
-        params.storageLocation.type,
-        params.storageLocation.detail
-      ),
-      threshold: params.threshold,
-    })
-
-    const ingredient = new Ingredient({
-      id,
-      userId: params.userId,
-      name: ingredientName,
-      categoryId,
-      purchaseDate: params.purchaseDate,
-      ingredientStock,
-      memo: params.memo ? new Memo(params.memo) : null,
-      price: params.price ? new Price(params.price) : null,
-      expiryInfo: params.expiryInfo
-        ? new ExpiryInfo({
-            bestBeforeDate: params.expiryInfo.bestBeforeDate,
-            useByDate: params.expiryInfo.useByDate || null,
-          })
-        : null,
-    })
-
-    // 作成イベントを発行
-    ingredient.addDomainEvent(
-      new IngredientCreated(
-        id.getValue(),
-        params.userId,
-        params.name,
-        params.categoryId,
-        params.quantity,
-        params.unitId,
-        { userId: params.userId }
+    // 新規作成の場合はイベントを発行
+    if (params.isNew) {
+      this.addDomainEvent(
+        new IngredientCreated(
+          this.id.getValue(),
+          this.userId,
+          this.name.getValue(),
+          this.categoryId.getValue(),
+          this.ingredientStock.getQuantity(),
+          this.ingredientStock.getUnitId().getValue(),
+          { userId: this.userId }
+        )
       )
-    )
-
-    return ingredient
+    }
   }
 
   /**
@@ -264,6 +217,15 @@ export class Ingredient extends AggregateRoot {
         { userId: this.userId }
       )
     )
+
+    // 在庫が0になった場合は在庫切れイベントを発行
+    if (this.ingredientStock.isOutOfStock()) {
+      this.addDomainEvent(
+        new StockDepleted(this.id.getValue(), this.userId, this.name.getValue(), {
+          userId: this.userId,
+        })
+      )
+    }
   }
 
   /**
@@ -411,6 +373,27 @@ export class Ingredient extends AggregateRoot {
     )
 
     return true
+  }
+
+  /**
+   * 期限切れ間近を通知
+   * @param remainingDays 期限までの残り日数
+   */
+  notifyExpiringSoon(remainingDays: number): void {
+    if (!this.expiryInfo || this.isExpired()) {
+      throw new BusinessRuleException('期限切れ間近の通知は期限内の食材のみ可能です')
+    }
+
+    // 期限切れ間近イベントを発行
+    this.addDomainEvent(
+      new IngredientExpiringSoon(
+        this.id.getValue(),
+        this.userId,
+        this.name.getValue(),
+        remainingDays,
+        { userId: this.userId, systemCheck: true }
+      )
+    )
   }
 
   /**

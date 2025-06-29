@@ -1,21 +1,12 @@
-import { Ingredient } from '../../domain/entities/ingredient.entity'
 import {
   CategoryNotFoundException,
   UnitNotFoundException,
 } from '../../domain/exceptions/not-found.exception'
-import {
-  CategoryId,
-  IngredientId,
-  IngredientName,
-  Memo,
-  Price,
-  StorageLocation,
-  UnitId,
-  ExpiryInfo,
-  IngredientStock,
-} from '../../domain/value-objects'
+import { IngredientFactory } from '../../domain/factories/ingredient.factory'
+import { CategoryId, UnitId } from '../../domain/value-objects'
 
 import type { CreateIngredientCommand } from './create-ingredient.command'
+import type { Ingredient } from '../../domain/entities/ingredient.entity'
 import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
@@ -25,11 +16,16 @@ import type { UnitRepository } from '../../domain/repositories/unit-repository.i
  * 食材の新規登録処理を実行する
  */
 export class CreateIngredientHandler {
+  private readonly ingredientFactory: IngredientFactory
+
   constructor(
     private readonly ingredientRepository: IngredientRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly unitRepository: UnitRepository
-  ) {}
+  ) {
+    // IngredientFactoryのインスタンスを作成
+    this.ingredientFactory = new IngredientFactory(ingredientRepository)
+  }
 
   /**
    * コマンドを実行して食材を作成
@@ -52,38 +48,27 @@ export class CreateIngredientHandler {
       throw new UnitNotFoundException(unitId.getValue())
     }
 
-    // 在庫情報の作成（値オブジェクト）
-    const ingredientStock = new IngredientStock({
-      quantity: command.quantity.amount,
-      unitId,
-      storageLocation: new StorageLocation(
-        command.storageLocation.type,
-        command.storageLocation.detail
-      ),
-      threshold: command.threshold,
-    })
-
-    // 期限情報の作成（値オブジェクト）
-    const expiryInfo = command.expiryInfo
-      ? new ExpiryInfo({
-          bestBeforeDate: command.expiryInfo.bestBeforeDate
-            ? new Date(command.expiryInfo.bestBeforeDate)
-            : null,
-          useByDate: command.expiryInfo.useByDate ? new Date(command.expiryInfo.useByDate) : null,
-        })
-      : null
-
-    // 食材エンティティの作成
-    const ingredient = new Ingredient({
-      id: IngredientId.generate(),
+    // IngredientFactoryを使用して食材を作成
+    const ingredient = await this.ingredientFactory.create({
       userId: command.userId,
-      name: new IngredientName(command.name),
-      categoryId,
+      name: command.name,
+      categoryId: command.categoryId,
+      unitId: command.quantity.unitId,
+      quantity: command.quantity.amount,
       purchaseDate: new Date(command.purchaseDate),
-      ingredientStock,
-      memo: command.memo ? new Memo(command.memo) : null,
-      price: command.price !== undefined ? new Price(command.price) : null,
-      expiryInfo,
+      storageLocation: {
+        type: command.storageLocation.type,
+        detail: command.storageLocation.detail,
+      },
+      threshold: command.threshold,
+      memo: command.memo,
+      price: command.price,
+      expiryInfo: command.expiryInfo?.bestBeforeDate
+        ? {
+            bestBeforeDate: new Date(command.expiryInfo.bestBeforeDate),
+            useByDate: command.expiryInfo.useByDate ? new Date(command.expiryInfo.useByDate) : null,
+          }
+        : null,
     })
 
     // 永続化

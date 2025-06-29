@@ -20,12 +20,14 @@ export {
   UnitSymbolBuilder,
   DisplayOrderBuilder,
   ExpiryInfoBuilder,
+  CheckedItemBuilder,
 } from './value-objects'
 
 // エンティティビルダー
 export { IngredientBuilder } from './entities/ingredient.builder'
 export { CategoryBuilder, createTestCategory } from './entities/category.builder'
 export { UnitBuilder, createTestUnit } from './entities/unit.builder'
+export { ShoppingSessionBuilder } from './entities/shopping-session.builder'
 
 // コマンドビルダー
 export { CreateIngredientCommandBuilder } from './commands/create-ingredient-command.builder'
