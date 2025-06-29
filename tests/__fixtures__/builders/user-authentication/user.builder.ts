@@ -18,12 +18,18 @@ export class UserTestDataBuilder {
   private nextAuthId: string = faker.string.uuid()
   private email: string = faker.internet.email()
   private displayName: string | null = faker.person.fullName()
-  private timezone: string = 'Asia/Tokyo'
+  private timezone = 'Asia/Tokyo'
   private language: 'ja' | 'en' = 'ja'
   private status: 'ACTIVE' | 'DEACTIVATED' = 'ACTIVE'
   private lastLoginAt: Date | null = faker.date.recent()
-  private createdAt: Date = faker.date.past()
-  private updatedAt: Date = faker.date.recent()
+  private createdAt: Date
+  private updatedAt: Date
+
+  constructor() {
+    // createdAtを生成し、updatedAtは必ずそれ以降にする
+    this.createdAt = faker.date.past()
+    this.updatedAt = faker.date.between({ from: this.createdAt, to: new Date() })
+  }
 
   /**
    * IDを設定
