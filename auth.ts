@@ -9,9 +9,6 @@ import { PrismaUserRepository } from '@/modules/user-authentication/server/infra
 
 import { getAuthConfig, getEmailConfig } from './auth.config'
 
-// 環境変数の検証をサーバー起動時に実行
-import '@/lib/server/env-validation'
-
 import type { Adapter } from 'next-auth/adapters'
 
 /**
