@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import { useRouter } from 'next/navigation'
 
@@ -106,10 +106,22 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
         type: 'REFRIGERATED',
         detail: '',
       },
-      purchaseDate: new Date().toISOString().split('T')[0],
+      threshold: undefined,
+      expiryInfo: {
+        bestBeforeDate: '',
+        useByDate: '',
+      },
+      purchaseDate: '',
+      price: undefined,
       memo: '',
     },
   })
+
+  // クライアントサイドでのみ購入日を設定
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    form.setValue('purchaseDate', today)
+  }, [form])
 
   // フォーム送信処理
   const onSubmit = async (data: FormData) => {
@@ -273,7 +285,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
             <FormItem>
               <FormLabel>保管場所詳細</FormLabel>
               <FormControl>
-                <Input placeholder="例: 野菜室" {...field} />
+                <Input placeholder="例: 野菜室" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormDescription>具体的な保管場所を入力できます</FormDescription>
               <FormMessage />
@@ -307,7 +319,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
                   <Calendar
                     mode="single"
                     selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={(date) => field.onChange(formatDate(date))}
+                    onSelect={(date) => field.onChange(formatDate(date) || '')}
                     disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
                     initialFocus
                   />
@@ -336,7 +348,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
                           !field.value && 'text-muted-foreground'
                         )}
                       >
-                        {field.value || <span>日付を選択</span>}
+                        {field.value ? field.value : <span>日付を選択</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -345,7 +357,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => field.onChange(formatDate(date))}
+                      onSelect={(date) => field.onChange(formatDate(date) || '')}
                       disabled={(date) => date < new Date('1900-01-01')}
                       initialFocus
                     />
@@ -372,7 +384,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
                           !field.value && 'text-muted-foreground'
                         )}
                       >
-                        {field.value || <span>日付を選択</span>}
+                        {field.value ? field.value : <span>日付を選択</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -381,7 +393,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => field.onChange(formatDate(date))}
+                      onSelect={(date) => field.onChange(formatDate(date) || '')}
                       disabled={(date) => date < new Date('1900-01-01')}
                       initialFocus
                     />
@@ -402,7 +414,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
               <FormItem>
                 <FormLabel>価格</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="例: 300" {...field} />
+                  <Input type="number" placeholder="例: 300" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormDescription>円単位で入力</FormDescription>
                 <FormMessage />
@@ -417,7 +429,13 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
               <FormItem>
                 <FormLabel>在庫閾値</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="例: 2" {...field} />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="例: 2"
+                    {...field}
+                    value={field.value ?? ''}
+                  />
                 </FormControl>
                 <FormDescription>この数量以下で通知</FormDescription>
                 <FormMessage />
@@ -438,6 +456,7 @@ export function CreateIngredientForm({ onSuccess }: CreateIngredientFormProps = 
                   placeholder="食材に関するメモを入力できます"
                   className="resize-none"
                   {...field}
+                  value={field.value ?? ''}
                 />
               </FormControl>
               <FormMessage />

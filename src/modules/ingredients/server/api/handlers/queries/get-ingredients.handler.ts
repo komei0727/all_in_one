@@ -18,7 +18,7 @@ export class GetIngredientsApiHandler {
     searchParams: URLSearchParams,
     userId: string
   ): Promise<{
-    ingredients: IngredientDto[]
+    ingredients: ReturnType<IngredientDto['toJSON']>['ingredient'][]
     pagination: {
       total: number
       page: number
@@ -72,7 +72,7 @@ export class GetIngredientsApiHandler {
       const result = await this.getIngredientsHandler.execute(query)
 
       return {
-        ingredients: result.items,
+        ingredients: result.items.map((item) => item.toJSON().ingredient),
         pagination: {
           total: result.total,
           page: result.page,
