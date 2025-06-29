@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest'
+
 import { Specification } from '@/modules/shared/server/domain/specifications/specification.base'
 
 // テスト用の具象仕様クラス
 class TrueSpecification<T> extends Specification<T> {
-  isSatisfiedBy(entity: T): boolean {
+  isSatisfiedBy(_entity: T): boolean {
     return true
   }
 }
 
 class FalseSpecification<T> extends Specification<T> {
-  isSatisfiedBy(entity: T): boolean {
+  isSatisfiedBy(_entity: T): boolean {
     return false
   }
 }

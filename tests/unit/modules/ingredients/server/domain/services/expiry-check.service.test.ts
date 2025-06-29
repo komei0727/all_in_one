@@ -1,8 +1,7 @@
-import { describe, it, expect } from 'vitest'
 import { faker } from '@faker-js/faker/locale/ja'
+import { describe, it, expect } from 'vitest'
 
 import { ExpiryCheckService } from '@/modules/ingredients/server/domain/services/expiry-check.service'
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import { ExpiryInfo } from '@/modules/ingredients/server/domain/value-objects'
 
 import { IngredientBuilder } from '../../../../../../__fixtures__/builders'

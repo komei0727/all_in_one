@@ -20,7 +20,7 @@ export class UserProfileUpdatedEvent extends DomainEvent {
     return 'user.profileUpdated'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       oldProfile: {
         displayName: this.oldProfile.getDisplayName(),

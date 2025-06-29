@@ -14,7 +14,7 @@ export class IngredientDeleted extends DomainEvent {
     public readonly lastQuantity: number,
     public readonly unitId: string,
     public readonly reason?: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     IngredientDeleted.validateRequiredFields(
@@ -33,8 +33,8 @@ export class IngredientDeleted extends DomainEvent {
     return 'IngredientDeleted'
   }
 
-  protected getPayload(): Record<string, any> {
-    const payload: Record<string, any> = {
+  protected getPayload(): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
       ingredientId: this.ingredientId,
       userId: this.userId,
       ingredientName: this.ingredientName,

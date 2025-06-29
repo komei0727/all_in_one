@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     // 予期しないエラー
     // 予期しないエラーのログ出力
-    // eslint-disable-next-line no-console
+
     console.error('Unexpected error in POST /api/v1/ingredients:', error)
     return NextResponse.json(
       {
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 予期しないエラー
-    // eslint-disable-next-line no-console
+
     console.error('Unexpected error in GET /api/v1/ingredients:', error)
     return NextResponse.json(
       {

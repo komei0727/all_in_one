@@ -37,5 +37,5 @@ export abstract class AggregateRoot<T> {
    * 等価性の比較
    * 集約ルートの等価性はIDで判断する
    */
-  abstract equals(other: any): boolean
+  abstract equals(other: unknown): boolean
 }

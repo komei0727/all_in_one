@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
-import { PrismaClient } from '@/generated/prisma-test'
+import { type PrismaClient } from '@/generated/prisma'
+import { PrismaClient as TestPrismaClient } from '@/generated/prisma-test'
 // テスト対象のPrismaUserRepository
 // ドメインオブジェクト
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
@@ -12,12 +13,12 @@ import { PrismaUserRepository } from '@/modules/user-authentication/server/infra
 import { NextAuthUserBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
 
 describe('PrismaUserRepository（統合テスト）', () => {
-  let prisma: PrismaClient
+  let prisma: TestPrismaClient
   let repository: PrismaUserRepository
 
   beforeEach(async () => {
     // テスト用のPrismaクライアントを作成
-    prisma = new PrismaClient()
+    prisma = new TestPrismaClient()
     repository = new PrismaUserRepository(prisma as unknown as PrismaClient)
 
     // テストデータをクリア

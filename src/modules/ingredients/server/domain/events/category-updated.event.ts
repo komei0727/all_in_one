@@ -8,8 +8,8 @@ export class CategoryUpdated extends DomainEvent {
   constructor(
     public readonly categoryId: string,
     public readonly userId: string,
-    public readonly changes: Record<string, { from: any; to: any }>,
-    metadata: Record<string, any> = {}
+    public readonly changes: Record<string, { from: unknown; to: unknown }>,
+    metadata: Record<string, unknown> = {}
   ) {
     CategoryUpdated.validateRequiredFields(categoryId, userId, changes)
     super(categoryId, metadata)
@@ -19,7 +19,7 @@ export class CategoryUpdated extends DomainEvent {
     return 'CategoryUpdated'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       categoryId: this.categoryId,
       userId: this.userId,
@@ -30,7 +30,7 @@ export class CategoryUpdated extends DomainEvent {
   private static validateRequiredFields(
     categoryId: string,
     userId: string,
-    changes: Record<string, { from: any; to: any }> | null
+    changes: Record<string, { from: unknown; to: unknown }> | null
   ): void {
     if (!categoryId?.trim()) throw new Error('カテゴリーIDは必須です')
     if (!userId?.trim()) throw new Error('ユーザーIDは必須です')

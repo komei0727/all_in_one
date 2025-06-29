@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
 import { GetCategoriesQuery } from '@/modules/ingredients/server/application/queries/get-categories.query'
-import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
+import { type CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 
 import { CategoryBuilder } from '../../../../../../__fixtures__/builders'
 

@@ -190,10 +190,13 @@ describe('CreateIngredientHandler Integration Tests', () => {
       ]
 
       const testDataIds = getTestDataIds()
-      for (const storageType of storageTypes) {
+      for (let i = 0; i < storageTypes.length; i++) {
+        const storageType = storageTypes[i]
+        // ユニークな食材名を生成（インデックスとランダム文字列を含める）
+        const uniqueSuffix = `${i}_${Date.now()}_${faker.string.alphanumeric(5)}`
         const command = new CreateIngredientCommandBuilder()
           .withUserId(testDataIds.users.defaultUser.domainUserId)
-          .withName(`${faker.food.ingredient()}_${storageType}`)
+          .withName(`${testDataHelpers.ingredientName()}_storage_${uniqueSuffix}`)
           .withCategoryId(testDataIds.categories.vegetable)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
           .withStorageLocation({ type: storageType })
@@ -217,10 +220,13 @@ describe('CreateIngredientHandler Integration Tests', () => {
         testDataIds.categories.seasoning,
       ]
 
-      for (const categoryId of categories) {
+      for (let i = 0; i < categories.length; i++) {
+        const categoryId = categories[i]
+        // ユニークな食材名を生成（インデックスとランダム文字列を含める）
+        const uniqueSuffix = `${i}_${Date.now()}_${faker.string.alphanumeric(5)}`
         const command = new CreateIngredientCommandBuilder()
           .withUserId(testDataIds.users.defaultUser.domainUserId)
-          .withName(`${faker.food.ingredient()}_${categoryId}`)
+          .withName(`${testDataHelpers.ingredientName()}_cat_${uniqueSuffix}`)
           .withCategoryId(categoryId)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
           .withStorageLocation({
@@ -246,10 +252,13 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const testDataIds = getTestDataIds()
       const units = [testDataIds.units.piece, testDataIds.units.gram, testDataIds.units.milliliter]
 
-      for (const unitId of units) {
+      for (let i = 0; i < units.length; i++) {
+        const unitId = units[i]
+        // ユニークな食材名を生成（インデックスとランダム文字列を含める）
+        const uniqueSuffix = `${i}_${Date.now()}_${faker.string.alphanumeric(5)}`
         const command = new CreateIngredientCommandBuilder()
           .withUserId(testDataIds.users.defaultUser.domainUserId)
-          .withName(`${faker.food.ingredient()}_${unitId}`)
+          .withName(`${testDataHelpers.ingredientName()}_unit_${uniqueSuffix}`)
           .withCategoryId(testDataIds.categories.vegetable)
           .withQuantity(faker.number.int({ min: 1, max: 20 }), unitId)
           .withStorageLocation({

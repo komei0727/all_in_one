@@ -36,7 +36,7 @@ export async function GET(_request: NextRequest) {
     })
   } catch (error) {
     // 予期しないエラーが発生した場合
-    // eslint-disable-next-line no-console
+
     console.error('Health check error:', error)
     return NextResponse.json(
       {

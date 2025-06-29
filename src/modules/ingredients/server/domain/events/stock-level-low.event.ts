@@ -13,7 +13,7 @@ export class StockLevelLow extends DomainEvent {
     public readonly thresholdQuantity: number,
     public readonly unitId: string,
     public readonly urgencyLevel?: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     StockLevelLow.validateRequiredFields(ingredientId, ingredientName, unitId)
@@ -26,8 +26,8 @@ export class StockLevelLow extends DomainEvent {
     return 'StockLevelLow'
   }
 
-  protected getPayload(): Record<string, any> {
-    const payload: Record<string, any> = {
+  protected getPayload(): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
       ingredientId: this.ingredientId,
       ingredientName: this.ingredientName,
       currentQuantity: this.currentQuantity,

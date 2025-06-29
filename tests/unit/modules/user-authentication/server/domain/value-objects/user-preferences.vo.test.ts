@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
+
+import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
+
 import { UserPreferencesBuilder } from '../../../../../../__fixtures__/builders'
 
 // テスト対象のUserPreferencesクラス
-import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
 
 describe('UserPreferences値オブジェクト', () => {
   describe('正常な値での作成', () => {

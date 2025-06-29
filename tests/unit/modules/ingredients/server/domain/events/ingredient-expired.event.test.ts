@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { IngredientExpired } from '@/modules/ingredients/server/domain/events/ingredient-expired.event'
 
 describe('IngredientExpired イベント', () => {
@@ -214,11 +215,11 @@ describe('IngredientExpired イベント', () => {
       const json = event.toJSON()
 
       // 期限切れ通知で必要な情報
-      expect(json.payload.ingredientName).toBe('トマト') // 通知対象食材名
-      expect(json.payload.expiredDate).toBe(expiredDate.toISOString()) // 期限日
-      expect(json.payload.remainingDays).toBe(-3) // 経過日数
-      expect(json.payload.remainingQuantity).toBe(2) // 残量
-      expect(json.payload.unitId).toBe('unit-001') // 単位情報
+      expect((json.payload as any).ingredientName).toBe('トマト') // 通知対象食材名
+      expect((json.payload as any).expiredDate).toBe(expiredDate.toISOString()) // 期限日
+      expect((json.payload as any).remainingDays).toBe(-3) // 経過日数
+      expect((json.payload as any).remainingQuantity).toBe(2) // 残量
+      expect((json.payload as any).unitId).toBe('unit-001') // 単位情報
       expect(json.occurredAt).toBeTruthy() // 検知日時
     })
 
@@ -238,10 +239,10 @@ describe('IngredientExpired イベント', () => {
       const json = event.toJSON()
 
       // 廃棄管理で必要な情報
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 廃棄対象特定用
-      expect(json.payload.categoryId).toBe('category-789') // カテゴリー別廃棄統計用
-      expect(json.payload.remainingQuantity).toBe(3) // 廃棄予定量
-      expect(json.payload.unitId).toBe('unit-001') // 廃棄量単位
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 廃棄対象特定用
+      expect((json.payload as any).categoryId).toBe('category-789') // カテゴリー別廃棄統計用
+      expect((json.payload as any).remainingQuantity).toBe(3) // 廃棄予定量
+      expect((json.payload as any).unitId).toBe('unit-001') // 廃棄量単位
       expect(json.occurredAt).toBeTruthy() // 廃棄記録日時
     })
 
@@ -261,9 +262,9 @@ describe('IngredientExpired イベント', () => {
       const json = event.toJSON()
 
       // 期限切れ分析で必要な情報
-      expect(json.payload.categoryId).toBe('category-789') // カテゴリー別分析用
-      expect(json.payload.remainingDays).toBe(-7) // 期限切れ傾向分析用
-      expect(json.payload.remainingQuantity).toBe(1) // 無駄量分析用
+      expect((json.payload as any).categoryId).toBe('category-789') // カテゴリー別分析用
+      expect((json.payload as any).remainingDays).toBe(-7) // 期限切れ傾向分析用
+      expect((json.payload as any).remainingQuantity).toBe(1) // 無駄量分析用
       expect(json.occurredAt).toBeTruthy() // 時系列分析用
     })
 
@@ -287,11 +288,11 @@ describe('IngredientExpired イベント', () => {
       const json = event.toJSON()
 
       // 在庫警告システム連携で必要な情報
-      expect(json.payload.remainingQuantity).toBe(0) // 在庫切れ判定用
-      expect(json.payload.remainingDays).toBe(0) // 緊急度判定用
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 補充対象特定用
-      expect(json.metadata.urgency).toBe('high') // 緊急度情報
-      expect(json.metadata.autoReorderEligible).toBe(true) // 自動補充可否
+      expect((json.payload as any).remainingQuantity).toBe(0) // 在庫切れ判定用
+      expect((json.payload as any).remainingDays).toBe(0) // 緊急度判定用
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 補充対象特定用
+      expect((json.metadata as any).urgency).toBe('high') // 緊急度情報
+      expect((json.metadata as any).autoReorderEligible).toBe(true) // 自動補充可否
     })
   })
 })

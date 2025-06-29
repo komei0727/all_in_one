@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { ExpiryDateUpdated } from '@/modules/ingredients/server/domain/events/expiry-date-updated.event'
 
 describe('ExpiryDateUpdated イベント', () => {

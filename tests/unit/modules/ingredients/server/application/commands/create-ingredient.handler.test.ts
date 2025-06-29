@@ -6,9 +6,9 @@ import {
   CategoryNotFoundException,
   UnitNotFoundException,
 } from '@/modules/ingredients/server/domain/exceptions'
-import { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
-import { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
-import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
+import { type CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
+import { type IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
 import {
   CreateIngredientCommandBuilder,

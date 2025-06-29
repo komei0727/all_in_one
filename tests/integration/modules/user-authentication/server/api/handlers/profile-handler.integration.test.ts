@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 import { ZodError } from 'zod'
 
-import { PrismaClient } from '@/generated/prisma-test'
+import { type PrismaClient } from '@/generated/prisma'
+import { type PrismaClient as TestPrismaClient } from '@/generated/prisma-test'
 // テスト対象のハンドラー
 import { ProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/profile-handler'
 // 依存関係
@@ -19,7 +20,7 @@ import {
 } from '../../../../../../helpers/database.helper'
 
 describe('ProfileApiHandler 統合テスト', () => {
-  let prisma: PrismaClient
+  let prisma: TestPrismaClient
   let repository: PrismaUserRepository
   let domainService: UserIntegrationService
   let applicationService: UserApplicationService
@@ -28,7 +29,7 @@ describe('ProfileApiHandler 統合テスト', () => {
   beforeEach(async () => {
     // 各テストの前にデータベースをセットアップ
     await setupIntegrationTest()
-    prisma = getTestPrismaClient() as PrismaClient
+    prisma = getTestPrismaClient()
 
     // 実際のサービスとハンドラーを構築
     repository = new PrismaUserRepository(prisma as unknown as PrismaClient)

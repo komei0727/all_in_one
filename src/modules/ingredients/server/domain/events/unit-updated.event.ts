@@ -8,8 +8,8 @@ export class UnitUpdated extends DomainEvent {
   constructor(
     public readonly unitId: string,
     public readonly userId: string,
-    public readonly changes: Record<string, { from: any; to: any }>,
-    metadata: Record<string, any> = {}
+    public readonly changes: Record<string, { from: unknown; to: unknown }>,
+    metadata: Record<string, unknown> = {}
   ) {
     UnitUpdated.validateRequiredFields(unitId, userId, changes)
     super(unitId, metadata)
@@ -19,7 +19,7 @@ export class UnitUpdated extends DomainEvent {
     return 'UnitUpdated'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       unitId: this.unitId,
       userId: this.userId,
@@ -30,7 +30,7 @@ export class UnitUpdated extends DomainEvent {
   private static validateRequiredFields(
     unitId: string,
     userId: string,
-    changes: Record<string, { from: any; to: any }> | null
+    changes: Record<string, { from: unknown; to: unknown }> | null
   ): void {
     if (!unitId?.trim()) throw new Error('単位IDは必須です')
     if (!userId?.trim()) throw new Error('ユーザーIDは必須です')

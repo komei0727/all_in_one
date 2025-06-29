@@ -8,15 +8,18 @@ export abstract class DomainEvent {
   public readonly occurredAt: Date
   public readonly aggregateId: string
   public readonly version: number
-  public readonly metadata: Record<string, any>
+  public readonly metadata: Record<string, unknown>
 
-  constructor(aggregateId: string, metadata: Record<string, any> = {}, version = 1) {
+  constructor(aggregateId: string, metadata: Record<string, unknown> = {}, version = 1) {
     this.id = crypto.randomUUID()
     this.occurredAt = new Date()
     this.aggregateId = aggregateId
     this.version = version
     // メタデータの不変性を保つため、ディープコピーを作成
-    this.metadata = metadata ? JSON.parse(JSON.stringify(metadata)) : {}
+    // Node.js 17未満の環境も考慮してJSON経由でクローン
+    this.metadata = metadata
+      ? (JSON.parse(JSON.stringify(metadata)) as Record<string, unknown>)
+      : {}
   }
 
   /**
@@ -29,7 +32,7 @@ export abstract class DomainEvent {
    * イベントをJSON形式に変換
    * ログ出力やイベントストアへの保存に使用
    */
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       id: this.id,
       eventName: this.eventName,
@@ -45,5 +48,5 @@ export abstract class DomainEvent {
    * イベント固有のペイロードを取得
    * 各イベントクラスで実装する
    */
-  protected abstract getPayload(): Record<string, any>
+  protected abstract getPayload(): Record<string, unknown>
 }

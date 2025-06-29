@@ -1,4 +1,14 @@
 import { describe, it, expect } from 'vitest'
+
+// テスト対象のUserエンティティクラス
+import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
+import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
+// 値オブジェクトのインポート
+import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
+import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
+import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
+
 import {
   UserIdBuilder,
   EmailBuilder,
@@ -6,16 +16,6 @@ import {
   UserStatusBuilder,
   NextAuthUserBuilder,
 } from '../../../../../../__fixtures__/builders'
-
-// テスト対象のUserエンティティクラス
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
-
-// 値オブジェクトのインポート
-import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
-import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
-import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
-import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
-import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
 
 // テスト用ヘルパー関数
 const createUserProfileFromBuilder = (builder: UserProfileBuilder) => {
@@ -32,7 +32,6 @@ describe('Userエンティティ', () => {
       // Arrange（準備）
       const userIdData = new UserIdBuilder().build()
       const emailData = new EmailBuilder().withTestEmail().build()
-      const profileData = new UserProfileBuilder().withDefaults().build()
       const statusData = new UserStatusBuilder().withActive().build()
 
       const userData = {

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { IngredientCreated } from '@/modules/ingredients/server/domain/events/ingredient-created.event'
 
 describe('IngredientCreated イベント', () => {
@@ -164,10 +165,10 @@ describe('IngredientCreated イベント', () => {
       // 監査ログで必要な情報
       expect(json.id).toBeTruthy() // イベントID
       expect(json.occurredAt).toBeTruthy() // 発生時刻
-      expect(json.payload.userId).toBe('user-456') // 実行者
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 対象
-      expect(json.metadata.ipAddress).toBe('192.168.1.1') // アクセス元
-      expect(json.metadata.correlationId).toBe('correlation-123') // 相関ID
+      expect((json.payload as any).userId).toBe('user-456') // 実行者
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 対象
+      expect((json.metadata as any).ipAddress).toBe('192.168.1.1') // アクセス元
+      expect((json.metadata as any).correlationId).toBe('correlation-123') // 相関ID
     })
 
     it('統計分析に必要な情報が含まれている', () => {
@@ -184,9 +185,9 @@ describe('IngredientCreated イベント', () => {
       const json = event.toJSON()
 
       // 統計分析で必要な情報
-      expect(json.payload.categoryId).toBe('category-789') // カテゴリー別統計用
-      expect(json.payload.initialQuantity).toBe(5) // 数量統計用
-      expect(json.payload.unitId).toBe('unit-001') // 単位別統計用
+      expect((json.payload as any).categoryId).toBe('category-789') // カテゴリー別統計用
+      expect((json.payload as any).initialQuantity).toBe(5) // 数量統計用
+      expect((json.payload as any).unitId).toBe('unit-001') // 単位別統計用
       expect(json.occurredAt).toBeTruthy() // 時系列分析用
     })
   })

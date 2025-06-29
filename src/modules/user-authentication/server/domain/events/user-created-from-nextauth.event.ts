@@ -19,7 +19,7 @@ export class UserCreatedFromNextAuthEvent extends DomainEvent {
     return 'user.createdFromNextAuth'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       nextAuthId: this.nextAuthId,
       email: this.email,

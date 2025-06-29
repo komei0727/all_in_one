@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { CategoryMapper } from '@/modules/ingredients/server/application/mappers/category.mapper'
-import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
+import { type Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 
 import { CategoryBuilder } from '../../../../../../__fixtures__/builders'
 

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { StockLevelLow } from '@/modules/ingredients/server/domain/events/stock-level-low.event'
 
 describe('StockLevelLow イベント', () => {

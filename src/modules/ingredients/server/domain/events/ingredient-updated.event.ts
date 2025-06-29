@@ -9,8 +9,8 @@ export class IngredientUpdated extends DomainEvent {
   constructor(
     public readonly ingredientId: string,
     public readonly userId: string,
-    public readonly changes: Record<string, { from: any; to: any }>,
-    metadata: Record<string, any> = {}
+    public readonly changes: Record<string, { from: unknown; to: unknown }>,
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     IngredientUpdated.validateRequiredFields(ingredientId, userId, changes)
@@ -22,7 +22,7 @@ export class IngredientUpdated extends DomainEvent {
     return 'IngredientUpdated'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       ingredientId: this.ingredientId,
       userId: this.userId,
@@ -36,7 +36,7 @@ export class IngredientUpdated extends DomainEvent {
   private static validateRequiredFields(
     ingredientId: string,
     userId: string,
-    changes: Record<string, { from: any; to: any }> | null
+    changes: Record<string, { from: unknown; to: unknown }> | null
   ): void {
     if (!ingredientId || ingredientId.trim().length === 0) {
       throw new Error('食材IDは必須です')

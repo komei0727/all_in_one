@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma'
+import { PrismaClient, type Prisma } from '@/generated/prisma'
 
 /**
  * Prismaクライアントのシングルトンインスタンス
@@ -15,13 +15,13 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // ログレベルの設定
-const logLevel = process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+const logLevel: Prisma.LogLevel[] =
+  process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    log: logLevel as any,
+    log: logLevel,
     datasources: {
       db: {
         url: process.env.DATABASE_URL,

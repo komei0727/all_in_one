@@ -13,7 +13,7 @@ export class IngredientCreated extends DomainEvent {
     public readonly categoryId: string,
     public readonly initialQuantity: number,
     public readonly unitId: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     IngredientCreated.validateRequiredFields(
@@ -32,7 +32,7 @@ export class IngredientCreated extends DomainEvent {
     return 'IngredientCreated'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       ingredientId: this.ingredientId,
       userId: this.userId,

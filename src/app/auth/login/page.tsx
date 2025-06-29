@@ -27,13 +27,12 @@ function LoginForm() {
 
       if (result?.error) {
         // エラーハンドリング（本来はトーストやエラー表示UIを使うべき）
-        // eslint-disable-next-line no-console
+
         console.error('ログインエラー:', result.error)
       } else {
         setIsSubmitted(true)
       }
     } catch (_error) {
-      // eslint-disable-next-line no-console
       console.error('予期しないエラーが発生しました')
     } finally {
       setIsLoading(false)

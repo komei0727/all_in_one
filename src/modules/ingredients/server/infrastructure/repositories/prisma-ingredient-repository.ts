@@ -2,6 +2,7 @@ import {
   type PrismaClient,
   Prisma,
   type StorageLocation as PrismaStorageLocation,
+  type Ingredient as PrismaIngredient,
 } from '@/generated/prisma'
 
 import { Ingredient } from '../../domain/entities/ingredient.entity'
@@ -87,7 +88,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     })
 
     // エンティティの再構築
-    return this.toEntity(savedIngredient as any)
+    return this.toEntity(savedIngredient)
   }
 
   /**
@@ -109,7 +110,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       return null
     }
 
-    return this.toEntity(result as any)
+    return this.toEntity(result)
   }
 
   /**
@@ -131,7 +132,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       return null
     }
 
-    return this.toEntity(result as any)
+    return this.toEntity(result)
   }
 
   /**
@@ -148,7 +149,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -187,7 +188,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -228,7 +229,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: [{ useByDate: 'asc' }, { bestBeforeDate: 'asc' }, { createdAt: 'desc' }],
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -261,7 +262,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: [{ useByDate: 'asc' }, { bestBeforeDate: 'asc' }, { createdAt: 'desc' }],
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -280,7 +281,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -299,7 +300,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -317,7 +318,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -341,7 +342,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
         orderBy: { createdAt: 'desc' },
       })
 
-      return results.map((result) => this.toEntity(result as any))
+      return results.map((result) => this.toEntity(result))
     }
 
     // thresholdが指定されていない場合は、各食材のthreshold値を使用
@@ -364,7 +365,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
         result.threshold !== null && result.quantity <= result.threshold && result.quantity > 0
     )
 
-    return filteredResults.map((result) => this.toEntity(result as any))
+    return filteredResults.map((result) => this.toEntity(result))
   }
 
   /**
@@ -513,7 +514,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
       },
     })
 
-    return results.map((result) => this.toEntity(result as any))
+    return results.map((result) => this.toEntity(result))
   }
 
   /**
@@ -628,25 +629,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
   /**
    * Prismaの結果をエンティティに変換
    */
-  private toEntity(data: {
-    id: string
-    userId: string
-    name: string
-    categoryId: string
-    memo: string | null
-    price: Prisma.Decimal | null
-    purchaseDate: Date
-    quantity: number
-    unitId: string
-    threshold: number | null
-    storageLocationType: PrismaStorageLocation
-    storageLocationDetail: string | null
-    bestBeforeDate: Date | null
-    useByDate: Date | null
-    createdAt: Date
-    updatedAt: Date
-    deletedAt: Date | null
-  }): Ingredient {
+  private toEntity(data: PrismaIngredient): Ingredient {
     // 在庫情報の構築
     const ingredientStock = new IngredientStock({
       quantity: data.quantity,

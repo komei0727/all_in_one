@@ -14,7 +14,7 @@ export class IngredientExpired extends DomainEvent {
     public readonly remainingDays: number,
     public readonly remainingQuantity: number,
     public readonly unitId: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
     IngredientExpired.validateRequiredFields(ingredientId, ingredientName, categoryId, unitId)
@@ -28,7 +28,7 @@ export class IngredientExpired extends DomainEvent {
     return 'IngredientExpired'
   }
 
-  protected getPayload(): Record<string, any> {
+  protected getPayload(): Record<string, unknown> {
     return {
       ingredientId: this.ingredientId,
       ingredientName: this.ingredientName,

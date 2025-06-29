@@ -52,7 +52,6 @@ export class ApiErrorHandler {
     // その他のエラー
     // エラーログ出力（本番環境では適切なロガーに置き換える）
     if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
       console.error('Unexpected error:', error)
     }
     return NextResponse.json(

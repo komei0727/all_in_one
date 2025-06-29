@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { IngredientDeleted } from '@/modules/ingredients/server/domain/events/ingredient-deleted.event'
 
 describe('IngredientDeleted イベント', () => {
@@ -138,7 +139,7 @@ describe('IngredientDeleted イベント', () => {
       const json = event.toJSON()
 
       // Assert
-      expect(json.payload.reason).toBeUndefined()
+      expect((json.payload as any).reason).toBeUndefined()
     })
   })
 
@@ -208,11 +209,11 @@ describe('IngredientDeleted イベント', () => {
       const json = event.toJSON()
 
       // 削除履歴で必要な情報
-      expect(json.payload.ingredientId).toBe('ingredient-123') // 削除された食材ID
-      expect(json.payload.ingredientName).toBe('トマト') // 削除された食材名
-      expect(json.payload.userId).toBe('user-456') // 削除実行者
-      expect(json.payload.lastQuantity).toBe(2) // 削除時の在庫量
-      expect(json.payload.reason).toBe('expired') // 削除理由
+      expect((json.payload as any).ingredientId).toBe('ingredient-123') // 削除された食材ID
+      expect((json.payload as any).ingredientName).toBe('トマト') // 削除された食材名
+      expect((json.payload as any).userId).toBe('user-456') // 削除実行者
+      expect((json.payload as any).lastQuantity).toBe(2) // 削除時の在庫量
+      expect((json.payload as any).reason).toBe('expired') // 削除理由
       expect(json.occurredAt).toBeTruthy() // 削除日時
     })
 
@@ -231,10 +232,10 @@ describe('IngredientDeleted イベント', () => {
       const json = event.toJSON()
 
       // 廃棄統計で必要な情報
-      expect(json.payload.categoryId).toBe('category-789') // カテゴリー別廃棄統計用
-      expect(json.payload.lastQuantity).toBe(3) // 廃棄量統計用
-      expect(json.payload.unitId).toBe('unit-001') // 廃棄量単位
-      expect(json.payload.reason).toBe('expired') // 廃棄理由分析用
+      expect((json.payload as any).categoryId).toBe('category-789') // カテゴリー別廃棄統計用
+      expect((json.payload as any).lastQuantity).toBe(3) // 廃棄量統計用
+      expect((json.payload as any).unitId).toBe('unit-001') // 廃棄量単位
+      expect((json.payload as any).reason).toBe('expired') // 廃棄理由分析用
       expect(json.occurredAt).toBeTruthy() // 時系列分析用
     })
 
@@ -256,8 +257,8 @@ describe('IngredientDeleted イベント', () => {
         const json = event.toJSON()
 
         // 削除理由別分析データ
-        expect(json.payload.reason).toBe(reason)
-        expect(json.payload.lastQuantity).toBe(1)
+        expect((json.payload as any).reason).toBe(reason)
+        expect((json.payload as any).lastQuantity).toBe(1)
         expect(json.occurredAt).toBeTruthy()
       })
     })
@@ -282,9 +283,9 @@ describe('IngredientDeleted イベント', () => {
       const json = event.toJSON()
 
       // 復元可能性判定データ
-      expect(json.payload.reason).toBe('user-action') // 手動削除は復元可能
-      expect(json.metadata.softDelete).toBe(true) // 論理削除フラグ
-      expect(json.metadata.retentionPeriod).toBe(30) // 保持期間
+      expect((json.payload as any).reason).toBe('user-action') // 手動削除は復元可能
+      expect((json.metadata as any).softDelete).toBe(true) // 論理削除フラグ
+      expect((json.metadata as any).retentionPeriod).toBe(30) // 保持期間
       expect(json.occurredAt).toBeTruthy() // 削除日時（保持期間計算用）
     })
   })

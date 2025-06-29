@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server'
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { POST } from '@/app/api/v1/ingredients/route'
 import { auth } from '@/auth'
-import { CreateIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/create-ingredient.handler'
+import { type CreateIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/create-ingredient.handler'
 import { IngredientDto } from '@/modules/ingredients/server/application/dtos/ingredient.dto'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 

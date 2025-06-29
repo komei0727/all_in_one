@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { updateProfileSchema } from '@/modules/user-authentication/server/api/validators/profile-update.validator'
 
 describe('updateProfileSchema', () => {

@@ -2,9 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ZodError } from 'zod'
 
 import { ProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/profile-handler'
-import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
-import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
+import { type UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
 
 // モックサービス
 const mockUserApplicationService = {

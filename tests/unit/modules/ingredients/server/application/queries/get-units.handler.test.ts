@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
 import { GetUnitsQuery } from '@/modules/ingredients/server/application/queries/get-units.query'
-import { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
+import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
 import { UnitBuilder } from '../../../../../../__fixtures__/builders'
 
