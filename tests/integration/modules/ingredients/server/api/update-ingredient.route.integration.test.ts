@@ -138,7 +138,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 200 OKが返される
@@ -183,7 +183,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 在庫情報が更新される
@@ -232,7 +232,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 期限情報が更新される
@@ -287,7 +287,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 全フィールドが更新される
@@ -330,7 +330,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 値がクリアされる
@@ -368,7 +368,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 400 Bad Requestが返される
@@ -405,7 +405,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 400 Bad Requestが返される
@@ -442,7 +442,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -470,7 +470,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: nonExistentId } })
+      const response = await PUT(request, { params: Promise.resolve({ id: nonExistentId }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -499,7 +499,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す（認証ユーザーは別ユーザー）
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される（セキュリティのため存在しないかのように扱う）
@@ -527,7 +527,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -555,7 +555,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredientId } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredientId }) })
       const data = await response.json()
 
       // Then: 401 Unauthorizedが返される
@@ -587,7 +587,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredientId } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredientId }) })
       const data = await response.json()
 
       // Then: 401 Unauthorizedが返される
@@ -614,7 +614,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 400 Bad Requestが返される
@@ -643,7 +643,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await PUT(request, { params: { id: ingredient.id } })
+      const response = await PUT(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 200 OKが返される（何も変更されない）

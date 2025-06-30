@@ -75,7 +75,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: 'test-id' } })
+    const response = await GET(request, { params: Promise.resolve({ id: 'test-id' }) })
 
     // レスポンスの検証
     expect(response.status).toBe(401)
@@ -106,7 +106,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: ingredientId } })
+    const response = await GET(request, { params: Promise.resolve({ id: ingredientId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(200)
@@ -132,7 +132,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: notFoundId } })
+    const response = await GET(request, { params: Promise.resolve({ id: notFoundId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(404)
@@ -161,7 +161,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: 'invalid-id' } })
+    const response = await GET(request, { params: Promise.resolve({ id: 'invalid-id' }) })
 
     // レスポンスの検証
     expect(response.status).toBe(400)
@@ -191,7 +191,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: validId } })
+    const response = await GET(request, { params: Promise.resolve({ id: validId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(500)
@@ -222,7 +222,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: deletedId } })
+    const response = await GET(request, { params: Promise.resolve({ id: deletedId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(404)
@@ -252,7 +252,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await GET(request, { params: { id: otherId } })
+    const response = await GET(request, { params: Promise.resolve({ id: otherId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(404)

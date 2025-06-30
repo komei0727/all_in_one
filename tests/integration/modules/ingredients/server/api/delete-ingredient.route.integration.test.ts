@@ -136,7 +136,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await DELETE(request, { params: { id: ingredient.id } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: ingredient.id }) })
 
       // Then: 204 No Contentが返される
       expect(response.status).toBe(204)
@@ -179,7 +179,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
           method: 'DELETE',
         }
       )
-      const response1 = await DELETE(request1, { params: { id: ingredient1.id } })
+      const response1 = await DELETE(request1, { params: Promise.resolve({ id: ingredient1.id }) })
 
       // Then: 1つ目のみ削除される
       expect(response1.status).toBe(204)
@@ -206,7 +206,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
           method: 'DELETE',
         }
       )
-      const response2 = await DELETE(request2, { params: { id: ingredient2.id } })
+      const response2 = await DELETE(request2, { params: Promise.resolve({ id: ingredient2.id }) })
 
       // Then: 2つ目も削除される
       expect(response2.status).toBe(204)
@@ -235,7 +235,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await DELETE(request, { params: { id: nonExistentId } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: nonExistentId }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -258,7 +258,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す（認証ユーザーは別ユーザー）
-      const response = await DELETE(request, { params: { id: ingredient.id } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される（セキュリティのため存在しないかのように扱う）
@@ -290,7 +290,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: 削除済み食材の削除を試行
-      const response = await DELETE(request, { params: { id: ingredient.id } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -310,7 +310,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await DELETE(request, { params: { id: invalidId } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: invalidId }) })
       const data = await response.json()
 
       // Then: 400 Bad Requestが返される
@@ -333,7 +333,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await DELETE(request, { params: { id: ingredientId } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: ingredientId }) })
       const data = await response.json()
 
       // Then: 401 Unauthorizedが返される
@@ -360,7 +360,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await DELETE(request, { params: { id: ingredientId } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: ingredientId }) })
       const data = await response.json()
 
       // Then: 401 Unauthorizedが返される
@@ -389,7 +389,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await DELETE(request, { params: { id: ingredient.id } })
+      const response = await DELETE(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 500 Internal Server Errorが返される
@@ -423,7 +423,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
             method: 'DELETE',
           }
         )
-        const response = await DELETE(request, { params: { id: ingredient.id } })
+        const response = await DELETE(request, { params: Promise.resolve({ id: ingredient.id }) })
         responses.push(response)
       }
 
@@ -467,7 +467,7 @@ describe('DELETE /api/v1/ingredients/{id} Integration Tests', () => {
           method: 'DELETE',
         }
       )
-      await DELETE(deleteRequest, { params: { id: originalId } })
+      await DELETE(deleteRequest, { params: Promise.resolve({ id: originalId }) })
 
       // When: 削除後に同じ名前の食材を新規作成
       const testDataIds = getTestDataIds()

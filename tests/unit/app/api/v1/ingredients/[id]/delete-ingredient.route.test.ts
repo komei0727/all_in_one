@@ -60,7 +60,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: 'test-id' } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: 'test-id' }) })
 
     // レスポンスの検証
     expect(response.status).toBe(401)
@@ -90,7 +90,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: ingredientId } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: ingredientId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(204)
@@ -118,7 +118,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: notFoundId } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: notFoundId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(404)
@@ -148,7 +148,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: otherId } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: otherId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(404)
@@ -180,7 +180,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: deletedId } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: deletedId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(422)
@@ -206,7 +206,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: 'invalid-id' } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: 'invalid-id' }) })
 
     // レスポンスの検証
     expect(response.status).toBe(400)
@@ -236,7 +236,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     })
 
     // ハンドラーの実行
-    const response = await DELETE(request, { params: { id: validId } })
+    const response = await DELETE(request, { params: Promise.resolve({ id: validId }) })
 
     // レスポンスの検証
     expect(response.status).toBe(500)

@@ -19,7 +19,10 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  * 食材詳細を取得するAPIエンドポイント
  * Next.js App Routerのルートハンドラー
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // パラメータを取得
+  const { id } = await params
+
   try {
     // 認証チェック
     const session = await auth()
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             code: 'UNAUTHORIZED',
             message: '認証が必要です',
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 401 }
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const apiHandler = new GetIngredientByIdApiHandler(getIngredientByIdHandler)
 
     // ハンドラーの実行（ドメインユーザーIDを渡す）
-    const result = await apiHandler.handle({ id: params.id }, session.user.domainUserId)
+    const result = await apiHandler.handle({ id }, session.user.domainUserId)
 
     // 成功レスポンス（200 OK）
     return NextResponse.json(result, { status: 200 })
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             code: 'VALIDATION_ERROR',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 400 }
@@ -70,7 +73,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             code: 'NOT_FOUND',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 404 }
@@ -84,7 +87,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             code: 'NOT_FOUND',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 404 }
@@ -98,7 +101,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             code: 'BUSINESS_RULE_VIOLATION',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 422 }
@@ -106,14 +109,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // 予期しないエラー
-    console.error(`Unexpected error in GET /api/v1/ingredients/${params.id}:`, error)
+    console.error(`Unexpected error in GET /api/v1/ingredients/${id}:`, error)
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'サーバーエラーが発生しました。しばらく時間をおいて再試行してください',
           timestamp: new Date().toISOString(),
-          path: `/api/v1/ingredients/${params.id}`,
+          path: `/api/v1/ingredients/${id}`,
         },
       },
       { status: 500 }
@@ -127,7 +130,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  * 食材情報を更新するAPIエンドポイント
  * Next.js App Routerのルートハンドラー
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // パラメータを取得
+  const { id } = await params
+
   try {
     // 認証チェック
     const session = await auth()
@@ -138,7 +144,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             code: 'UNAUTHORIZED',
             message: '認証が必要です',
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 401 }
@@ -156,7 +162,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             code: 'VALIDATION_ERROR',
             message: '無効なリクエストボディです',
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 400 }
@@ -168,11 +174,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updateIngredientApiHandler = compositionRoot.getUpdateIngredientApiHandler()
 
     // ハンドラーの実行（ドメインユーザーIDを渡す）
-    const result = await updateIngredientApiHandler.handle(
-      body,
-      params.id,
-      session.user.domainUserId
-    )
+    const result = await updateIngredientApiHandler.handle(body, id, session.user.domainUserId)
 
     // 成功レスポンス（200 OK）
     return NextResponse.json(result, { status: 200 })
@@ -185,7 +187,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             code: 'VALIDATION_ERROR',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 400 }
@@ -199,7 +201,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             code: 'NOT_FOUND',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 404 }
@@ -213,7 +215,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             code: 'NOT_FOUND',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 404 }
@@ -227,7 +229,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             code: 'BUSINESS_RULE_VIOLATION',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 422 }
@@ -235,14 +237,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     // 予期しないエラー
-    console.error(`Unexpected error in PUT /api/v1/ingredients/${params.id}:`, error)
+    console.error(`Unexpected error in PUT /api/v1/ingredients/${id}:`, error)
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'サーバーエラーが発生しました。しばらく時間をおいて再試行してください',
           timestamp: new Date().toISOString(),
-          path: `/api/v1/ingredients/${params.id}`,
+          path: `/api/v1/ingredients/${id}`,
         },
       },
       { status: 500 }
@@ -256,7 +258,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
  * 食材を削除するAPIエンドポイント（論理削除）
  * Next.js App Routerのルートハンドラー
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // パラメータを取得
+  const { id } = await params
+
   try {
     // 認証チェック
     const session = await auth()
@@ -267,7 +275,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             code: 'UNAUTHORIZED',
             message: '認証が必要です',
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 401 }
@@ -280,7 +288,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const apiHandler = new DeleteIngredientApiHandler(deleteIngredientHandler)
 
     // ハンドラーの実行（ドメインユーザーIDを渡す）
-    await apiHandler.handle({ id: params.id }, session.user.domainUserId)
+    await apiHandler.handle({ id }, session.user.domainUserId)
 
     // 成功レスポンス（204 No Content）
     return new NextResponse(null, { status: 204 })
@@ -293,7 +301,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             code: 'VALIDATION_ERROR',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 400 }
@@ -307,7 +315,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             code: 'NOT_FOUND',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 404 }
@@ -321,7 +329,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             code: 'NOT_FOUND',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 404 }
@@ -335,7 +343,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             code: 'BUSINESS_RULE_VIOLATION',
             message: error.message,
             timestamp: new Date().toISOString(),
-            path: `/api/v1/ingredients/${params.id}`,
+            path: `/api/v1/ingredients/${id}`,
           },
         },
         { status: 422 }
@@ -343,14 +351,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // 予期しないエラー
-    console.error(`Unexpected error in DELETE /api/v1/ingredients/${params.id}:`, error)
+    console.error(`Unexpected error in DELETE /api/v1/ingredients/${id}:`, error)
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'サーバーエラーが発生しました。しばらく時間をおいて再試行してください',
           timestamp: new Date().toISOString(),
-          path: `/api/v1/ingredients/${params.id}`,
+          path: `/api/v1/ingredients/${id}`,
         },
       },
       { status: 500 }

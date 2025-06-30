@@ -153,7 +153,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 200 OKが返される
@@ -207,7 +207,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: すべての情報が含まれる
@@ -247,7 +247,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       )
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: meatIngredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: meatIngredient.id }) })
       const data = await response.json()
 
       // Then: 正しいカテゴリー情報が返される
@@ -277,7 +277,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 単一クエリで全ての情報が取得される
@@ -304,7 +304,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: nonExistentId } })
+      const response = await GET(request, { params: Promise.resolve({ id: nonExistentId }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -327,7 +327,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す（認証ユーザーは別ユーザー）
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される（セキュリティのため存在しないかのように扱う）
@@ -353,7 +353,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: 削除済み食材の取得を試行
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 404 Not Foundが返される
@@ -373,7 +373,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: invalidId } })
+      const response = await GET(request, { params: Promise.resolve({ id: invalidId }) })
       const data = await response.json()
 
       // Then: 400 Bad Requestが返される
@@ -396,7 +396,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredientId } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredientId }) })
       const data = await response.json()
 
       // Then: 401 Unauthorizedが返される
@@ -423,7 +423,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredientId } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredientId }) })
       const data = await response.json()
 
       // Then: 401 Unauthorizedが返される
@@ -448,7 +448,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: カテゴリー情報が正しく取得される
@@ -477,7 +477,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 単位情報が正しく取得される
@@ -518,7 +518,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 期限情報が正しい日付形式で返される
@@ -548,7 +548,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       })
 
       // When: APIを呼び出す
-      const response = await GET(request, { params: { id: ingredient.id } })
+      const response = await GET(request, { params: Promise.resolve({ id: ingredient.id }) })
       const data = await response.json()
 
       // Then: 500 Internal Server Errorが返される
