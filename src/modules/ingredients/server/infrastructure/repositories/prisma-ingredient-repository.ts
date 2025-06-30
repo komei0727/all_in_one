@@ -411,7 +411,6 @@ export class PrismaIngredientRepository implements IngredientRepository {
     if (criteria.search) {
       where.name = {
         contains: criteria.search,
-        mode: 'insensitive',
       }
     }
 
@@ -428,7 +427,10 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
       switch (criteria.expiryStatus) {
         case 'expired':
-          where.OR = [{ bestBeforeDate: { lt: now } }, { useByDate: { lt: now } }]
+          where.OR = [
+            { bestBeforeDate: { not: null, lt: now } },
+            { useByDate: { not: null, lt: now } },
+          ]
           break
         case 'expiring':
           where.OR = [
@@ -519,7 +521,6 @@ export class PrismaIngredientRepository implements IngredientRepository {
     if (criteria.search) {
       where.name = {
         contains: criteria.search,
-        mode: 'insensitive',
       }
     }
 
@@ -536,7 +537,10 @@ export class PrismaIngredientRepository implements IngredientRepository {
 
       switch (criteria.expiryStatus) {
         case 'expired':
-          where.OR = [{ bestBeforeDate: { lt: now } }, { useByDate: { lt: now } }]
+          where.OR = [
+            { bestBeforeDate: { not: null, lt: now } },
+            { useByDate: { not: null, lt: now } },
+          ]
           break
         case 'expiring':
           where.OR = [

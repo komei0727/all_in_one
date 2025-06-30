@@ -5,11 +5,16 @@ import { CreateIngredientHandler } from '@/modules/ingredients/server/applicatio
 import { DuplicateIngredientException } from '@/modules/ingredients/server/domain/exceptions'
 import type { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '@/modules/ingredients/server/domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
 
-import { CategoryBuilder, UnitBuilder } from '../../../../../../__fixtures__/builders'
+import {
+  CategoryBuilder,
+  UnitBuilder,
+  IngredientBuilder,
+} from '../../../../../../__fixtures__/builders'
 
 // モックリポジトリ
 const mockIngredientRepository: IngredientRepository = {
@@ -47,6 +52,11 @@ const mockEventBus: EventBus = {
   publishAll: vi.fn(),
 }
 
+// モックリポジトリファクトリー
+const mockRepositoryFactory: RepositoryFactory = {
+  createIngredientRepository: vi.fn().mockReturnValue(mockIngredientRepository),
+}
+
 // モックトランザクションマネージャー
 const mockTransactionManager = {
   run: vi.fn().mockImplementation(async (fn) => {
@@ -68,6 +78,7 @@ describe('CreateIngredientHandler - Duplicate Check', () => {
       mockIngredientRepository,
       mockCategoryRepository,
       mockUnitRepository,
+      mockRepositoryFactory,
       mockTransactionManager as any,
       mockEventBus
     )

@@ -6,6 +6,7 @@ import type { TransactionManager } from '@/modules/shared/server/application/ser
 import { PrismaIngredientQueryService } from './query-services/prisma-ingredient-query-service'
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
+import { PrismaRepositoryFactory } from './repositories/prisma-repository-factory'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from './services/prisma-transaction-manager'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
@@ -21,6 +22,7 @@ import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
 import type { IngredientQueryService } from '../application/query-services/ingredient-query-service.interface'
 import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '../domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '../domain/repositories/unit-repository.interface'
 
 /**
@@ -36,6 +38,7 @@ export class CompositionRoot {
   private categoryRepository: CategoryRepository | null = null
   private unitRepository: UnitRepository | null = null
   private ingredientRepository: IngredientRepository | null = null
+  private repositoryFactory: RepositoryFactory | null = null
   private ingredientQueryService: IngredientQueryService | null = null
   private transactionManager: TransactionManager | null = null
   private eventBus: EventBus | null = null
@@ -106,6 +109,16 @@ export class CompositionRoot {
   }
 
   /**
+   * Get RepositoryFactory instance (singleton)
+   */
+  public getRepositoryFactory(): RepositoryFactory {
+    if (!this.repositoryFactory) {
+      this.repositoryFactory = new PrismaRepositoryFactory()
+    }
+    return this.repositoryFactory
+  }
+
+  /**
    * Get TransactionManager instance (singleton)
    */
   public getTransactionManager(): TransactionManager {
@@ -138,6 +151,7 @@ export class CompositionRoot {
       this.getIngredientRepository(),
       this.getCategoryRepository(),
       this.getUnitRepository(),
+      this.getRepositoryFactory(),
       this.getTransactionManager(),
       this.getEventBus()
     )
@@ -154,7 +168,11 @@ export class CompositionRoot {
    * Get GetIngredientsHandler instance (new instance each time)
    */
   public getGetIngredientsHandler(): GetIngredientsHandler {
-    return new GetIngredientsHandler(this.getIngredientRepository())
+    return new GetIngredientsHandler(
+      this.getIngredientRepository(),
+      this.getCategoryRepository(),
+      this.getUnitRepository()
+    )
   }
 
   /**
@@ -183,6 +201,7 @@ export class CompositionRoot {
       this.getIngredientRepository(),
       this.getCategoryRepository(),
       this.getUnitRepository(),
+      this.getRepositoryFactory(),
       this.getTransactionManager()
     )
   }
@@ -198,6 +217,10 @@ export class CompositionRoot {
    * Get DeleteIngredientHandler instance (new instance each time)
    */
   public getDeleteIngredientHandler(): DeleteIngredientHandler {
-    return new DeleteIngredientHandler(this.getIngredientRepository(), this.getTransactionManager())
+    return new DeleteIngredientHandler(
+      this.getIngredientRepository(),
+      this.getRepositoryFactory(),
+      this.getTransactionManager()
+    )
   }
 }

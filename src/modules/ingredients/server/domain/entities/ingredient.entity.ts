@@ -320,6 +320,16 @@ export class Ingredient extends AggregateRoot {
     this.checkUpdatePermission(userId)
     this.memo = newMemo
     this.updateTimestamp()
+
+    // 食材更新イベントを発行
+    this.addDomainEvent(
+      new IngredientUpdated(
+        this.id.getValue(),
+        userId || this.userId,
+        { memo: { from: this.memo?.getValue() || null, to: newMemo?.getValue() || null } },
+        { userId: userId || this.userId }
+      )
+    )
   }
 
   /**

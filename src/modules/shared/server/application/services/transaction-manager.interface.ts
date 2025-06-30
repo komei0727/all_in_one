@@ -1,3 +1,5 @@
+import type { PrismaClient } from '@/generated/prisma'
+
 /**
  * トランザクション管理インターフェース
  * データベーストランザクションを抽象化し、テスタビリティを確保
@@ -9,5 +11,5 @@ export interface TransactionManager {
    * @returns 関数の実行結果
    * @throws トランザクション内でエラーが発生した場合は自動的にロールバック
    */
-  run<T>(fn: (tx: any) => Promise<T>): Promise<T>
+  run<T>(fn: (tx: PrismaClient) => Promise<T>): Promise<T>
 }

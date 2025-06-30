@@ -24,6 +24,7 @@ import { IngredientMapper } from '../mappers/ingredient.mapper'
 import type { UpdateIngredientCommand } from './update-ingredient.command'
 import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '../../domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 
 /**
@@ -34,6 +35,7 @@ export class UpdateIngredientHandler {
     private readonly ingredientRepository: IngredientRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly unitRepository: UnitRepository,
+    private readonly repositoryFactory: RepositoryFactory,
     private readonly transactionManager: TransactionManager
   ) {}
 
@@ -115,7 +117,8 @@ export class UpdateIngredientHandler {
 
     // 更新された食材を保存
     const updatedIngredient = await this.transactionManager.run(async (tx) => {
-      return tx.update(ingredient)
+      const txIngredientRepository = this.repositoryFactory.createIngredientRepository(tx)
+      return txIngredientRepository.update(ingredient)
     })
 
     // カテゴリーと単位の情報を取得

@@ -5,6 +5,7 @@ import { IngredientId } from '../../domain/value-objects'
 
 import type { DeleteIngredientCommand } from './delete-ingredient.command'
 import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '../../domain/repositories/repository-factory.interface'
 
 /**
  * 食材削除ハンドラー
@@ -12,6 +13,7 @@ import type { IngredientRepository } from '../../domain/repositories/ingredient-
 export class DeleteIngredientHandler {
   constructor(
     private readonly ingredientRepository: IngredientRepository,
+    private readonly repositoryFactory: RepositoryFactory,
     private readonly transactionManager: TransactionManager
   ) {}
 
@@ -31,7 +33,8 @@ export class DeleteIngredientHandler {
 
     // 削除された食材を保存
     await this.transactionManager.run(async (tx) => {
-      return tx.update(ingredient)
+      const txIngredientRepository = this.repositoryFactory.createIngredientRepository(tx)
+      return txIngredientRepository.update(ingredient)
     })
   }
 }

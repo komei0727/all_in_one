@@ -4,6 +4,7 @@ import { UpdateIngredientCommand } from '@/modules/ingredients/server/applicatio
 import { UpdateIngredientHandler } from '@/modules/ingredients/server/application/commands/update-ingredient.handler'
 import type { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '@/modules/ingredients/server/domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
 
@@ -46,6 +47,10 @@ describe('UpdateIngredientHandler - Entity Methods', () => {
     findAllActive: vi.fn(),
   }
 
+  const mockRepositoryFactory: RepositoryFactory = {
+    createIngredientRepository: vi.fn().mockReturnValue(mockIngredientRepository),
+  }
+
   const mockTransactionManager: TransactionManager = {
     run: vi.fn().mockImplementation(async (fn) => {
       const txRepository = {
@@ -62,6 +67,7 @@ describe('UpdateIngredientHandler - Entity Methods', () => {
       mockIngredientRepository,
       mockCategoryRepository,
       mockUnitRepository,
+      mockRepositoryFactory,
       mockTransactionManager
     )
   })

@@ -4,7 +4,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { GET } from '@/app/api/v1/ingredients/[id]/route'
 import { auth } from '@/auth'
-import { IngredientNotFoundException } from '@/modules/ingredients/server/domain/exceptions'
+import { GetIngredientByIdApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-ingredient-by-id.handler'
+import {
+  IngredientNotFoundException,
+  ValidationException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 import { anIngredientDto } from '../../../../../../__fixtures__/builders/dtos/ingredient.dto.builder'
@@ -24,9 +28,14 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
+vi.mock('@/modules/ingredients/server/api/handlers/queries/get-ingredient-by-id.handler', () => ({
+  GetIngredientByIdApiHandler: vi.fn(),
+}))
+
 describe('GET /api/v1/ingredients/[id]', () => {
   let mockGetIngredientByIdHandler: any
   let mockCompositionRoot: any
+  let mockApiHandler: any
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -36,6 +45,11 @@ describe('GET /api/v1/ingredients/[id]', () => {
       execute: vi.fn(),
     }
 
+    // APIハンドラーのモック
+    mockApiHandler = {
+      handle: vi.fn(),
+    }
+
     // CompositionRootのモック
     mockCompositionRoot = {
       getGetIngredientByIdHandler: vi.fn().mockReturnValue(mockGetIngredientByIdHandler),
@@ -43,6 +57,9 @@ describe('GET /api/v1/ingredients/[id]', () => {
 
     // CompositionRoot.getInstanceのモック
     vi.mocked(CompositionRoot.getInstance).mockReturnValue(mockCompositionRoot)
+
+    // GetIngredientByIdApiHandlerのモック
+    vi.mocked(GetIngredientByIdApiHandler).mockImplementation(() => mockApiHandler)
   })
 
   afterEach(() => {
@@ -81,7 +98,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
 
     // 食材データのモック
     const mockIngredientDto = anIngredientDto().build()
-    mockGetIngredientByIdHandler.execute.mockResolvedValue(mockIngredientDto)
+    mockApiHandler.handle.mockResolvedValue(mockIngredientDto.toJSON())
 
     // リクエストの作成
     const ingredientId = mockIngredientDto.toJSON().ingredient.id
@@ -98,10 +115,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     expect(body).toEqual(mockIngredientDto.toJSON())
 
     // ハンドラーが正しく呼ばれたことを検証
-    expect(mockGetIngredientByIdHandler.execute).toHaveBeenCalledWith({
-      userId: mockUser.domainUserId,
-      id: ingredientId,
-    })
+    expect(mockApiHandler.handle).toHaveBeenCalledWith({ id: ingredientId }, mockUser.domainUserId)
   })
 
   it('食材が見つからない場合は404エラーを返す', async () => {
@@ -110,7 +124,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     vi.mocked(auth).mockResolvedValue({ user: mockUser } as any)
 
     // IngredientNotFoundExceptionをスロー
-    mockGetIngredientByIdHandler.execute.mockRejectedValue(new IngredientNotFoundException())
+    mockApiHandler.handle.mockRejectedValue(new IngredientNotFoundException())
 
     // リクエストの作成
     const notFoundId = faker.string.uuid()
@@ -139,6 +153,9 @@ describe('GET /api/v1/ingredients/[id]', () => {
     const mockUser = aNextAuthUser().build()
     vi.mocked(auth).mockResolvedValue({ user: mockUser } as any)
 
+    // ValidationExceptionをスロー
+    mockApiHandler.handle.mockRejectedValue(new ValidationException('無効なIDです'))
+
     // リクエストの作成
     const request = new NextRequest('http://localhost:3000/api/v1/ingredients/invalid-id', {
       method: 'GET',
@@ -153,7 +170,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     expect(body).toEqual({
       error: {
         code: 'VALIDATION_ERROR',
-        message: '無効なIDフォーマットです',
+        message: '無効なIDです',
         timestamp: expect.any(String),
         path: '/api/v1/ingredients/invalid-id',
       },
@@ -166,7 +183,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     vi.mocked(auth).mockResolvedValue({ user: mockUser } as any)
 
     // 予期しないエラーをスロー
-    mockGetIngredientByIdHandler.execute.mockRejectedValue(new Error('Unexpected error'))
+    mockApiHandler.handle.mockRejectedValue(new Error('Unexpected error'))
 
     // リクエストの作成
     const validId = faker.string.uuid()
@@ -198,7 +215,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     // 削除済みの食材のIDを生成
     const deletedId = faker.string.uuid()
 
-    mockGetIngredientByIdHandler.execute.mockRejectedValue(new IngredientNotFoundException())
+    mockApiHandler.handle.mockRejectedValue(new IngredientNotFoundException())
 
     // リクエストの作成
     const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${deletedId}`, {
@@ -227,7 +244,7 @@ describe('GET /api/v1/ingredients/[id]', () => {
     vi.mocked(auth).mockResolvedValue({ user: mockUser } as any)
 
     // 他のユーザーの食材として404エラーをスロー
-    mockGetIngredientByIdHandler.execute.mockRejectedValue(new IngredientNotFoundException())
+    mockApiHandler.handle.mockRejectedValue(new IngredientNotFoundException())
 
     // リクエストの作成
     const otherId = faker.string.uuid()

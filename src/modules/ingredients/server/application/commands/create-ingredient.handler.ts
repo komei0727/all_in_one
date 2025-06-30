@@ -13,6 +13,7 @@ import type { CreateIngredientCommand } from './create-ingredient.command'
 import type { Ingredient } from '../../domain/entities/ingredient.entity'
 import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '../../domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 import type { IngredientDto } from '../dtos/ingredient.dto'
 
@@ -27,6 +28,7 @@ export class CreateIngredientHandler {
     private readonly ingredientRepository: IngredientRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly unitRepository: UnitRepository,
+    private readonly repositoryFactory: RepositoryFactory,
     private readonly transactionManager: TransactionManager,
     private readonly eventBus: EventBus
   ) {
@@ -58,8 +60,9 @@ export class CreateIngredientHandler {
     // トランザクション内で食材を作成・保存
     let ingredientToSave: Ingredient
     const savedIngredient = await this.transactionManager.run(async (tx) => {
-      // トランザクション内でファクトリーに渡すリポジトリを更新
-      const txIngredientFactory = new IngredientFactory(tx)
+      // RepositoryFactoryを使ってトランザクション内でリポジトリを作成
+      const txIngredientRepository = this.repositoryFactory.createIngredientRepository(tx)
+      const txIngredientFactory = new IngredientFactory(txIngredientRepository)
 
       // IngredientFactoryを使用して食材を作成
       ingredientToSave = await txIngredientFactory.create({
@@ -87,7 +90,7 @@ export class CreateIngredientHandler {
       })
 
       // 永続化
-      return tx.save(ingredientToSave)
+      return txIngredientRepository.save(ingredientToSave)
     })
 
     // トランザクション成功後にイベントを発行

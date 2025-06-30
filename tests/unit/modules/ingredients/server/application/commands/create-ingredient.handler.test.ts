@@ -7,6 +7,7 @@ import {
 } from '@/modules/ingredients/server/domain/exceptions'
 import { type CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { type IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import { type RepositoryFactory } from '@/modules/ingredients/server/domain/repositories/repository-factory.interface'
 import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
@@ -29,6 +30,7 @@ describe('CreateIngredientHandler', () => {
   let ingredientRepository: IngredientRepository
   let categoryRepository: CategoryRepository
   let unitRepository: UnitRepository
+  let repositoryFactory: RepositoryFactory
   let transactionManager: TransactionManager
   let eventBus: EventBus
 
@@ -37,6 +39,9 @@ describe('CreateIngredientHandler', () => {
     ingredientRepository = createMockIngredientRepository()
     categoryRepository = createMockCategoryRepository()
     unitRepository = createMockUnitRepository()
+    repositoryFactory = {
+      createIngredientRepository: vi.fn().mockReturnValue(ingredientRepository),
+    }
     transactionManager = createMockTransactionManager()
 
     // イベントバスのモックを作成
@@ -47,13 +52,16 @@ describe('CreateIngredientHandler', () => {
 
     // トランザクションマネージャーのモックを設定
     vi.mocked(transactionManager.run).mockImplementation(async (fn) => {
-      return fn(ingredientRepository)
+      // PrismaClientの最小限のモックを作成
+      const mockPrismaClient = {} as any
+      return fn(mockPrismaClient)
     })
 
     handler = new CreateIngredientHandler(
       ingredientRepository,
       categoryRepository,
       unitRepository,
+      repositoryFactory,
       transactionManager,
       eventBus
     )

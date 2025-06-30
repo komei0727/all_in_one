@@ -3,17 +3,21 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { IngredientListDto } from '@/modules/ingredients/server/application/dtos/ingredient-list.dto'
 import { GetIngredientsHandler } from '@/modules/ingredients/server/application/queries/get-ingredients.handler'
 import { GetIngredientsQuery } from '@/modules/ingredients/server/application/queries/get-ingredients.query'
+import type { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 
 import { IngredientBuilder } from '../../../../../../__fixtures__/builders/entities/ingredient.builder'
 import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 
 describe('GetIngredientsHandler', () => {
   let handler: GetIngredientsHandler
-  let mockRepository: IngredientRepository
+  let mockIngredientRepository: IngredientRepository
+  let mockCategoryRepository: CategoryRepository
+  let mockUnitRepository: UnitRepository
 
   beforeEach(() => {
-    mockRepository = {
+    mockIngredientRepository = {
       findMany: vi.fn(),
       count: vi.fn(),
       findById: vi.fn(),
@@ -32,7 +36,21 @@ describe('GetIngredientsHandler', () => {
       existsByUserAndNameAndExpiryAndLocation: vi.fn(),
     }
 
-    handler = new GetIngredientsHandler(mockRepository)
+    mockCategoryRepository = {
+      findById: vi.fn(),
+      findAllActive: vi.fn(),
+    }
+
+    mockUnitRepository = {
+      findById: vi.fn(),
+      findAllActive: vi.fn(),
+    }
+
+    handler = new GetIngredientsHandler(
+      mockIngredientRepository,
+      mockCategoryRepository,
+      mockUnitRepository
+    )
   })
 
   it('ページネーション付きで食材一覧を取得できる', async () => {
@@ -51,8 +69,8 @@ describe('GetIngredientsHandler', () => {
     ]
 
     // モックの設定
-    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
-    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    const findManyMock = mockIngredientRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockIngredientRepository.count as ReturnType<typeof vi.fn>
     findManyMock.mockResolvedValue(ingredients)
     countMock.mockResolvedValue(2)
 
@@ -70,7 +88,7 @@ describe('GetIngredientsHandler', () => {
     expect(result.totalPages).toBe(1)
 
     // リポジトリの呼び出し確認
-    expect(mockRepository.findMany).toHaveBeenCalledWith({
+    expect(mockIngredientRepository.findMany).toHaveBeenCalledWith({
       userId,
       page: 1,
       limit: 20,
@@ -80,7 +98,7 @@ describe('GetIngredientsHandler', () => {
       sortBy: undefined,
       sortOrder: undefined,
     })
-    expect(mockRepository.count).toHaveBeenCalledWith({
+    expect(mockIngredientRepository.count).toHaveBeenCalledWith({
       userId,
       search: undefined,
       categoryId: undefined,
@@ -96,8 +114,8 @@ describe('GetIngredientsHandler', () => {
       .withDefaultStock()
       .build()
 
-    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
-    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    const findManyMock = mockIngredientRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockIngredientRepository.count as ReturnType<typeof vi.fn>
     findManyMock.mockResolvedValue([ingredient])
     countMock.mockResolvedValue(1)
 
@@ -106,7 +124,7 @@ describe('GetIngredientsHandler', () => {
     const result = await handler.execute(query)
 
     expect(result.items).toHaveLength(1)
-    expect(mockRepository.findMany).toHaveBeenCalledWith({
+    expect(mockIngredientRepository.findMany).toHaveBeenCalledWith({
       userId,
       page: 1,
       limit: 20,
@@ -124,8 +142,8 @@ describe('GetIngredientsHandler', () => {
       new IngredientBuilder().withRandomName().withDefaultStock().build(),
     ]
 
-    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
-    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    const findManyMock = mockIngredientRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockIngredientRepository.count as ReturnType<typeof vi.fn>
     findManyMock.mockResolvedValue(ingredients)
     countMock.mockResolvedValue(2)
 
@@ -143,7 +161,7 @@ describe('GetIngredientsHandler', () => {
     const result = await handler.execute(query)
 
     expect(result.items).toHaveLength(2)
-    expect(mockRepository.findMany).toHaveBeenCalledWith({
+    expect(mockIngredientRepository.findMany).toHaveBeenCalledWith({
       userId,
       page: 1,
       limit: 20,
@@ -156,8 +174,8 @@ describe('GetIngredientsHandler', () => {
   })
 
   it('空の結果を返すことができる', async () => {
-    const findManyMock = mockRepository.findMany as ReturnType<typeof vi.fn>
-    const countMock = mockRepository.count as ReturnType<typeof vi.fn>
+    const findManyMock = mockIngredientRepository.findMany as ReturnType<typeof vi.fn>
+    const countMock = mockIngredientRepository.count as ReturnType<typeof vi.fn>
     findManyMock.mockResolvedValue([])
     countMock.mockResolvedValue(0)
 

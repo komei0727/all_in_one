@@ -126,7 +126,6 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
             deletedAt: null,
             name: {
               contains: 'トマト',
-              mode: 'insensitive',
             },
           },
         })
@@ -179,11 +178,13 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
             OR: [
               {
                 bestBeforeDate: {
+                  not: null,
                   lt: expect.any(Date), // 現在時刻より前
                 },
               },
               {
                 useByDate: {
+                  not: null,
                   lt: expect.any(Date), // 現在時刻より前
                 },
               },
@@ -320,7 +321,6 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
           deletedAt: null,
           name: {
             contains: 'キャベツ',
-            mode: 'insensitive',
           },
           categoryId: targetCategoryId,
         },
@@ -376,17 +376,18 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
           deletedAt: null,
           name: {
             contains: 'トマト',
-            mode: 'insensitive',
           },
           categoryId: targetCategoryId,
           OR: [
             {
               bestBeforeDate: {
+                not: null,
                 lt: expect.any(Date),
               },
             },
             {
               useByDate: {
+                not: null,
                 lt: expect.any(Date),
               },
             },

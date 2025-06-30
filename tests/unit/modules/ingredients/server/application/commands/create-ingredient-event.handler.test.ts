@@ -4,6 +4,7 @@ import { CreateIngredientCommand } from '@/modules/ingredients/server/applicatio
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import type { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import type { RepositoryFactory } from '@/modules/ingredients/server/domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import {
   StorageType,
@@ -54,6 +55,11 @@ const mockEventBus: EventBus = {
   publishAll: vi.fn(),
 }
 
+// モックリポジトリファクトリー
+const mockRepositoryFactory: RepositoryFactory = {
+  createIngredientRepository: vi.fn().mockReturnValue(mockIngredientRepository),
+}
+
 // モックトランザクションマネージャー
 const mockTransactionManager = {
   run: vi.fn().mockImplementation(async (fn) => {
@@ -75,6 +81,7 @@ describe('CreateIngredientHandler - Event Publishing', () => {
       mockIngredientRepository,
       mockCategoryRepository,
       mockUnitRepository,
+      mockRepositoryFactory,
       mockTransactionManager as any,
       mockEventBus
     )
