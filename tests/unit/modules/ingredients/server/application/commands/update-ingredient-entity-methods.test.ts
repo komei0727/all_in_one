@@ -63,6 +63,8 @@ describe('UpdateIngredientHandler - Entity Methods', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // デフォルトで findDuplicates は空配列を返すように設定
+    mockIngredientRepository.findDuplicates = vi.fn().mockResolvedValue([])
     handler = new UpdateIngredientHandler(
       mockIngredientRepository,
       mockCategoryRepository,

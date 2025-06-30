@@ -10,7 +10,7 @@ import {
 } from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
-import { faker } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
 import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders/next-auth/next-auth-user.builder'
 
 const aNextAuthUser = () => new NextAuthUserBuilder()
@@ -85,7 +85,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     mockDeleteIngredientHandler.execute.mockResolvedValue(undefined)
 
     // リクエストの作成
-    const ingredientId = faker.string.uuid()
+    const ingredientId = testDataHelpers.ingredientId()
     const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${ingredientId}`, {
       method: 'DELETE',
     })
@@ -113,7 +113,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     mockDeleteIngredientHandler.execute.mockRejectedValue(new IngredientNotFoundException())
 
     // リクエストの作成
-    const notFoundId = faker.string.uuid()
+    const notFoundId = testDataHelpers.ingredientId()
     const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${notFoundId}`, {
       method: 'DELETE',
     })
@@ -143,7 +143,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     mockDeleteIngredientHandler.execute.mockRejectedValue(new IngredientNotFoundException())
 
     // リクエストの作成
-    const otherId = faker.string.uuid()
+    const otherId = testDataHelpers.ingredientId()
     const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${otherId}`, {
       method: 'DELETE',
     })
@@ -175,7 +175,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     )
 
     // リクエストの作成
-    const deletedId = faker.string.uuid()
+    const deletedId = testDataHelpers.ingredientId()
     const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${deletedId}`, {
       method: 'DELETE',
     })
@@ -215,7 +215,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     expect(body).toEqual({
       error: {
         code: 'VALIDATION_ERROR',
-        message: '無効なIDフォーマットです',
+        message: '無効なIDフォーマットです。食材IDはing_で始まる必要があります',
         timestamp: expect.any(String),
         path: '/api/v1/ingredients/invalid-id',
       },
@@ -231,7 +231,7 @@ describe('DELETE /api/v1/ingredients/[id]', () => {
     mockDeleteIngredientHandler.execute.mockRejectedValue(new Error('Unexpected error'))
 
     // リクエストの作成
-    const validId = faker.string.uuid()
+    const validId = testDataHelpers.ingredientId()
     const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${validId}`, {
       method: 'DELETE',
     })

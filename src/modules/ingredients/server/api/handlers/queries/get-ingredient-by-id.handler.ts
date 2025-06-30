@@ -48,10 +48,10 @@ export class GetIngredientByIdApiHandler {
       updatedAt: string
     }
   }> {
-    // UUID形式のバリデーション
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(params.id)) {
-      throw new ValidationException('無効なIDフォーマットです')
+    // プレフィックス付きCUID形式のバリデーション（ing_で始まるCUID v2）
+    const ingredientIdRegex = /^ing_[0-9a-z]{24}$/
+    if (!ingredientIdRegex.test(params.id)) {
+      throw new ValidationException('無効なIDフォーマットです。食材IDはing_で始まる必要があります')
     }
 
     // クエリを実行（新しいQueryService経由）

@@ -6,6 +6,7 @@ import {
   CategoryNotFoundException,
   UnitNotFoundException,
 } from '../../domain/exceptions'
+import { IngredientFactory } from '../../domain/factories/ingredient.factory'
 import {
   IngredientId,
   IngredientName,
@@ -31,13 +32,17 @@ import type { UnitRepository } from '../../domain/repositories/unit-repository.i
  * 食材更新ハンドラー
  */
 export class UpdateIngredientHandler {
+  private readonly ingredientFactory: IngredientFactory
+
   constructor(
     private readonly ingredientRepository: IngredientRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly unitRepository: UnitRepository,
     private readonly repositoryFactory: RepositoryFactory,
     private readonly transactionManager: TransactionManager
-  ) {}
+  ) {
+    this.ingredientFactory = new IngredientFactory(ingredientRepository)
+  }
 
   async execute(command: UpdateIngredientCommand): Promise<IngredientDto> {
     // 食材IDの値オブジェクトを作成
@@ -53,6 +58,65 @@ export class UpdateIngredientHandler {
     // 削除済みチェック
     if (ingredient.isDeleted()) {
       throw new BusinessRuleException('削除済みの食材は更新できません')
+    }
+
+    // 重複チェック（名前、期限情報、保存場所が変更される場合）
+    const changedFields: {
+      name?: string
+      expiryInfo?: { bestBeforeDate: Date; useByDate?: Date | null } | null
+      storageLocation?: { type: StorageType; detail?: string }
+    } = {}
+
+    if (command.name !== undefined && command.name !== ingredient.getName().getValue()) {
+      changedFields.name = command.name
+    }
+
+    if (command.expiryInfo !== undefined) {
+      const currentExpiryInfo = ingredient.getExpiryInfo()
+      const isExpiryInfoChanged =
+        (!currentExpiryInfo && command.expiryInfo) ||
+        (currentExpiryInfo && !command.expiryInfo) ||
+        (currentExpiryInfo &&
+          command.expiryInfo &&
+          command.expiryInfo.bestBeforeDate &&
+          currentExpiryInfo.getBestBeforeDate() &&
+          (currentExpiryInfo.getBestBeforeDate()!.getTime() !==
+            command.expiryInfo.bestBeforeDate!.getTime() ||
+            (currentExpiryInfo.getUseByDate()?.getTime() ?? null) !==
+              (command.expiryInfo.useByDate?.getTime() ?? null)))
+
+      if (isExpiryInfoChanged && command.expiryInfo && command.expiryInfo.bestBeforeDate) {
+        changedFields.expiryInfo = {
+          bestBeforeDate: command.expiryInfo.bestBeforeDate,
+          useByDate: command.expiryInfo.useByDate ?? null,
+        }
+      } else if (isExpiryInfoChanged && !command.expiryInfo) {
+        changedFields.expiryInfo = null
+      }
+    }
+
+    if (command.stock !== undefined) {
+      const currentStock = ingredient.getIngredientStock()
+      const currentLocation = currentStock.getStorageLocation()
+      const isLocationChanged =
+        currentLocation.getType() !== command.stock.storageLocation.type ||
+        currentLocation.getDetail() !== command.stock.storageLocation.detail
+
+      if (isLocationChanged) {
+        changedFields.storageLocation = {
+          type: command.stock.storageLocation.type as StorageType,
+          detail: command.stock.storageLocation.detail || undefined,
+        }
+      }
+    }
+
+    // 重複チェックを実行
+    if (Object.keys(changedFields).length > 0) {
+      await this.ingredientFactory.updateWithCheck({
+        userId: command.userId,
+        ingredientId: command.id,
+        ...changedFields,
+      })
     }
 
     // 名前の更新

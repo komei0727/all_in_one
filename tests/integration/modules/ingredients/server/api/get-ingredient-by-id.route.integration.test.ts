@@ -271,9 +271,9 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       // Prismaクエリ実行回数をカウント
       const originalFindFirst = prisma.ingredient.findFirst
       let queryCount = 0
-      prisma.ingredient.findFirst = vi.fn().mockImplementation((args: any) => {
+      prisma.ingredient.findFirst = vi.fn().mockImplementation(async (args: any) => {
         queryCount++
-        return originalFindFirst.apply(prisma.ingredient, args)
+        return originalFindFirst.call(prisma.ingredient, args)
       })
 
       const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${ingredient.id}`, {
@@ -314,16 +314,17 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       // Then: 404 Not Foundが返される
       expect(response.status).toBe(404)
       expect(data.error.code).toBe('NOT_FOUND')
-      expect(data.error.message).toContain('Ingredient not found')
+      expect(data.error.message).toContain('食材が見つかりません')
     })
 
     it('他のユーザーの食材は取得できない', async () => {
       // 認証済みユーザーのモック設定
       mockAuthUser()
 
-      // Given: 他のユーザーの食材を作成
-      const otherUserId = testDataHelpers.userId()
-      const ingredient = await createTestIngredient(otherUserId, prisma)
+      // Given: 他のユーザーを作成し、そのユーザーの食材を作成
+      const { createTestUser } = await import('../../../../../helpers/database.helper')
+      const otherUser = await createTestUser()
+      const ingredient = await createTestIngredient(otherUser.domainUserId, prisma)
 
       const request = new NextRequest(`http://localhost:3000/api/v1/ingredients/${ingredient.id}`, {
         method: 'GET',
@@ -382,7 +383,7 @@ describe('GET /api/v1/ingredients/{id} Integration Tests', () => {
       // Then: 400 Bad Requestが返される
       expect(response.status).toBe(400)
       expect(data.error.code).toBe('VALIDATION_ERROR')
-      expect(data.error.message).toContain('有効なID形式')
+      expect(data.error.message).toContain('無効なIDフォーマット')
     })
   })
 
