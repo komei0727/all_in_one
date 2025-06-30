@@ -5,6 +5,22 @@
 このドキュメントでは、食材・在庫管理コンテキストのアプリケーションサービスを定義します。
 アプリケーションサービスは、ユースケースの実行とドメイン層の調整を責務とします。
 
+### CQRSパターンの適用
+
+本システムではCQRS（Command Query Responsibility Segregation）パターンを採用し、コマンド（書き込み）とクエリ（読み取り）を明確に分離しています。
+
+#### コマンド側
+
+- ドメインモデルを通じてビジネスルールを適用
+- リポジトリパターンで永続化
+- トランザクション管理とイベント発行
+
+#### クエリ側
+
+- QueryServiceを通じて最適化された読み取り専用操作
+- 単一クエリでのデータ取得によるパフォーマンス向上
+- 軽量なViewオブジェクトの使用
+
 ## サービス一覧
 
 | サービス                           | 責務                       | 主要なユースケース                 |
@@ -19,16 +35,16 @@
 
 ### 主要メソッド
 
-| メソッド            | 説明             | トランザクション |
-| ------------------- | ---------------- | ---------------- |
-| createIngredient    | 新規食材登録     | 必要             |
-| updateIngredient    | 食材情報更新     | 必要             |
-| deleteIngredient    | 食材削除（論理） | 必要             |
-| getIngredient       | 食材詳細取得     | 読み取り専用     |
-| listIngredients     | 食材一覧取得     | 読み取り専用     |
-| searchIngredients   | 条件検索         | 読み取り専用     |
-| getCategorySummary  | カテゴリー別集計 | 読み取り専用     |
-| getIngredientEvents | 食材イベント履歴 | 読み取り専用     |
+| メソッド            | 説明             | 種別    | 実装方式         |
+| ------------------- | ---------------- | ------- | ---------------- |
+| createIngredient    | 新規食材登録     | Command | Repository経由   |
+| updateIngredient    | 食材情報更新     | Command | Repository経由   |
+| deleteIngredient    | 食材削除（論理） | Command | Repository経由   |
+| getIngredient       | 食材詳細取得     | Query   | QueryService経由 |
+| listIngredients     | 食材一覧取得     | Query   | QueryService経由 |
+| searchIngredients   | 条件検索         | Query   | QueryService経由 |
+| getCategorySummary  | カテゴリー別集計 | Query   | QueryService経由 |
+| getIngredientEvents | 食材イベント履歴 | Query   | EventStore経由   |
 
 ### ユースケース: 食材登録
 
@@ -72,6 +88,74 @@ async createIngredient(command: CreateIngredientCommand): Promise<IngredientDto>
 - 重複エラー → DuplicateIngredientException
 - カテゴリー不存在 → CategoryNotFoundException
 - 単位不存在 → UnitNotFoundException
+- 認証エラー → UnauthorizedException
+
+### ユースケース: 食材詳細取得
+
+**CQRSクエリ実装**:
+
+GetIngredientByIdHandler（アプリケーション層）がIngredientQueryService（インフラストラクチャ層）を使用して最適化されたクエリを実行します。
+
+**フロー**:
+
+1. ユーザーIDと食材IDの取得
+2. QueryService経由で単一クエリ実行
+   - JOINを使用してカテゴリー・単位情報を一度に取得
+   - 削除済み食材の除外
+   - ユーザー所有権の確認
+3. 食材が見つからない場合はIngredientNotFoundExceptionを投げる
+4. IngredientDetailViewとして返却
+
+**実装例**:
+
+```typescript
+// QueryHandler（アプリケーション層）
+export class GetIngredientByIdHandler {
+  constructor(private readonly queryService: IngredientQueryService) {}
+
+  async execute(query: GetIngredientByIdQuery): Promise<IngredientDetailView> {
+    const ingredientDetail = await this.queryService.findDetailById(query.userId, query.id)
+
+    if (!ingredientDetail) {
+      throw new IngredientNotFoundException()
+    }
+
+    return ingredientDetail
+  }
+}
+
+// QueryService（インフラストラクチャ層）
+export class PrismaIngredientQueryService implements IngredientQueryService {
+  async findDetailById(userId: string, ingredientId: string): Promise<IngredientDetailView | null> {
+    // 単一のJOINクエリで全ての必要な情報を取得
+    const ingredient = await this.prisma.ingredient.findFirst({
+      where: {
+        id: ingredientId,
+        userId: userId,
+        deletedAt: null,
+      },
+      include: {
+        category: true,
+        unit: true,
+      },
+    })
+
+    return ingredient ? this.mapToView(ingredient) : null
+  }
+}
+```
+
+**パフォーマンス最適化**:
+
+- 従来: 3クエリ（ingredient、category、unit）
+- 改善後: 1クエリ（JOINによる統合）
+- 効果: データベースラウンドトリップ66%削減
+
+**エラーケース**:
+
+- 食材不存在 → IngredientNotFoundException
+- 削除済み食材 → IngredientNotFoundException
+- 他ユーザーの食材 → IngredientNotFoundException
 - 認証エラー → UnauthorizedException
 
 ### ユースケース: 食材検索
@@ -808,6 +892,72 @@ interface ShoppingAssistService {
 - 在庫状態の優先順位：在庫なし > 在庫少 > 在庫あり
 - 確認頻度の高い食材は優先的に表示
 
+## CQRS QueryServiceの詳細
+
+### IngredientQueryService
+
+読み取り専用の食材クエリを最適化して実行するためのサービス。
+
+#### 責務
+
+- 単一クエリでの効率的なデータ取得
+- 軽量なViewオブジェクトへの変換
+- 読み取り専用操作の保証
+
+#### インターフェース定義
+
+```typescript
+// アプリケーション層（抽象）
+export interface IngredientQueryService {
+  /**
+   * ユーザーの食材詳細を取得する
+   * @param userId - ユーザーID
+   * @param ingredientId - 食材ID
+   * @returns 食材詳細ビュー（見つからない場合null）
+   */
+  findDetailById(userId: string, ingredientId: string): Promise<IngredientDetailView | null>
+
+  // 将来的な拡張予定
+  // findListByUser(userId: string, filters?: IngredientFilters): Promise<IngredientListView[]>
+  // findByCategoryId(userId: string, categoryId: string): Promise<IngredientListView[]>
+  // findExpiringSoon(userId: string, days: number): Promise<IngredientListView[]>
+}
+```
+
+#### ビューオブジェクト
+
+```typescript
+// 読み取り専用の軽量なデータ構造
+export interface IngredientDetailView {
+  id: string
+  userId: string
+  name: string
+  categoryId: string | null
+  categoryName: string | null
+  price: number | null
+  purchaseDate: string
+  bestBeforeDate: string | null
+  useByDate: string | null
+  quantity: number
+  unitId: string
+  unitName: string
+  unitSymbol: string
+  storageType: string
+  storageDetail: string | null
+  threshold: number | null
+  memo: string | null
+  createdAt: string
+  updatedAt: string
+}
+```
+
+#### パフォーマンス上の利点
+
+1. **N+1問題の解決**: 個別のリポジトリ呼び出しを単一クエリに統合
+2. **メモリ効率**: ドメインエンティティを構築せず、必要なデータのみを取得
+3. **スケーラビリティ**: 読み取り専用DBへの接続切り替えが容易
+4. **キャッシュ戦略**: Viewオブジェクトは不変なため、キャッシュが容易
+
 ## 監査とロギング
 
 ### 監査対象
@@ -833,3 +983,4 @@ interface ShoppingAssistService {
 | 2025-06-24 | IngredientApplicationServiceに集計・履歴機能、MasterDataApplicationServiceを追加          | Claude     |
 | 2025-06-28 | 買い物サポート機能統合に伴う修正（ShoppingApplicationService、ShoppingAssistService追加） | Claude     |
 | 2025-06-28 | 処理フロー改善（トランザクション境界、イベント発行、非同期処理、セッション管理の詳細化）  | Claude     |
+| 2025-06-30 | CQRSパターン導入に伴う修正（QueryService追加、食材詳細取得の最適化）                      | Claude     |

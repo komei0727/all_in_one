@@ -26,6 +26,7 @@ export default defineConfig({
       { find: '@/app', replacement: path.resolve(__dirname, './src/app') },
       { find: '@/modules', replacement: path.resolve(__dirname, './src/modules') },
       { find: '@/lib', replacement: path.resolve(__dirname, './src/lib') },
+      { find: '@tests', replacement: path.resolve(__dirname, './tests') },
       { find: '@ingredients', replacement: path.resolve(__dirname, './src/modules/ingredients') },
       { find: '@shared', replacement: path.resolve(__dirname, './src/modules/shared') },
     ],

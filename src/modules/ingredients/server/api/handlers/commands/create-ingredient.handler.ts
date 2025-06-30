@@ -1,28 +1,21 @@
 import { ZodError } from 'zod'
 
 import { CreateIngredientCommand } from '../../../application/commands/create-ingredient.command'
-import { IngredientMapper } from '../../../application/mappers/ingredient.mapper'
 import { ValidationException } from '../../../domain/exceptions'
-import { CategoryId, type StorageType, UnitId } from '../../../domain/value-objects'
+import { type StorageType } from '../../../domain/value-objects'
 import {
   type CreateIngredientRequest,
   createIngredientSchema,
 } from '../../validators/create-ingredient.validator'
 
 import type { CreateIngredientHandler } from '../../../application/commands/create-ingredient.handler'
-import type { CategoryRepository } from '../../../domain/repositories/category-repository.interface'
-import type { UnitRepository } from '../../../domain/repositories/unit-repository.interface'
 
 /**
  * 食材作成APIハンドラー
  * HTTPリクエストを受け取り、アプリケーション層のコマンドハンドラーを呼び出す
  */
 export class CreateIngredientApiHandler {
-  constructor(
-    private readonly commandHandler: CreateIngredientHandler,
-    private readonly categoryRepository: CategoryRepository,
-    private readonly unitRepository: UnitRepository
-  ) {}
+  constructor(private readonly commandHandler: CreateIngredientHandler) {}
 
   /**
    * 食材作成リクエストを処理
@@ -56,19 +49,8 @@ export class CreateIngredientApiHandler {
         memo: validatedRequest.memo,
       })
 
-      // コマンドハンドラーの実行
-      const ingredient = await this.commandHandler.execute(command)
-
-      // 関連エンティティの取得
-      const category = await this.categoryRepository.findById(
-        CategoryId.create(validatedRequest.categoryId)
-      )
-      const unit = await this.unitRepository.findById(
-        UnitId.create(ingredient.getIngredientStock().getUnitId().getValue())
-      )
-
-      // DTOへの変換
-      const dto = IngredientMapper.toDto(ingredient, category || undefined, unit || undefined)
+      // コマンドハンドラーの実行（すでにDTOが返される）
+      const dto = await this.commandHandler.execute(command)
 
       // レスポンスの返却
       return dto.toJSON()

@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { IngredientMapper } from '@/modules/ingredients/server/application/mappers/ingredient.mapper'
-
-import {
-  CategoryBuilder,
-  UnitBuilder,
-  IngredientBuilder,
-} from '../../../../../../__fixtures__/builders'
+import { CategoryBuilder, UnitBuilder, IngredientBuilder } from '@tests/__fixtures__/builders'
 
 describe('IngredientMapper', () => {
   describe('toDto', () => {

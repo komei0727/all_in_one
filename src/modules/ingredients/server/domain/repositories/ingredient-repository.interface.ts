@@ -43,13 +43,6 @@ export interface IngredientRepository {
   findAll(userId: string): Promise<Ingredient[]>
 
   /**
-   * 食材を削除
-   * @param userId ユーザーID
-   * @param id 削除する食材のID
-   */
-  delete(userId: string, id: IngredientId): Promise<void>
-
-  /**
    * ユーザーIDで食材を検索
    * @param userId ユーザーID
    * @returns 食材のリスト

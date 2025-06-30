@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/ja'
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest'
 
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import {
@@ -9,19 +9,17 @@ import {
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
+import { PrismaRepositoryFactory } from '@/modules/ingredients/server/infrastructure/repositories/prisma-repository-factory'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
-
-import {
-  CreateIngredientCommandBuilder,
-  testDataHelpers,
-} from '../../../../../../__fixtures__/builders'
+import { PrismaTransactionManager } from '@/modules/ingredients/server/infrastructure/services/prisma-transaction-manager'
+import { CreateIngredientCommandBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 // テストデータ生成用のヘルパー関数
 const createTestCommand = () => {
@@ -47,6 +45,8 @@ describe('CreateIngredientHandler Integration Tests', () => {
   let ingredientRepository: PrismaIngredientRepository
   let categoryRepository: PrismaCategoryRepository
   let unitRepository: PrismaUnitRepository
+  let repositoryFactory: PrismaRepositoryFactory
+  let transactionManager: PrismaTransactionManager
 
   beforeEach(async () => {
     // 各テストの前にデータベースをセットアップ
@@ -57,7 +57,23 @@ describe('CreateIngredientHandler Integration Tests', () => {
     ingredientRepository = new PrismaIngredientRepository(prisma as any)
     categoryRepository = new PrismaCategoryRepository(prisma as any)
     unitRepository = new PrismaUnitRepository(prisma as any)
-    handler = new CreateIngredientHandler(ingredientRepository, categoryRepository, unitRepository)
+    repositoryFactory = new PrismaRepositoryFactory()
+    transactionManager = new PrismaTransactionManager(prisma as any)
+
+    // ダミーのEventBus実装
+    const eventBus = {
+      publish: vi.fn(),
+      publishAll: vi.fn(),
+    }
+
+    handler = new CreateIngredientHandler(
+      ingredientRepository,
+      categoryRepository,
+      unitRepository,
+      repositoryFactory,
+      transactionManager,
+      eventBus
+    )
   })
 
   afterEach(async () => {
@@ -80,31 +96,30 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
       // Then: 食材が正しく作成されている
       expect(result).toBeDefined()
-      expect(result.getName().getValue()).toBe(command.name)
-      expect(result.getCategoryId().getValue()).toBe(command.categoryId)
-      expect(result.getUserId()).toBe(command.userId)
-      expect(result.getPurchaseDate()).toBeInstanceOf(Date)
+      expect(result.name).toBe(command.name)
+      expect(result.category?.id).toBe(command.categoryId)
+      expect(result.userId).toBe(command.userId)
+      expect(result.purchaseDate).toBeDefined()
       if (command.memo) {
-        expect(result.getMemo()?.getValue()).toBe(command.memo)
+        expect(result.memo).toBe(command.memo)
       } else {
-        expect(result.getMemo()).toBeNull()
+        expect(result.memo).toBeNull()
       }
 
       // 在庫情報も正しく設定されている
-      const stock = result.getIngredientStock()
-      expect(stock).toBeDefined()
-      expect(stock.getQuantity()).toBe(command.quantity.amount)
-      expect(stock.getUnitId().getValue()).toBe(command.quantity.unitId)
-      expect(stock.getStorageLocation().getType()).toBe(command.storageLocation.type)
+      expect(result.stock).toBeDefined()
+      expect(result.stock?.quantity).toBe(command.quantity.amount)
+      expect(result.stock?.unit?.id).toBe(command.quantity.unitId)
+      expect(result.stock?.storageLocation.type).toBe(command.storageLocation.type)
       if (command.storageLocation.detail) {
-        expect(stock.getStorageLocation().getDetail()).toBe(command.storageLocation.detail)
+        expect(result.stock?.storageLocation.detail).toBe(command.storageLocation.detail)
       } else {
-        expect(stock.getStorageLocation().getDetail()).toBeNull()
+        expect(result.stock?.storageLocation.detail).toBeNull()
       }
 
       // データベースに実際に保存されていることを確認
       const dbIngredient = await prisma.ingredient.findUnique({
-        where: { id: result.getId().getValue() },
+        where: { id: result.id },
       })
       expect(dbIngredient).toBeDefined()
       expect(dbIngredient?.name).toBe(command.name)
@@ -134,7 +149,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result = await handler.execute(command)
 
       // Then: メモがnullで作成される
-      expect(result.getMemo()).toBeNull()
+      expect(result.memo).toBeNull()
     })
 
     it('価格なしで食材を作成できる', async () => {
@@ -159,7 +174,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result = await handler.execute(command)
 
       // Then: 価格がnullで作成される
-      expect(result.getPrice()).toBeNull()
+      expect(result.price).toBeNull()
     })
 
     it('賞味期限・消費期限なしで食材を作成できる', async () => {
@@ -178,7 +193,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result = await handler.execute(command)
 
       // Then: 期限がnullで作成される
-      expect(result.getExpiryInfo()).toBeNull()
+      expect(result.expiryInfo).toBeNull()
     })
 
     it('全ての保管場所タイプで食材を作成できる', async () => {
@@ -207,7 +222,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         const result = await handler.execute(command)
 
         // Then: 正しい保管場所タイプで作成される
-        expect(result.getIngredientStock().getStorageLocation().getType()).toBe(storageType)
+        expect(result.stock?.storageLocation.type).toBe(storageType)
       }
     })
 
@@ -243,7 +258,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         const result = await handler.execute(command)
 
         // Then: 正しいカテゴリーで作成される
-        expect(result.getCategoryId().getValue()).toBe(categoryId)
+        expect(result.category?.id).toBe(categoryId)
       }
     })
 
@@ -275,7 +290,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         const result = await handler.execute(command)
 
         // Then: 正しい単位で作成される
-        expect(result.getIngredientStock().getUnitId().getValue()).toBe(unitId)
+        expect(result.stock?.unit?.id).toBe(unitId)
       }
     })
   })
@@ -340,7 +355,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
       // Then: 食材が存在し、在庫情報も含まれている
       const dbIngredient = await prisma.ingredient.findUnique({
-        where: { id: result.getId().getValue() },
+        where: { id: result.id },
       })
 
       expect(dbIngredient).toBeDefined()
@@ -388,8 +403,8 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result2 = await handler.execute(command2)
 
       // Then: 異なるIDで作成される
-      expect(result1.getId().getValue()).not.toBe(result2.getId().getValue())
-      expect(result1.getName().getValue()).toBe(result2.getName().getValue())
+      expect(result1.id).not.toBe(result2.id)
+      expect(result1.name).toBe(result2.name)
     })
 
     it('価格の精度が保持される', async () => {
@@ -415,7 +430,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
       const result = await handler.execute(command)
 
       // Then: 価格の精度が保持される
-      expect(result.getPrice()?.getValue()).toBe(precisePrice)
+      expect(result.price).toBe(precisePrice)
     })
   })
 })

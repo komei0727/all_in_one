@@ -2,11 +2,6 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 
 import { CreateIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/create-ingredient.handler'
 import { type CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
-import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
-import { type CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
-import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
-
-import { testDataHelpers } from '../../../../../../../__fixtures__/builders/faker.config'
 
 /**
  * CreateIngredientApiHandler のテスト
@@ -18,8 +13,6 @@ import { testDataHelpers } from '../../../../../../../__fixtures__/builders/fake
 describe('CreateIngredientApiHandler', () => {
   let handler: CreateIngredientApiHandler
   let mockCommandHandler: CreateIngredientHandler
-  let mockCategoryRepo: CategoryRepository
-  let mockUnitRepo: UnitRepository
 
   beforeEach(() => {
     // モックの作成
@@ -27,15 +20,7 @@ describe('CreateIngredientApiHandler', () => {
       execute: vi.fn(),
     } as unknown as CreateIngredientHandler
 
-    mockCategoryRepo = {
-      findById: vi.fn(),
-    } as unknown as CategoryRepository
-
-    mockUnitRepo = {
-      findById: vi.fn(),
-    } as unknown as UnitRepository
-
-    handler = new CreateIngredientApiHandler(mockCommandHandler, mockCategoryRepo, mockUnitRepo)
+    handler = new CreateIngredientApiHandler(mockCommandHandler)
   })
 
   describe('エラーハンドリング', () => {
@@ -99,14 +84,6 @@ describe('CreateIngredientApiHandler', () => {
       // コマンドハンドラーが別のエラーをスローするように設定
       const customError = new Error('データベースエラー')
       ;(mockCommandHandler.execute as Mock).mockRejectedValue(customError)
-
-      // モックカテゴリーとユニット
-      const mockCategory = new Category({
-        id: 'cat_' + testDataHelpers.cuid(),
-        name: '野菜',
-        displayOrder: 1,
-      })
-      ;(mockCategoryRepo.findById as Mock).mockResolvedValue(mockCategory)
 
       // 元のエラーがそのままスローされることを確認
       await expect(handler.handle(validRequest, 'test-user-id')).rejects.toThrow(

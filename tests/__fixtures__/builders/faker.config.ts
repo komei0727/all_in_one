@@ -145,6 +145,16 @@ export const testDataHelpers = {
    * ランダムな単位を取得
    */
   unit: () => faker.helpers.arrayElement(UNITS),
+
+  /**
+   * ランダムな単位名を取得
+   */
+  unitName: () => faker.helpers.arrayElement(UNITS).name,
+
+  /**
+   * ランダムな単位記号を取得
+   */
+  unitSymbol: () => faker.helpers.arrayElement(UNITS).symbol,
   /**
    * ランダムな日本の食材名を取得
    */

@@ -7,8 +7,7 @@ import {
   StorageType,
   UnitId,
 } from '@/modules/ingredients/server/domain/value-objects'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('IngredientStock値オブジェクト', () => {
   describe('正常系', () => {

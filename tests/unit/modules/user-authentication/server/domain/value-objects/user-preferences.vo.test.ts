@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
-
-import { UserPreferencesBuilder } from '../../../../../../__fixtures__/builders'
+import { UserPreferencesBuilder } from '@tests/__fixtures__/builders'
 
 // テスト対象のUserPreferencesクラス
 

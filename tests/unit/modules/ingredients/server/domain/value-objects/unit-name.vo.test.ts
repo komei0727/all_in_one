@@ -5,8 +5,7 @@ import {
   InvalidFieldException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { UnitName } from '@/modules/ingredients/server/domain/value-objects'
-
-import { UnitNameBuilder } from '../../../../../../__fixtures__/builders'
+import { UnitNameBuilder } from '@tests/__fixtures__/builders'
 
 describe('UnitName', () => {
   describe('create', () => {

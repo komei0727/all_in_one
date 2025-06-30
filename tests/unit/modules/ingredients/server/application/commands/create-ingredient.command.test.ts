@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
-
-import { CreateIngredientCommandBuilder } from '../../../../../../__fixtures__/builders'
+import { CreateIngredientCommandBuilder } from '@tests/__fixtures__/builders'
 
 describe('CreateIngredientCommand', () => {
   describe('constructor', () => {

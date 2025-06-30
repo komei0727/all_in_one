@@ -9,6 +9,7 @@ import {
   IngredientDeleted,
   IngredientExpired,
   IngredientExpiringSoon,
+  StockLevelLow,
 } from '../events'
 import { BusinessRuleException } from '../exceptions'
 
@@ -82,6 +83,21 @@ export class Ingredient extends AggregateRoot {
           { userId: this.userId }
         )
       )
+
+      // 在庫が閾値以下の場合は在庫不足イベントも発行
+      if (this.ingredientStock.isLowStock()) {
+        this.addDomainEvent(
+          new StockLevelLow(
+            this.id.getValue(),
+            this.name.getValue(),
+            this.ingredientStock.getQuantity(),
+            this.ingredientStock.getThreshold() || 0,
+            this.ingredientStock.getUnitId().getValue(),
+            undefined,
+            { userId: this.userId }
+          )
+        )
+      }
     }
   }
 
@@ -304,6 +320,75 @@ export class Ingredient extends AggregateRoot {
     this.checkUpdatePermission(userId)
     this.memo = newMemo
     this.updateTimestamp()
+
+    // 食材更新イベントを発行
+    this.addDomainEvent(
+      new IngredientUpdated(
+        this.id.getValue(),
+        userId || this.userId,
+        { memo: { from: this.memo?.getValue() || null, to: newMemo?.getValue() || null } },
+        { userId: userId || this.userId }
+      )
+    )
+  }
+
+  /**
+   * 価格を更新
+   * @param newPrice 新しい価格
+   * @param userId 更新者ID
+   */
+  updatePrice(newPrice: Price | null, userId?: string): void {
+    this.checkUpdatePermission(userId)
+    const previousPrice = this.price?.getValue() || null
+    this.price = newPrice
+    this.updateTimestamp()
+
+    // 食材更新イベントを発行
+    this.addDomainEvent(
+      new IngredientUpdated(
+        this.id.getValue(),
+        userId || this.userId,
+        { price: { from: previousPrice, to: newPrice?.getValue() || null } },
+        { userId: userId || this.userId }
+      )
+    )
+  }
+
+  /**
+   * 期限情報を更新
+   * @param newExpiryInfo 新しい期限情報
+   * @param userId 更新者ID
+   */
+  updateExpiryInfo(newExpiryInfo: ExpiryInfo | null, userId?: string): void {
+    this.checkUpdatePermission(userId)
+    const previousExpiryInfo = this.expiryInfo
+      ? {
+          bestBeforeDate: this.expiryInfo.getBestBeforeDate()?.toISOString() || null,
+          useByDate: this.expiryInfo.getUseByDate()?.toISOString() || null,
+        }
+      : null
+    this.expiryInfo = newExpiryInfo
+    this.updateTimestamp()
+
+    // 食材更新イベントを発行
+    this.addDomainEvent(
+      new IngredientUpdated(
+        this.id.getValue(),
+        userId || this.userId,
+        {
+          expiryInfo: {
+            from: previousExpiryInfo,
+            to: newExpiryInfo
+              ? {
+                  bestBeforeDate: newExpiryInfo.getBestBeforeDate()?.toISOString() || null,
+                  useByDate: newExpiryInfo.getUseByDate()?.toISOString() || null,
+                }
+              : null,
+          },
+        },
+        { userId: userId || this.userId }
+      )
+    )
   }
 
   /**

@@ -4,8 +4,7 @@ import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queri
 import { UnitListDTO } from '@/modules/ingredients/server/application/dtos/unit-list.dto'
 import { UnitDTO } from '@/modules/ingredients/server/application/dtos/unit.dto'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/application/queries/get-units.handler')

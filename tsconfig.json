@@ -25,7 +25,8 @@
       "@/modules/*": ["./src/modules/*"],
       "@/lib/*": ["./src/lib/*"],
       "@ingredients/*": ["./src/modules/ingredients/*"],
-      "@shared/*": ["./src/modules/shared/*"]
+      "@shared/*": ["./src/modules/shared/*"],
+      "@tests/*": ["./tests/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

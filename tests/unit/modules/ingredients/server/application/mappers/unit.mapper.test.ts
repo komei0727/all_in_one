@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import { UnitMapper } from '@/modules/ingredients/server/application/mappers/unit.mapper'
 import { type Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
-
-import { UnitBuilder } from '../../../../../../__fixtures__/builders'
+import { UnitBuilder } from '@tests/__fixtures__/builders'
 
 /**
  * UnitMapper のテスト

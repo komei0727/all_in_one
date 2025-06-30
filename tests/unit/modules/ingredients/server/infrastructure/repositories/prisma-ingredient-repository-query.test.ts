@@ -3,8 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { Prisma, type PrismaClient } from '@/generated/prisma'
 import { IngredientId, StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - クエリメソッド', () => {
   let repository: PrismaIngredientRepository
@@ -126,7 +125,6 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
             deletedAt: null,
             name: {
               contains: 'トマト',
-              mode: 'insensitive',
             },
           },
         })
@@ -179,11 +177,13 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
             OR: [
               {
                 bestBeforeDate: {
+                  not: null,
                   lt: expect.any(Date), // 現在時刻より前
                 },
               },
               {
                 useByDate: {
+                  not: null,
                   lt: expect.any(Date), // 現在時刻より前
                 },
               },
@@ -320,7 +320,6 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
           deletedAt: null,
           name: {
             contains: 'キャベツ',
-            mode: 'insensitive',
           },
           categoryId: targetCategoryId,
         },
@@ -376,17 +375,18 @@ describe('PrismaIngredientRepository - クエリメソッド', () => {
           deletedAt: null,
           name: {
             contains: 'トマト',
-            mode: 'insensitive',
           },
           categoryId: targetCategoryId,
           OR: [
             {
               bestBeforeDate: {
+                not: null,
                 lt: expect.any(Date),
               },
             },
             {
               useByDate: {
+                not: null,
                 lt: expect.any(Date),
               },
             },

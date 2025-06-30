@@ -4,9 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
-import { createUserTestData } from '../../../../../../__fixtures__/builders/user-authentication/user.builder'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
+import { createUserTestData } from '@tests/__fixtures__/builders/user-authentication/user.builder'
 
 describe('PrismaUserRepository', () => {
   let repository: PrismaUserRepository

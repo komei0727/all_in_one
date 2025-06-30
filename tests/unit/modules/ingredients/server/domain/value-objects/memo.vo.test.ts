@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { Memo } from '@/modules/ingredients/server/domain/value-objects'
-
-import { MemoBuilder } from '../../../../../../__fixtures__/builders'
+import { MemoBuilder } from '@tests/__fixtures__/builders'
 
 describe('Memo', () => {
   describe('constructor', () => {

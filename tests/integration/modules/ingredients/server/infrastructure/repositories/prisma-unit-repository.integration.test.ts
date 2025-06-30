@@ -3,16 +3,15 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
 import { UnitId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
-
-import { UnitBuilder } from '../../../../../../__fixtures__/builders'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { UnitBuilder } from '@tests/__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 describe('PrismaUnitRepository Integration Tests', () => {
   let prisma: ReturnType<typeof getTestPrismaClient>

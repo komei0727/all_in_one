@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { IngredientId } from '@/modules/ingredients/server/domain/value-objects'
-
-import { faker } from '../../../../../../__fixtures__/builders/faker.config'
+import { faker } from '@tests/__fixtures__/builders/faker.config'
 
 // createIdのモック
 vi.mock('@paralleldrive/cuid2', () => ({

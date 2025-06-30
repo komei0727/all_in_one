@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { IngredientNameBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientNameBuilder } from '@tests/__fixtures__/builders'
 
 describe('IngredientName', () => {
   describe('constructor', () => {

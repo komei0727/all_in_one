@@ -12,8 +12,7 @@ import {
   StockStatus,
   ExpiryStatus,
 } from '@/modules/ingredients/server/domain/value-objects'
-
-import { ShoppingSessionBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
+import { ShoppingSessionBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 
 describe('ShoppingSession ドメインイベント発行', () => {
   describe('セッション開始イベント', () => {

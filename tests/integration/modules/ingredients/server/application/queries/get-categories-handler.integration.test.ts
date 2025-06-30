@@ -4,15 +4,14 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
 import { GetCategoriesQuery } from '@/modules/ingredients/server/application/queries/get-categories.query'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 /**
  * GetCategoriesHandler統合テスト

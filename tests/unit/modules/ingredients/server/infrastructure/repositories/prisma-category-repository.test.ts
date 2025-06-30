@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
 import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 // Prismaクライアントのモック
 vi.mock('@/lib/prisma', () => ({

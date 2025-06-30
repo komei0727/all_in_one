@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
-
-import { UserStatusBuilder } from '../../../../../../__fixtures__/builders'
+import { UserStatusBuilder } from '@tests/__fixtures__/builders'
 
 // テスト対象のUserStatusクラス
 

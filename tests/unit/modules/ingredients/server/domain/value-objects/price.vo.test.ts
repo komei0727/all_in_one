@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { Price } from '@/modules/ingredients/server/domain/value-objects'
-
-import { PriceBuilder } from '../../../../../../__fixtures__/builders'
+import { PriceBuilder } from '@tests/__fixtures__/builders'
 
 describe('Price', () => {
   describe('constructor', () => {

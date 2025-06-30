@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createIngredientSchema } from '@/modules/ingredients/server/api/validators/create-ingredient.validator'
-
-import {
-  CreateIngredientCommandBuilder,
-  testDataHelpers,
-} from '../../../../../../__fixtures__/builders'
+import { CreateIngredientCommandBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 
 describe('createIngredientSchema', () => {
   describe('正常系', () => {

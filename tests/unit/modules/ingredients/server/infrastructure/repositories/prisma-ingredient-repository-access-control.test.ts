@@ -3,8 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { type PrismaClient } from '@/generated/prisma'
 import { IngredientId, IngredientName } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - アクセス制御', () => {
   let repository: PrismaIngredientRepository
@@ -183,68 +182,6 @@ describe('PrismaIngredientRepository - アクセス制御', () => {
           deletedAt: null,
         },
         orderBy: { createdAt: 'desc' },
-      })
-    })
-  })
-
-  describe('delete', () => {
-    it('修正後：他のユーザーの食材は削除できない', async () => {
-      const ingredientId = IngredientId.generate()
-
-      // findFirstがnullを返す（他のユーザーの食材なので見つからない）
-      mockPrisma.ingredient.findFirst.mockResolvedValue(null)
-
-      // user1が他のユーザーの食材を削除しようとする
-      await repository.delete(userId1, ingredientId)
-
-      // 修正後：findFirstでチェックしてからしか削除されない
-      expect(mockPrisma.ingredient.findFirst).toHaveBeenCalledWith({
-        where: {
-          id: ingredientId.getValue(),
-          userId: userId1,
-          deletedAt: null,
-        },
-      })
-
-      // updateは呼ばれない（食材が見つからなかったため）
-      expect(mockPrisma.ingredient.update).not.toHaveBeenCalled()
-    })
-
-    it('自分の食材は削除できる', async () => {
-      const ingredientId = IngredientId.generate()
-      const user1Ingredient = {
-        id: ingredientId.getValue(),
-        userId: userId1,
-        name: 'ユーザー1のトマト',
-        categoryId: categoryId,
-        memo: null,
-        price: null,
-        purchaseDate: new Date(),
-        quantity: 3,
-        unitId: unitId,
-        threshold: null,
-        storageLocationType: 'REFRIGERATED',
-        storageLocationDetail: null,
-        bestBeforeDate: new Date(),
-        useByDate: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      }
-
-      // findFirstが食材を返す
-      mockPrisma.ingredient.findFirst.mockResolvedValue(user1Ingredient)
-      mockPrisma.ingredient.update.mockResolvedValue({})
-
-      // user1が自分の食材を削除
-      await repository.delete(userId1, ingredientId)
-
-      // 削除が実行される
-      expect(mockPrisma.ingredient.update).toHaveBeenCalledWith({
-        where: { id: ingredientId.getValue() },
-        data: {
-          deletedAt: expect.any(Date),
-        },
       })
     })
   })

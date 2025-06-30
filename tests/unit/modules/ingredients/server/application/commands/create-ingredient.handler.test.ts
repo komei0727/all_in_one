@@ -1,40 +1,69 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
-import { Ingredient } from '@/modules/ingredients/server/domain/entities/ingredient.entity'
 import {
   CategoryNotFoundException,
   UnitNotFoundException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { type CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import { type IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
+import { type RepositoryFactory } from '@/modules/ingredients/server/domain/repositories/repository-factory.interface'
 import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
-
+import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
+import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
 import {
   CreateIngredientCommandBuilder,
   CategoryBuilder,
   UnitBuilder,
-} from '../../../../../../__fixtures__/builders'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+} from '@tests/__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 import {
   createMockIngredientRepository,
   createMockCategoryRepository,
   createMockUnitRepository,
-} from '../../../../../../__fixtures__/mocks/repositories'
+  createMockTransactionManager,
+} from '@tests/__fixtures__/mocks/repositories'
 
 describe('CreateIngredientHandler', () => {
   let handler: CreateIngredientHandler
   let ingredientRepository: IngredientRepository
   let categoryRepository: CategoryRepository
   let unitRepository: UnitRepository
+  let repositoryFactory: RepositoryFactory
+  let transactionManager: TransactionManager
+  let eventBus: EventBus
 
   beforeEach(() => {
     // モックリポジトリの作成
     ingredientRepository = createMockIngredientRepository()
     categoryRepository = createMockCategoryRepository()
     unitRepository = createMockUnitRepository()
+    repositoryFactory = {
+      createIngredientRepository: vi.fn().mockReturnValue(ingredientRepository),
+    }
+    transactionManager = createMockTransactionManager()
 
-    handler = new CreateIngredientHandler(ingredientRepository, categoryRepository, unitRepository)
+    // イベントバスのモックを作成
+    eventBus = {
+      publish: vi.fn(),
+      publishAll: vi.fn(),
+    }
+
+    // トランザクションマネージャーのモックを設定
+    vi.mocked(transactionManager.run).mockImplementation(async (fn) => {
+      // PrismaClientの最小限のモックを作成
+      const mockPrismaClient = {} as any
+      return fn(mockPrismaClient)
+    })
+
+    handler = new CreateIngredientHandler(
+      ingredientRepository,
+      categoryRepository,
+      unitRepository,
+      repositoryFactory,
+      transactionManager,
+      eventBus
+    )
   })
 
   describe('execute', () => {
@@ -55,14 +84,14 @@ describe('CreateIngredientHandler', () => {
       const result = await handler.execute(command)
 
       // Assert
-      expect(result).toBeInstanceOf(Ingredient)
-      expect(result.getName().getValue()).toBe(command.name)
-      expect(result.getCategoryId().getValue()).toBe(command.categoryId)
-      expect(result.getUserId()).toBe(command.userId)
-      expect(result.getIngredientStock().getQuantity()).toBe(command.quantity.amount)
-      expect(result.getMemo()?.getValue()).toBe(command.memo)
-      expect(result.getPrice()?.getValue()).toBe(command.price)
-      expect(result.getPurchaseDate()).toBeInstanceOf(Date)
+      expect(result).toBeDefined()
+      expect(result.name).toBe(command.name)
+      expect(result.category?.id).toBe(mockCategory.getId())
+      expect(result.userId).toBe(command.userId)
+      expect(result.stock.quantity).toBe(command.quantity.amount)
+      expect(result.memo).toBe(command.memo)
+      expect(result.price).toBe(command.price)
+      expect(result.purchaseDate).toBeDefined()
 
       // リポジトリが呼ばれたことを確認
       expect(categoryRepository.findById).toHaveBeenCalledWith(
@@ -125,10 +154,10 @@ describe('CreateIngredientHandler', () => {
       const result = await handler.execute(command)
 
       // Assert
-      expect(result).toBeInstanceOf(Ingredient)
-      expect(result.getMemo()).toBeNull()
-      expect(result.getPrice()).toBeNull()
-      expect(result.getExpiryInfo()).toBeNull()
+      expect(result).toBeDefined()
+      expect(result.memo).toBeNull()
+      expect(result.price).toBeNull()
+      expect(result.expiryInfo).toBeNull()
     })
   })
 })

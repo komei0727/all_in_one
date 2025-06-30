@@ -7,9 +7,8 @@ import { UserApplicationService } from '@/modules/user-authentication/server/app
 import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
-
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { NextAuthUserBuilder } from '@tests/__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 // モックサービス
 const mockUserIntegrationService = {

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { Category } from '@/modules/ingredients/server/domain/entities/category.entity'
-
-import { CategoryBuilder } from '../../../../../../__fixtures__/builders'
+import { CategoryBuilder } from '@tests/__fixtures__/builders'
 
 describe('Category', () => {
   describe('constructor', () => {

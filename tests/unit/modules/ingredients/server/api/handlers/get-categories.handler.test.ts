@@ -4,8 +4,7 @@ import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/
 import { CategoryListDTO } from '@/modules/ingredients/server/application/dtos/category-list.dto'
 import { CategoryDTO } from '@/modules/ingredients/server/application/dtos/category.dto'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/application/queries/get-categories.handler')
