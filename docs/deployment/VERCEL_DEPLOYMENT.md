@@ -53,11 +53,13 @@ Vercel Dashboard → Settings → Git で以下を設定：
 
 #### アプリケーション設定
 
-| 変数名                | Production               | Preview                             |
-| --------------------- | ------------------------ | ----------------------------------- |
-| `NEXT_PUBLIC_APP_URL` | `https://app.vercel.app` | `https://app-deploy-xxx.vercel.app` |
-| `NEXTAUTH_URL`        | `https://app.vercel.app` | `https://app-deploy-xxx.vercel.app` |
-| `AUTH_SECRET`         | 本番用シークレット       | 検証用シークレット                  |
+| 変数名                | Production               | Preview                                             |
+| --------------------- | ------------------------ | --------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL` | `https://app.vercel.app` | 自動生成 または `https://app-deploy-xxx.vercel.app` |
+| `NEXTAUTH_URL`        | `https://app.vercel.app` | 自動生成 または `https://app-deploy-xxx.vercel.app` |
+| `AUTH_SECRET`         | 本番用シークレット       | 検証用シークレット                                  |
+
+> **🎯 自動URL生成**: `NEXT_PUBLIC_APP_URL`と`NEXTAUTH_URL`は、設定されていない場合、Vercelの`$VERCEL_URL`環境変数から自動的に生成されます。明示的に設定した値が優先されます。
 
 #### メール設定
 
@@ -177,8 +179,14 @@ export const config = {
    - 絶対にコミットしない
 
 2. **環境変数の変更**
+
    - 変更後は再デプロイが必要
    - Functions → Redeploy
+
+3. **VERCEL_URL自動生成**
+   - `NEXT_PUBLIC_APP_URL`と`NEXTAUTH_URL`は自動生成可能
+   - プレビューデプロイでは動的URLになるため、固定URLが必要な場合は明示的に設定
+   - 本番環境では必ず明示的に設定することを推奨
 
 ### ドメイン設定
 
