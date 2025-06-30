@@ -16,3 +16,4 @@ export {
   UnitNotFoundException,
   IngredientNotFoundException,
 } from './not-found.exception'
+export { DuplicateIngredientException } from './duplicate-ingredient.exception'

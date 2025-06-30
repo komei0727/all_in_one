@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/ja'
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest'
 
 import { CreateIngredientHandler } from '@/modules/ingredients/server/application/commands/create-ingredient.handler'
 import {
@@ -10,6 +10,7 @@ import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
+import { PrismaTransactionManager } from '@/modules/ingredients/server/infrastructure/services/prisma-transaction-manager'
 
 import {
   CreateIngredientCommandBuilder,
@@ -47,6 +48,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
   let ingredientRepository: PrismaIngredientRepository
   let categoryRepository: PrismaCategoryRepository
   let unitRepository: PrismaUnitRepository
+  let transactionManager: PrismaTransactionManager
 
   beforeEach(async () => {
     // 各テストの前にデータベースをセットアップ
@@ -57,7 +59,21 @@ describe('CreateIngredientHandler Integration Tests', () => {
     ingredientRepository = new PrismaIngredientRepository(prisma as any)
     categoryRepository = new PrismaCategoryRepository(prisma as any)
     unitRepository = new PrismaUnitRepository(prisma as any)
-    handler = new CreateIngredientHandler(ingredientRepository, categoryRepository, unitRepository)
+    transactionManager = new PrismaTransactionManager(prisma as any)
+
+    // ダミーのEventBus実装
+    const eventBus = {
+      publish: vi.fn(),
+      publishAll: vi.fn(),
+    }
+
+    handler = new CreateIngredientHandler(
+      ingredientRepository,
+      categoryRepository,
+      unitRepository,
+      transactionManager,
+      eventBus
+    )
   })
 
   afterEach(async () => {
@@ -80,14 +96,14 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
       // Then: 食材が正しく作成されている
       expect(result).toBeDefined()
-      expect(result.getName().getValue()).toBe(command.name)
-      expect(result.getCategoryId().getValue()).toBe(command.categoryId)
-      expect(result.getUserId()).toBe(command.userId)
-      expect(result.getPurchaseDate()).toBeInstanceOf(Date)
+      expect(result.name).toBe(command.name)
+      expect(result.category?.id).toBe(command.categoryId)
+      expect(result.userId).toBe(command.userId)
+      expect(result.purchaseDate).toBeDefined()
       if (command.memo) {
-        expect(result.getMemo()?.getValue()).toBe(command.memo)
+        expect(result.memo).toBe(command.memo)
       } else {
-        expect(result.getMemo()).toBeNull()
+        expect(result.memo).toBeNull()
       }
 
       // 在庫情報も正しく設定されている

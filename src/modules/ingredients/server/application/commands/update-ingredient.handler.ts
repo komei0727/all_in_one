@@ -1,3 +1,5 @@
+import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
+
 import {
   IngredientNotFoundException,
   BusinessRuleException,
@@ -31,7 +33,8 @@ export class UpdateIngredientHandler {
   constructor(
     private readonly ingredientRepository: IngredientRepository,
     private readonly categoryRepository: CategoryRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(command: UpdateIngredientCommand): Promise<IngredientDto> {
@@ -76,21 +79,18 @@ export class UpdateIngredientHandler {
     // 価格の更新
     if (command.price !== undefined) {
       const newPrice = command.price ? new Price(command.price) : null
-      if (newPrice) {
-        // Ingredientエンティティに価格更新メソッドがない場合は、直接プロパティを更新
-        // TODO: Ingredientエンティティに updatePrice メソッドを追加
-      }
+      ingredient.updatePrice(newPrice, command.userId)
     }
 
     // 期限情報の更新
     if (command.expiryInfo !== undefined) {
-      const _newExpiryInfo = command.expiryInfo
+      const newExpiryInfo = command.expiryInfo
         ? new ExpiryInfo({
             bestBeforeDate: command.expiryInfo.bestBeforeDate,
             useByDate: command.expiryInfo.useByDate,
           })
         : null
-      // TODO: Ingredientエンティティに updateExpiryInfo メソッドを追加
+      ingredient.updateExpiryInfo(newExpiryInfo, command.userId)
     }
 
     // 在庫情報の更新
@@ -114,7 +114,9 @@ export class UpdateIngredientHandler {
     }
 
     // 更新された食材を保存
-    const updatedIngredient = await this.ingredientRepository.update(ingredient)
+    const updatedIngredient = await this.transactionManager.run(async (tx) => {
+      return tx.update(ingredient)
+    })
 
     // カテゴリーと単位の情報を取得
     const [category, currentUnit] = await Promise.all([

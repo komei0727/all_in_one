@@ -1,9 +1,13 @@
 import type { PrismaClient } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma'
+import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
+import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
 
+import { PrismaIngredientQueryService } from './query-services/prisma-ingredient-query-service'
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
+import { PrismaTransactionManager } from './services/prisma-transaction-manager'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
@@ -14,6 +18,7 @@ import { GetIngredientByIdHandler } from '../application/queries/get-ingredient-
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
 
+import type { IngredientQueryService } from '../application/query-services/ingredient-query-service.interface'
 import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
 import type { UnitRepository } from '../domain/repositories/unit-repository.interface'
@@ -31,6 +36,9 @@ export class CompositionRoot {
   private categoryRepository: CategoryRepository | null = null
   private unitRepository: UnitRepository | null = null
   private ingredientRepository: IngredientRepository | null = null
+  private ingredientQueryService: IngredientQueryService | null = null
+  private transactionManager: TransactionManager | null = null
+  private eventBus: EventBus | null = null
 
   constructor(private readonly prismaClient: PrismaClient) {}
 
@@ -98,13 +106,40 @@ export class CompositionRoot {
   }
 
   /**
+   * Get TransactionManager instance (singleton)
+   */
+  public getTransactionManager(): TransactionManager {
+    if (!this.transactionManager) {
+      this.transactionManager = new PrismaTransactionManager(this.prismaClient)
+    }
+    return this.transactionManager
+  }
+
+  /**
+   * Get EventBus instance (singleton)
+   * TODO: 実際のEventBus実装を追加する必要があります
+   */
+  public getEventBus(): EventBus {
+    if (!this.eventBus) {
+      // 現在はダミー実装を返す
+      this.eventBus = {
+        publish: async () => {},
+        publishAll: async () => {},
+      }
+    }
+    return this.eventBus
+  }
+
+  /**
    * Get CreateIngredientHandler instance (new instance each time)
    */
   public getCreateIngredientHandler(): CreateIngredientHandler {
     return new CreateIngredientHandler(
       this.getIngredientRepository(),
       this.getCategoryRepository(),
-      this.getUnitRepository()
+      this.getUnitRepository(),
+      this.getTransactionManager(),
+      this.getEventBus()
     )
   }
 
@@ -112,11 +147,7 @@ export class CompositionRoot {
    * Get CreateIngredientApiHandler instance (new instance each time)
    */
   public getCreateIngredientApiHandler(): CreateIngredientApiHandler {
-    return new CreateIngredientApiHandler(
-      this.getCreateIngredientHandler(),
-      this.getCategoryRepository(),
-      this.getUnitRepository()
-    )
+    return new CreateIngredientApiHandler(this.getCreateIngredientHandler())
   }
 
   /**
@@ -127,14 +158,21 @@ export class CompositionRoot {
   }
 
   /**
+   * Get IngredientQueryService instance (singleton)
+   */
+  public getIngredientQueryService(): IngredientQueryService {
+    if (!this.ingredientQueryService) {
+      this.ingredientQueryService = new PrismaIngredientQueryService(this.prismaClient)
+    }
+    return this.ingredientQueryService
+  }
+
+  /**
    * Get GetIngredientByIdHandler instance (new instance each time)
+   * Uses new QueryService-based implementation for improved performance
    */
   public getGetIngredientByIdHandler(): GetIngredientByIdHandler {
-    return new GetIngredientByIdHandler(
-      this.getIngredientRepository(),
-      this.getCategoryRepository(),
-      this.getUnitRepository()
-    )
+    return new GetIngredientByIdHandler(this.getIngredientQueryService())
   }
 
   /**
@@ -144,7 +182,8 @@ export class CompositionRoot {
     return new UpdateIngredientHandler(
       this.getIngredientRepository(),
       this.getCategoryRepository(),
-      this.getUnitRepository()
+      this.getUnitRepository(),
+      this.getTransactionManager()
     )
   }
 
@@ -159,6 +198,6 @@ export class CompositionRoot {
    * Get DeleteIngredientHandler instance (new instance each time)
    */
   public getDeleteIngredientHandler(): DeleteIngredientHandler {
-    return new DeleteIngredientHandler(this.getIngredientRepository())
+    return new DeleteIngredientHandler(this.getIngredientRepository(), this.getTransactionManager())
   }
 }

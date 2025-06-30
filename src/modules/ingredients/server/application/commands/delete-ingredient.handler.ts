@@ -1,3 +1,5 @@
+import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
+
 import { IngredientNotFoundException } from '../../domain/exceptions'
 import { IngredientId } from '../../domain/value-objects'
 
@@ -8,7 +10,10 @@ import type { IngredientRepository } from '../../domain/repositories/ingredient-
  * 食材削除ハンドラー
  */
 export class DeleteIngredientHandler {
-  constructor(private readonly ingredientRepository: IngredientRepository) {}
+  constructor(
+    private readonly ingredientRepository: IngredientRepository,
+    private readonly transactionManager: TransactionManager
+  ) {}
 
   async execute(command: DeleteIngredientCommand): Promise<void> {
     // 食材IDの値オブジェクトを作成
@@ -25,6 +30,8 @@ export class DeleteIngredientHandler {
     ingredient.delete(command.userId)
 
     // 削除された食材を保存
-    await this.ingredientRepository.update(ingredient)
+    await this.transactionManager.run(async (tx) => {
+      return tx.update(ingredient)
+    })
   }
 }

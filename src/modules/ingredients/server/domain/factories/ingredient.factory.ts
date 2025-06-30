@@ -1,5 +1,5 @@
 import { Ingredient } from '../entities/ingredient.entity'
-import { BusinessRuleException } from '../exceptions'
+import { DuplicateIngredientException } from '../exceptions'
 import {
   IngredientId,
   IngredientName,
@@ -26,7 +26,7 @@ export class IngredientFactory {
    * 新しい食材を作成
    * @param params 食材作成パラメータ
    * @returns 作成された食材
-   * @throws {BusinessRuleException} 同じ名前・期限・保存場所の食材が既に存在する場合
+   * @throws {DuplicateIngredientException} 同じ名前・期限・保存場所の食材が既に存在する場合
    */
   async create(params: {
     userId: string
@@ -50,7 +50,11 @@ export class IngredientFactory {
     })
 
     if (duplicates.length > 0) {
-      throw new BusinessRuleException('同じ名前・期限・保存場所の食材が既に存在します')
+      throw new DuplicateIngredientException(
+        params.name,
+        params.expiryInfo ?? null,
+        params.storageLocation
+      )
     }
 
     // 食材を作成
