@@ -5,8 +5,7 @@ import {
   InvalidFieldException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { UnitSymbol } from '@/modules/ingredients/server/domain/value-objects'
-
-import { UnitSymbolBuilder } from '../../../../../../__fixtures__/builders'
+import { UnitSymbolBuilder } from '@tests/__fixtures__/builders'
 
 describe('UnitSymbol', () => {
   describe('create', () => {

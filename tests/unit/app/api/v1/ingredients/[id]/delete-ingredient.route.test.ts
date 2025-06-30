@@ -9,9 +9,8 @@ import {
   BusinessRuleException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders/next-auth/next-auth-user.builder'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
+import { NextAuthUserBuilder } from '@tests/__fixtures__/builders/next-auth/next-auth-user.builder'
 
 const aNextAuthUser = () => new NextAuthUserBuilder()
 

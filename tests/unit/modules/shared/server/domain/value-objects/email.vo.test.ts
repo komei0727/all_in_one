@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
-
-import { EmailBuilder } from '../../../../../../__fixtures__/builders'
+import { EmailBuilder } from '@tests/__fixtures__/builders'
 
 // テスト対象のEmailクラス
 

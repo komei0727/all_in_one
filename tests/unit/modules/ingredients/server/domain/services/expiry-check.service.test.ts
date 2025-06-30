@@ -4,8 +4,7 @@ import { describe, it, expect } from 'vitest'
 import { IngredientExpiringSoon } from '@/modules/ingredients/server/domain/events'
 import { ExpiryCheckService } from '@/modules/ingredients/server/domain/services/expiry-check.service'
 import { ExpiryInfo } from '@/modules/ingredients/server/domain/value-objects'
-
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientBuilder } from '@tests/__fixtures__/builders'
 
 describe('ExpiryCheckService', () => {
   const expiryCheckService = new ExpiryCheckService()

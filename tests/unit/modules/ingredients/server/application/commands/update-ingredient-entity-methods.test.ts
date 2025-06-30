@@ -7,12 +7,7 @@ import type { IngredientRepository } from '@/modules/ingredients/server/domain/r
 import type { RepositoryFactory } from '@/modules/ingredients/server/domain/repositories/repository-factory.interface'
 import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
-
-import {
-  CategoryBuilder,
-  UnitBuilder,
-  IngredientBuilder,
-} from '../../../../../../__fixtures__/builders'
+import { CategoryBuilder, UnitBuilder, IngredientBuilder } from '@tests/__fixtures__/builders'
 
 describe('UpdateIngredientHandler - Entity Methods', () => {
   let handler: UpdateIngredientHandler

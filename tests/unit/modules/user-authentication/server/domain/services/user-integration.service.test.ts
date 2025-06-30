@@ -8,8 +8,7 @@ import { type UserRepository } from '@/modules/user-authentication/server/domain
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
-
-import { NextAuthUserBuilder, UserBuilder } from '../../../../../../__fixtures__/builders'
+import { NextAuthUserBuilder, UserBuilder } from '@tests/__fixtures__/builders'
 
 // モックリポジトリ
 const mockUserRepository = {

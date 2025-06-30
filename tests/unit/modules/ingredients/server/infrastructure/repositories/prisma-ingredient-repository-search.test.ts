@@ -3,8 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { type PrismaClient } from '@/generated/prisma'
 import { IngredientId, StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('PrismaIngredientRepository - 分類・保存場所検索メソッド', () => {
   let repository: PrismaIngredientRepository

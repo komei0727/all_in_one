@@ -4,15 +4,14 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
 import { GetUnitsQuery } from '@/modules/ingredients/server/application/queries/get-units.query'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 /**
  * GetUnitsHandler統合テスト

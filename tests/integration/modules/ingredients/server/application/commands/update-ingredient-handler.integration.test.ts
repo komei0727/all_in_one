@@ -17,18 +17,14 @@ import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrast
 import { PrismaRepositoryFactory } from '@/modules/ingredients/server/infrastructure/repositories/prisma-repository-factory'
 import { PrismaUnitRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from '@/modules/ingredients/server/infrastructure/services/prisma-transaction-manager'
-
-import {
-  CreateIngredientCommandBuilder,
-  testDataHelpers,
-} from '../../../../../../__fixtures__/builders'
+import { CreateIngredientCommandBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 /**
  * UpdateIngredientHandler統合テスト

@@ -5,8 +5,7 @@ import {
   RequiredFieldException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { IngredientStockId } from '@/modules/ingredients/server/domain/value-objects/ingredient-stock-id.vo'
-
-import { faker } from '../../../../../../__fixtures__/builders/faker.config'
+import { faker } from '@tests/__fixtures__/builders/faker.config'
 
 // createIdのモック
 vi.mock('@paralleldrive/cuid2', () => ({

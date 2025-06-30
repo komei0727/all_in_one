@@ -10,10 +10,9 @@ import {
   BusinessRuleException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
-
-import { anIngredientDto } from '../../../../../../__fixtures__/builders/dtos/ingredient.dto.builder'
-import { faker } from '../../../../../../__fixtures__/builders/faker.config'
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders/next-auth/next-auth-user.builder'
+import { anIngredientDto } from '@tests/__fixtures__/builders/dtos/ingredient.dto.builder'
+import { faker } from '@tests/__fixtures__/builders/faker.config'
+import { NextAuthUserBuilder } from '@tests/__fixtures__/builders/next-auth/next-auth-user.builder'
 
 const aNextAuthUser = () => new NextAuthUserBuilder()
 

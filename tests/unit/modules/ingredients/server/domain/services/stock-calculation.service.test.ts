@@ -9,9 +9,8 @@ import {
   StorageLocation,
   StorageType,
 } from '@/modules/ingredients/server/domain/value-objects'
-
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { IngredientBuilder } from '@tests/__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('StockCalculationService', () => {
   const stockCalculationService = new StockCalculationService()

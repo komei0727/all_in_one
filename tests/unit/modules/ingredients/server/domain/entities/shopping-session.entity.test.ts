@@ -11,8 +11,7 @@ import {
   StockStatus,
   ExpiryStatus,
 } from '@/modules/ingredients/server/domain/value-objects'
-
-import { ShoppingSessionBuilder } from '../../../../../../__fixtures__/builders'
+import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders'
 
 describe('ShoppingSession', () => {
   let userId: string

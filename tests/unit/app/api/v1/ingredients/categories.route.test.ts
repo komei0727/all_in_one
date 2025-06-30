@@ -4,8 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { GET } from '@/app/api/v1/ingredients/categories/route'
 import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
-
-import { testDataHelpers } from '../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 // モジュールのモック
 vi.mock('@/modules/ingredients/server/api/handlers/queries/get-categories.handler', () => ({

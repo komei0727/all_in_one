@@ -5,8 +5,7 @@ import {
   InvalidFieldException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { CategoryName } from '@/modules/ingredients/server/domain/value-objects'
-
-import { CategoryNameBuilder } from '../../../../../../__fixtures__/builders'
+import { CategoryNameBuilder } from '@tests/__fixtures__/builders'
 
 describe('CategoryName', () => {
   describe('create', () => {

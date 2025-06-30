@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 
 import { createId } from '@paralleldrive/cuid2'
 
-import { PrismaClient } from '../../src/generated/prisma-test'
+import { PrismaClient } from '@/generated/prisma-test'
 
 let prismaClient: PrismaClient | null = null
 

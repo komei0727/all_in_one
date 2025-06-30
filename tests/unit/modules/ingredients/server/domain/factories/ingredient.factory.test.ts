@@ -7,8 +7,7 @@ import { BusinessRuleException } from '@/modules/ingredients/server/domain/excep
 import { IngredientFactory } from '@/modules/ingredients/server/domain/factories/ingredient.factory'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
-
-import { createMockIngredientRepository } from '../../../../../../__fixtures__/mocks/repositories'
+import { createMockIngredientRepository } from '@tests/__fixtures__/mocks/repositories'
 
 describe('IngredientFactory', () => {
   let factory: IngredientFactory

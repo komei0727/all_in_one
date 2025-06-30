@@ -15,8 +15,7 @@ import {
   IngredientStock,
 } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
-
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 // Prismaクライアントのモック
 vi.mock('@/generated/prisma', async () => {

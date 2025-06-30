@@ -9,8 +9,7 @@ import { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 import { User } from '@/modules/user-authentication/server/domain/entities/user.entity'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
-
-import { NextAuthUserBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
+import { NextAuthUserBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 
 describe('PrismaUserRepository（統合テスト）', () => {
   let prisma: TestPrismaClient

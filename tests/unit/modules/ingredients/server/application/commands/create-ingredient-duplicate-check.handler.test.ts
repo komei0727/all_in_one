@@ -9,12 +9,7 @@ import type { RepositoryFactory } from '@/modules/ingredients/server/domain/repo
 import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
-
-import {
-  CategoryBuilder,
-  UnitBuilder,
-  IngredientBuilder,
-} from '../../../../../../__fixtures__/builders'
+import { CategoryBuilder, UnitBuilder, IngredientBuilder } from '@tests/__fixtures__/builders'
 
 // モックリポジトリ
 const mockIngredientRepository: IngredientRepository = {

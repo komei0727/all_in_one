@@ -6,9 +6,8 @@ import { GetIngredientsQuery } from '@/modules/ingredients/server/application/qu
 import type { CategoryRepository } from '@/modules/ingredients/server/domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
-
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders/entities/ingredient.builder'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { IngredientBuilder } from '@tests/__fixtures__/builders/entities/ingredient.builder'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('GetIngredientsHandler', () => {
   let handler: GetIngredientsHandler

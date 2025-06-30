@@ -8,14 +8,13 @@ import { User } from '@/modules/user-authentication/server/domain/entities/user.
 import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
-
 import {
   UserIdBuilder,
   EmailBuilder,
   UserProfileBuilder,
   UserStatusBuilder,
   NextAuthUserBuilder,
-} from '../../../../../../__fixtures__/builders'
+} from '@tests/__fixtures__/builders'
 
 // テスト用ヘルパー関数
 const createUserProfileFromBuilder = (builder: UserProfileBuilder) => {

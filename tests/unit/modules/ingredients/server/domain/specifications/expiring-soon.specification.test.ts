@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { ExpiringSoonSpecification } from '@/modules/ingredients/server/domain/specifications/expiring-soon.specification'
-
-import { IngredientBuilder } from '../../../../../../__fixtures__/builders'
+import { IngredientBuilder } from '@tests/__fixtures__/builders'
 
 describe('ExpiringSoonSpecification', () => {
   let builder: IngredientBuilder

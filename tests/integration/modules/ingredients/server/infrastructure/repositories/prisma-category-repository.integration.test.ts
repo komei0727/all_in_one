@@ -2,14 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
 import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
-
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 describe('PrismaCategoryRepository Integration Tests', () => {
   let prisma: ReturnType<typeof getTestPrismaClient>

@@ -7,18 +7,14 @@ import { POST } from '@/app/api/v1/ingredients/route'
 import { auth } from '@/auth'
 import { StorageType } from '@/modules/ingredients/server/domain/value-objects'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
-
-import {
-  CreateIngredientCommandBuilder,
-  testDataHelpers,
-} from '../../../../../__fixtures__/builders'
+import { CreateIngredientCommandBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 // @/auth はvitest configでモック済み
 

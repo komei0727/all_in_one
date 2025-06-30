@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import { ValidationException } from '@/modules/ingredients/server/domain/exceptions'
 import { ExpiryInfo } from '@/modules/ingredients/server/domain/value-objects'
-
-import { ExpiryInfoBuilder } from '../../../../../../__fixtures__/builders'
+import { ExpiryInfoBuilder } from '@tests/__fixtures__/builders'
 
 describe('ExpiryInfo', () => {
   // 正常系のテスト

@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
-
-import { UserProfileBuilder, UserPreferencesBuilder } from '../../../../../../__fixtures__/builders'
+import { UserProfileBuilder, UserPreferencesBuilder } from '@tests/__fixtures__/builders'
 
 // テスト対象のUserProfileクラス
 

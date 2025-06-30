@@ -8,8 +8,7 @@ import { UserFactory } from '@/modules/user-authentication/server/domain/factori
 import { UserPreferences } from '@/modules/user-authentication/server/domain/value-objects/user-preferences.vo'
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
-
-import { getTestPrismaClient } from '../../../../../../helpers/database.helper'
+import { getTestPrismaClient } from '@tests/helpers/database.helper'
 
 describe('UserFactory - 統合テスト', () => {
   let userRepository: PrismaUserRepository

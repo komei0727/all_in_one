@@ -5,15 +5,14 @@ import { type PrismaClient } from '@/generated/prisma-test'
 import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
 import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
 import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
-
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
+import { NextAuthUserBuilder } from '@tests/__fixtures__/builders'
 // テストヘルパー
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 describe('UserApplicationService 統合テスト', () => {
   let prisma: PrismaClient

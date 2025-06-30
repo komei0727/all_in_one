@@ -12,8 +12,7 @@ import {
   ExpiryInfo,
 } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaIngredientRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-ingredient-repository'
-
-import { IngredientBuilder, testDataHelpers } from '../../../../../../__fixtures__/builders'
+import { IngredientBuilder, testDataHelpers } from '@tests/__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -21,7 +20,7 @@ import {
   cleanupPrismaClient,
   getTestDataIds,
   createTestUser,
-} from '../../../../../../helpers/database.helper'
+} from '@tests/helpers/database.helper'
 
 // テストデータ生成用のヘルパー関数
 // 統合テストなので、実在するカテゴリーや単位IDをデフォルトで設定

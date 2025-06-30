@@ -2,9 +2,8 @@ import { describe, it, expect } from 'vitest'
 
 import { Unit } from '@/modules/ingredients/server/domain/entities/unit.entity'
 import { RequiredFieldException } from '@/modules/ingredients/server/domain/exceptions'
-
-import { UnitBuilder } from '../../../../../../__fixtures__/builders'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+import { UnitBuilder } from '@tests/__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 /**
  * Unit Entity のテスト

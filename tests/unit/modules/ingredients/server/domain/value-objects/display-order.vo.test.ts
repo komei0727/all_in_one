@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import { InvalidFieldException } from '@/modules/ingredients/server/domain/exceptions'
 import { DisplayOrder } from '@/modules/ingredients/server/domain/value-objects'
-
-import { DisplayOrderBuilder } from '../../../../../../__fixtures__/builders'
+import { DisplayOrderBuilder } from '@tests/__fixtures__/builders'
 
 describe('DisplayOrder', () => {
   describe('create', () => {

@@ -11,19 +11,18 @@ import { type RepositoryFactory } from '@/modules/ingredients/server/domain/repo
 import { type UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
-
 import {
   CreateIngredientCommandBuilder,
   CategoryBuilder,
   UnitBuilder,
-} from '../../../../../../__fixtures__/builders'
-import { testDataHelpers } from '../../../../../../__fixtures__/builders/faker.config'
+} from '@tests/__fixtures__/builders'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 import {
   createMockIngredientRepository,
   createMockCategoryRepository,
   createMockUnitRepository,
   createMockTransactionManager,
-} from '../../../../../../__fixtures__/mocks/repositories'
+} from '@tests/__fixtures__/mocks/repositories'
 
 describe('CreateIngredientHandler', () => {
   let handler: CreateIngredientHandler
