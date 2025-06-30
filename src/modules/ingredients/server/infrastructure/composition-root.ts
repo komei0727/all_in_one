@@ -5,8 +5,12 @@ import { PrismaCategoryRepository } from './repositories/prisma-category-reposit
 import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
+import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
+import { DeleteIngredientHandler } from '../application/commands/delete-ingredient.handler'
+import { UpdateIngredientHandler } from '../application/commands/update-ingredient.handler'
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
+import { GetIngredientByIdHandler } from '../application/queries/get-ingredient-by-id.handler'
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
 
@@ -120,5 +124,41 @@ export class CompositionRoot {
    */
   public getGetIngredientsHandler(): GetIngredientsHandler {
     return new GetIngredientsHandler(this.getIngredientRepository())
+  }
+
+  /**
+   * Get GetIngredientByIdHandler instance (new instance each time)
+   */
+  public getGetIngredientByIdHandler(): GetIngredientByIdHandler {
+    return new GetIngredientByIdHandler(
+      this.getIngredientRepository(),
+      this.getCategoryRepository(),
+      this.getUnitRepository()
+    )
+  }
+
+  /**
+   * Get UpdateIngredientHandler instance (new instance each time)
+   */
+  public getUpdateIngredientHandler(): UpdateIngredientHandler {
+    return new UpdateIngredientHandler(
+      this.getIngredientRepository(),
+      this.getCategoryRepository(),
+      this.getUnitRepository()
+    )
+  }
+
+  /**
+   * Get UpdateIngredientApiHandler instance (new instance each time)
+   */
+  public getUpdateIngredientApiHandler(): UpdateIngredientApiHandler {
+    return new UpdateIngredientApiHandler(this.getUpdateIngredientHandler())
+  }
+
+  /**
+   * Get DeleteIngredientHandler instance (new instance each time)
+   */
+  public getDeleteIngredientHandler(): DeleteIngredientHandler {
+    return new DeleteIngredientHandler(this.getIngredientRepository())
   }
 }

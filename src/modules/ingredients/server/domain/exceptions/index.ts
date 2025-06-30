@@ -11,4 +11,8 @@ export {
 } from '@/modules/shared/server/domain/exceptions'
 
 // ドメイン固有の例外
-export { CategoryNotFoundException, UnitNotFoundException } from './not-found.exception'
+export {
+  CategoryNotFoundException,
+  UnitNotFoundException,
+  IngredientNotFoundException,
+} from './not-found.exception'

@@ -11,11 +11,15 @@ interface NextAuthUserProps {
   updatedAt: Date
 }
 
+interface NextAuthUser extends NextAuthUserProps {
+  domainUserId?: string
+}
+
 /**
  * NextAuthUserビルダー
  * NextAuth標準のUserテーブルのテストデータを生成
  */
-export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
+export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps, NextAuthUser> {
   constructor() {
     super()
 
@@ -142,7 +146,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
     return this.withEmailDomain('gmail.com')
   }
 
-  build(): NextAuthUserProps {
+  build(): NextAuthUser {
     return {
       id: this.props.id!,
       email: this.props.email!,
@@ -151,6 +155,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps> {
       image: this.props.image ?? null,
       createdAt: this.props.createdAt!,
       updatedAt: this.props.updatedAt!,
+      domainUserId: testDataHelpers.userId(), // ドメインユーザーIDを自動生成
     }
   }
 }

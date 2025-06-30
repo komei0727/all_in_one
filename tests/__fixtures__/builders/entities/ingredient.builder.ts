@@ -25,6 +25,9 @@ interface IngredientProps {
   memo: Memo | null
   price: Price | null
   expiryInfo: ExpiryInfo | null
+  createdAt?: Date
+  updatedAt?: Date
+  deletedAt?: Date | null
   isNew?: boolean
 }
 
@@ -51,6 +54,9 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
       memo: null,
       price: null,
       expiryInfo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
       isNew: false, // デフォルトは既存エンティティとして扱う
     }
   }
@@ -283,7 +289,16 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
     return this.with('isNew', isNew)
   }
 
+  /**
+   * 削除日時を設定
+   */
+  withDeletedAt(deletedAt: Date | null): this {
+    return this.with('deletedAt', deletedAt)
+  }
+
   build(): Ingredient {
     return new Ingredient(this.props as IngredientProps)
   }
 }
+
+export const anIngredient = () => new IngredientBuilder()
