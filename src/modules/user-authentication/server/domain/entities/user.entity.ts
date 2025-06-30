@@ -107,6 +107,7 @@ export class User extends AggregateRoot<UserId> {
 
   /**
    * NextAuthユーザーからドメインユーザーを作成
+   * @deprecated UserFactoryを使用してください
    */
   static createFromNextAuth(nextAuthUser: NextAuthUser): User {
     const now = new Date()
@@ -139,6 +140,7 @@ export class User extends AggregateRoot<UserId> {
 
   /**
    * NextAuthユーザーからカスタムプロフィール付きでドメインユーザーを作成
+   * @deprecated UserFactoryを使用してください
    */
   static createFromNextAuthWithProfile(nextAuthUser: NextAuthUser, profile: UserProfile): User {
     const now = new Date()
@@ -326,6 +328,22 @@ export class User extends AggregateRoot<UserId> {
         new UserSyncedWithNextAuthEvent(this.id.getValue(), this._nextAuthId, syncedFields, changes)
       )
     }
+  }
+
+  /**
+   * 作成イベントを発行
+   * Factoryパターンで使用するためのメソッド
+   */
+  publishCreatedEvent(): void {
+    this.addDomainEvent(
+      new UserCreatedFromNextAuthEvent(
+        this.id.getValue(),
+        this._nextAuthId,
+        this._email.getValue(),
+        this._profile.getDisplayName(),
+        true
+      )
+    )
   }
 
   /**

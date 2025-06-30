@@ -1,16 +1,16 @@
 import type { DomainEventPublisher } from '@/modules/shared/server/domain/events/domain-event-publisher.interface'
-import { Email } from '@/modules/shared/server/domain/value-objects/email.vo'
+import { type Email } from '@/modules/shared/server/domain/value-objects/email.vo'
 import type { UserId } from '@/modules/shared/server/domain/value-objects/user-id.vo'
 
-import { User, type NextAuthUser } from '../entities/user.entity'
+import { type User, type NextAuthUser } from '../entities/user.entity'
 import { NextAuthIntegrationFailedEvent } from '../events/nextauth-integration-failed.event'
 import {
   UserNotFoundException,
-  EmailAlreadyExistsException,
   AccountDeactivatedException,
   AlreadyDeactivatedException,
   ProfileUpdateNotAllowedException,
 } from '../exceptions'
+import { UserFactory } from '../factories/user.factory'
 
 import type { UserRepository } from '../repositories/user.repository'
 import type { UserProfile } from '../value-objects/user-profile.vo'
@@ -20,10 +20,14 @@ import type { UserProfile } from '../value-objects/user-profile.vo'
  * NextAuthとドメインユーザーの統合を担当するドメインサービス
  */
 export class UserIntegrationService {
+  private readonly userFactory: UserFactory
+
   constructor(
     private readonly userRepository: UserRepository,
     private readonly eventPublisher?: DomainEventPublisher
-  ) {}
+  ) {
+    this.userFactory = new UserFactory(userRepository)
+  }
 
   /**
    * NextAuthユーザーからドメインユーザーを作成または更新
@@ -46,14 +50,8 @@ export class UserIntegrationService {
         return savedUser
       }
 
-      // 新規ユーザーの場合、メールアドレスの重複チェック
-      const emailExists = await this.userRepository.existsByEmail(new Email(nextAuthUser.email))
-      if (emailExists) {
-        throw new EmailAlreadyExistsException(nextAuthUser.email)
-      }
-
-      // 新規ドメインユーザーを作成
-      const newUser = User.createFromNextAuth(nextAuthUser)
+      // 新規ドメインユーザーを作成（ファクトリが重複チェックを行う）
+      const newUser = await this.userFactory.fromNextAuthUser(nextAuthUser)
       const savedUser = await this.userRepository.save(newUser)
 
       // イベントを発行

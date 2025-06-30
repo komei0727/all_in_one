@@ -9,7 +9,7 @@ import { UserIntegrationService } from '@/modules/user-authentication/server/dom
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
 
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
+import { NextAuthUserBuilder, UserBuilder } from '../../../../../../__fixtures__/builders'
 
 // モックリポジトリ
 const mockUserRepository = {
@@ -95,9 +95,15 @@ describe('UserIntegrationService', () => {
         .withEmail('duplicate@example.com')
         .build()
 
+      // 既存のユーザー（異なるNextAuthId）
+      const existingUserWithSameEmail = new UserBuilder()
+        .withTestUser()
+        .withEmail('duplicate@example.com')
+        .build()
+
       // 新規ユーザーだが、メールアドレスが重複
       mockUserRepository.findByNextAuthId.mockResolvedValue(null)
-      mockUserRepository.existsByEmail.mockResolvedValue(true)
+      mockUserRepository.findByEmail.mockResolvedValue(existingUserWithSameEmail)
 
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
