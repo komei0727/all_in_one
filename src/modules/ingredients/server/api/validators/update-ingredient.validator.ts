@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 /**
- * ID形式のバリデーションスキーマ（UUID または CUID形式）
+ * ID形式のバリデーションスキーマ（プレフィックス付きCUID形式）
+ * 例: ing_abc123def456, cat_xyz789ghi012, unt_pqr345stu678
  */
 const idSchema = z.string().min(8, {
   message: '有効なID形式で入力してください',

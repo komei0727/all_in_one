@@ -11,14 +11,14 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
 import {
   CreateIngredientCommandBuilder,
   testDataHelpers,
-} from '../../../../../../__fixtures__/builders'
+} from '../../../../../__fixtures__/builders'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
   cleanupIntegrationTest,
   cleanupPrismaClient,
   getTestDataIds,
-} from '../../../../../../helpers/database.helper'
+} from '../../../../../helpers/database.helper'
 
 // @/auth はvitest configでモック済み
 
