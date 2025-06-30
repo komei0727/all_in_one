@@ -166,6 +166,21 @@ describe('UserStatus値オブジェクト', () => {
       // Assert（検証）
       expect(userStatus1.equals(userStatus2)).toBe(false)
     })
+
+    it('UserStatus以外のオブジェクトとの比較はfalseを返す', () => {
+      // Arrange（準備）
+      const status = new UserStatus('ACTIVE')
+      const notUserStatus = { value: 'ACTIVE' } as any
+      const stringValue = 'ACTIVE' as any
+      const nullValue = null as any
+      const undefinedValue = undefined as any
+
+      // Act & Assert（実行 & 検証）
+      expect(status.equals(notUserStatus)).toBe(false)
+      expect(status.equals(stringValue)).toBe(false)
+      expect(status.equals(nullValue)).toBe(false)
+      expect(status.equals(undefinedValue)).toBe(false)
+    })
   })
 
   describe('ファクトリーメソッド', () => {

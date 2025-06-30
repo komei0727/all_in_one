@@ -31,6 +31,15 @@ const nextConfig = {
   env: {
     // アプリケーションバージョン（package.jsonから取得）
     NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '0.1.0',
+
+    // Vercel環境で自動的にURLを設定
+    // 既に設定されている場合はそちらを優先
+    NEXTAUTH_URL:
+      process.env.NEXTAUTH_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
+    NEXT_PUBLIC_APP_URL:
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
   },
 
   // セキュリティヘッダー（Vercelでは vercel.json で設定するため、ここでは設定しない）

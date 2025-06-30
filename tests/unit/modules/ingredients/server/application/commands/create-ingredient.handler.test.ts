@@ -48,6 +48,7 @@ describe('CreateIngredientHandler', () => {
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(mockUnit)
+      vi.mocked(ingredientRepository.findDuplicates).mockResolvedValue([])
       vi.mocked(ingredientRepository.save).mockImplementation(async (ingredient) => ingredient)
 
       // Act
@@ -117,6 +118,7 @@ describe('CreateIngredientHandler', () => {
 
       vi.mocked(categoryRepository.findById).mockResolvedValue(mockCategory)
       vi.mocked(unitRepository.findById).mockResolvedValue(mockUnit)
+      vi.mocked(ingredientRepository.findDuplicates).mockResolvedValue([])
       vi.mocked(ingredientRepository.save).mockImplementation(async (ingredient) => ingredient)
 
       // Act

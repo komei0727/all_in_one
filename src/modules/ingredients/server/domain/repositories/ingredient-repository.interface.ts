@@ -144,4 +144,23 @@ export interface IngredientRepository {
     categoryId?: string
     expiryStatus?: 'all' | 'expired' | 'expiring' | 'fresh'
   }): Promise<number>
+
+  /**
+   * 重複する食材を検索
+   * @param criteria 重複チェック条件
+   * @returns 重複する食材のリスト
+   */
+  findDuplicates(criteria: {
+    userId: string
+    name: string
+    expiryInfo: { bestBeforeDate: Date; useByDate?: Date | null } | null
+    storageLocation: { type: StorageType; detail?: string }
+  }): Promise<Ingredient[]>
+
+  /**
+   * 食材を更新
+   * @param ingredient 更新する食材
+   * @returns 更新された食材
+   */
+  update(ingredient: Ingredient): Promise<Ingredient>
 }

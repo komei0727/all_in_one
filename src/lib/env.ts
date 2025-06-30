@@ -4,7 +4,11 @@
 
 // ビルド時にチェックが必要な環境変数（NEXT_PUBLIC_のみ）
 const buildTimeEnvVars = {
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  // Vercel環境では VERCEL_URL から自動生成される可能性があるため、
+  // next.config.mjs で設定される値も考慮
+  NEXT_PUBLIC_APP_URL:
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
   NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT || 'development',
   NEXT_PUBLIC_ENABLE_DEBUG: process.env.NEXT_PUBLIC_ENABLE_DEBUG === 'true',
 } as const
@@ -17,7 +21,11 @@ const runtimeEnvVars = {
 
   // NextAuth
   AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  // Vercel環境では VERCEL_URL から自動生成される可能性があるため、
+  // next.config.mjs で設定される値も考慮
+  NEXTAUTH_URL:
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
 
   // Email
   EMAIL_SERVER_HOST: process.env.EMAIL_SERVER_HOST,

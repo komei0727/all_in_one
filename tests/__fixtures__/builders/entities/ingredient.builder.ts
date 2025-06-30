@@ -25,6 +25,7 @@ interface IngredientProps {
   memo: Memo | null
   price: Price | null
   expiryInfo: ExpiryInfo | null
+  isNew?: boolean
 }
 
 /**
@@ -50,6 +51,7 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
       memo: null,
       price: null,
       expiryInfo: null,
+      isNew: false, // デフォルトは既存エンティティとして扱う
     }
   }
 
@@ -272,6 +274,13 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
       threshold: currentStock.getThreshold(),
     })
     return this.with('ingredientStock', stock)
+  }
+
+  /**
+   * 新規作成フラグを設定
+   */
+  withIsNew(isNew: boolean): this {
+    return this.with('isNew', isNew)
   }
 
   build(): Ingredient {

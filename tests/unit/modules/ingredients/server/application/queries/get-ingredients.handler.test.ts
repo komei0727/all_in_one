@@ -28,6 +28,8 @@ describe('GetIngredientsHandler', () => {
       findByStorageLocation: vi.fn(),
       findOutOfStock: vi.fn(),
       findLowStock: vi.fn(),
+      findDuplicates: vi.fn(),
+      update: vi.fn(),
       existsByUserAndNameAndExpiryAndLocation: vi.fn(),
     }
 

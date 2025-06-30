@@ -20,11 +20,11 @@ export function getEmailConfig(): {
         host,
         port,
         secure: false,
-        // MailHogは認証不要
+        // TypeScriptの型エラーを回避するため、as anyでキャスト
+        auth: false as any, // MailHogは認証不要
         tls: {
           rejectUnauthorized: false,
         },
-        // 認証を明示的に無効化
       },
       from,
     }

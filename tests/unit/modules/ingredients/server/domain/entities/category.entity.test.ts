@@ -71,6 +71,50 @@ describe('Category', () => {
       expect(category.getDescription()).toBe(validDescription)
     })
 
+    it('説明が100文字を超える場合はエラーを投げる', () => {
+      // 100文字を超える説明は許可されない
+      const invalidDescription = 'あ'.repeat(101) // 101文字の説明
+
+      // Assert
+      expect(() => {
+        new CategoryBuilder().withDescription(invalidDescription).build()
+      }).toThrow('100文字以内で入力してください')
+    })
+
+    it('説明が空文字列の場合はnullとして扱われる', () => {
+      // 空文字列はnullに変換される
+      const category = new CategoryBuilder().withDescription('').build()
+
+      // Assert
+      expect(category.getDescription()).toBeNull()
+    })
+
+    it('説明が空白文字のみの場合はnullとして扱われる', () => {
+      // 空白文字のみの説明はnullに変換される
+      const category = new CategoryBuilder().withDescription('   ').build()
+
+      // Assert
+      expect(category.getDescription()).toBeNull()
+    })
+
+    it('説明の前後の空白文字がトリミングされる', () => {
+      // 前後の空白文字はトリミングされる
+      const description = '  新鮮な野菜類  '
+      const category = new CategoryBuilder().withDescription(description).build()
+
+      // Assert
+      expect(category.getDescription()).toBe('新鮮な野菜類')
+    })
+
+    it('説明が正確に100文字の場合は許可される', () => {
+      // 正確に100文字の説明も許可される
+      const description = 'a'.repeat(100)
+      const category = new CategoryBuilder().withDescription(description).build()
+
+      // Assert
+      expect(category.getDescription()).toBe(description)
+    })
+
     it('displayOrderが指定されない場合はデフォルト値を使用する', () => {
       // Arrange & Act
       const category = new Category({

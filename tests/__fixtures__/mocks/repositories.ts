@@ -23,6 +23,8 @@ export const createMockIngredientRepository = (): IngredientRepository => ({
   existsByUserAndNameAndExpiryAndLocation: vi.fn(),
   findMany: vi.fn(),
   count: vi.fn(),
+  findDuplicates: vi.fn(),
+  update: vi.fn(),
 })
 
 /**

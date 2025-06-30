@@ -9,7 +9,7 @@ import { UserIntegrationService } from '@/modules/user-authentication/server/dom
 import { UserProfile } from '@/modules/user-authentication/server/domain/value-objects/user-profile.vo'
 import { UserStatus } from '@/modules/user-authentication/server/domain/value-objects/user-status.vo'
 
-import { NextAuthUserBuilder } from '../../../../../../__fixtures__/builders'
+import { NextAuthUserBuilder, UserBuilder } from '../../../../../../__fixtures__/builders'
 
 // モックリポジトリ
 const mockUserRepository = {
@@ -22,6 +22,12 @@ const mockUserRepository = {
   existsByNextAuthId: vi.fn(),
   existsByEmail: vi.fn(),
   countActiveUsersInPeriod: vi.fn(),
+}
+
+// モックイベントパブリッシャー
+const mockEventPublisher = {
+  publish: vi.fn(),
+  publishAll: vi.fn(),
 }
 
 describe('UserIntegrationService', () => {
@@ -95,9 +101,15 @@ describe('UserIntegrationService', () => {
         .withEmail('duplicate@example.com')
         .build()
 
+      // 既存のユーザー（異なるNextAuthId）
+      const existingUserWithSameEmail = new UserBuilder()
+        .withTestUser()
+        .withEmail('duplicate@example.com')
+        .build()
+
       // 新規ユーザーだが、メールアドレスが重複
       mockUserRepository.findByNextAuthId.mockResolvedValue(null)
-      mockUserRepository.existsByEmail.mockResolvedValue(true)
+      mockUserRepository.findByEmail.mockResolvedValue(existingUserWithSameEmail)
 
       // Act & Assert（実行 & 検証）
       const service = new UserIntegrationService(mockUserRepository as UserRepository)
@@ -302,6 +314,133 @@ describe('UserIntegrationService', () => {
     })
   })
 
+  describe('ユーザー検索機能', () => {
+    it('メールアドレスでユーザーを検索できる', async () => {
+      // Arrange（準備）
+      const email = new Email('test@example.com')
+      const user = new User({
+        id: UserId.generate(),
+        nextAuthId: 'next-auth-123',
+        email,
+        profile: UserProfile.createDefault('テストユーザー'),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      })
+
+      mockUserRepository.findByEmail.mockResolvedValue(user)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.findUserByEmail(email)
+
+      // Assert（検証）
+      expect(result).toBe(user)
+      expect(result?.getEmail().getValue()).toBe(email.getValue())
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(email)
+    })
+
+    it('存在しないメールアドレスの場合はnullを返す', async () => {
+      // Arrange（準備）
+      const email = new Email('nonexistent@example.com')
+
+      mockUserRepository.findByEmail.mockResolvedValue(null)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.findUserByEmail(email)
+
+      // Assert（検証）
+      expect(result).toBeNull()
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(email)
+    })
+
+    it('ユーザーIDでユーザーを検索できる', async () => {
+      // Arrange（準備）
+      const userId = UserId.generate()
+      const user = new User({
+        id: userId,
+        nextAuthId: 'next-auth-123',
+        email: new Email('test@example.com'),
+        profile: UserProfile.createDefault('テストユーザー'),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      })
+
+      mockUserRepository.findById.mockResolvedValue(user)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.findUserById(userId)
+
+      // Assert（検証）
+      expect(result).toBe(user)
+      expect(result?.getId().getValue()).toBe(userId.getValue())
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId)
+    })
+
+    it('存在しないユーザーIDの場合はnullを返す', async () => {
+      // Arrange（準備）
+      const userId = UserId.generate()
+
+      mockUserRepository.findById.mockResolvedValue(null)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.findUserById(userId)
+
+      // Assert（検証）
+      expect(result).toBeNull()
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId)
+    })
+  })
+
+  describe('NextAuth IDによるユーザー検索', () => {
+    it('NextAuth IDでユーザーを検索できる', async () => {
+      // Arrange（準備）
+      const nextAuthId = 'next-auth-123'
+      const user = new User({
+        id: UserId.generate(),
+        nextAuthId,
+        email: new Email('test@example.com'),
+        profile: UserProfile.createDefault('テストユーザー'),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      })
+
+      mockUserRepository.findByNextAuthId.mockResolvedValue(user)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.findUserByNextAuthId(nextAuthId)
+
+      // Assert（検証）
+      expect(result).toBe(user)
+      expect(result?.getNextAuthId()).toBe(nextAuthId)
+      expect(mockUserRepository.findByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+    })
+
+    it('存在しないNextAuth IDの場合はnullを返す', async () => {
+      // Arrange（準備）
+      const nextAuthId = 'non-existent-id'
+
+      mockUserRepository.findByNextAuthId.mockResolvedValue(null)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.findUserByNextAuthId(nextAuthId)
+
+      // Assert（検証）
+      expect(result).toBeNull()
+      expect(mockUserRepository.findByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+    })
+  })
+
   describe('アクティブユーザー管理', () => {
     it('アクティブなユーザー一覧を取得できる', async () => {
       // Arrange（準備）
@@ -378,6 +517,165 @@ describe('UserIntegrationService', () => {
       // Assert（検証）
       expect(result).toBe(0)
       expect(mockUserRepository.countActiveUsersInPeriod).toHaveBeenCalledWith(0)
+    })
+  })
+
+  describe('イベント発行機能', () => {
+    it('eventPublisherが設定されている場合、ドメインイベントが発行される', async () => {
+      // Arrange（準備）
+      const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
+
+      // 新規ユーザー作成時はドメインイベントが生成される
+      mockUserRepository.findByNextAuthId.mockResolvedValue(null)
+      mockUserRepository.existsByEmail.mockResolvedValue(false)
+      mockUserRepository.findByEmail.mockResolvedValue(null) // メールアドレスの重複チェック用
+
+      // saveメソッドがイベントを持つユーザーを返すようにモック
+      mockUserRepository.save.mockImplementation(async (user) => {
+        // ユーザーが作成されるとUserCreatedFromNextAuthイベントが発生する
+        return user
+      })
+
+      // eventPublisherが成功することをモック
+      mockEventPublisher.publishAll.mockResolvedValue(undefined)
+
+      // Act（実行）
+      const service = new UserIntegrationService(
+        mockUserRepository as UserRepository,
+        mockEventPublisher as any
+      )
+      const result = await service.createOrUpdateFromNextAuth(nextAuthUser)
+
+      // Assert（検証）
+      expect(mockEventPublisher.publishAll).toHaveBeenCalledTimes(1)
+      expect(mockEventPublisher.publishAll).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            eventName: 'user.createdFromNextAuth',
+          }),
+        ])
+      )
+      expect(result.domainEvents).toHaveLength(0) // イベントがクリアされていることを確認
+    })
+
+    it('eventPublisherが設定されていない場合、イベントは発行されない', async () => {
+      // Arrange（準備）
+      const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
+
+      mockUserRepository.findByNextAuthId.mockResolvedValue(null)
+      mockUserRepository.existsByEmail.mockResolvedValue(false)
+      mockUserRepository.findByEmail.mockResolvedValue(null) // メールアドレスの重複チェック用
+      mockUserRepository.save.mockImplementation(async (user) => user)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+      const result = await service.createOrUpdateFromNextAuth(nextAuthUser)
+
+      // Assert（検証）
+      expect(mockEventPublisher.publishAll).not.toHaveBeenCalled()
+      // eventPublisherがないため、イベントはクリアされない
+      expect(result.domainEvents.length).toBeGreaterThan(0)
+    })
+
+    it('複数のイベントがある場合、すべて発行される', async () => {
+      // Arrange（準備）
+      const userId = UserId.generate()
+      const existingUser = new User({
+        id: userId,
+        nextAuthId: 'next-auth-123',
+        email: new Email('test@example.com'),
+        profile: UserProfile.createDefault('元の名前'),
+        status: UserStatus.createActive(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: null,
+      })
+
+      const newProfile = new UserProfile({
+        displayName: '新しい名前',
+        timezone: 'America/New_York',
+        language: 'en',
+        preferences: existingUser.getProfile().getPreferences(),
+      })
+
+      mockUserRepository.findById.mockResolvedValue(existingUser)
+      mockUserRepository.save.mockImplementation(async (user) => user)
+      mockEventPublisher.publishAll.mockResolvedValue(undefined)
+
+      // Act（実行）
+      const service = new UserIntegrationService(
+        mockUserRepository as UserRepository,
+        mockEventPublisher as any
+      )
+      await service.updateUserProfile(userId, newProfile)
+
+      // Assert（検証）
+      expect(mockEventPublisher.publishAll).toHaveBeenCalledTimes(1)
+      expect(mockEventPublisher.publishAll).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            eventName: 'user.profileUpdated',
+          }),
+        ])
+      )
+    })
+
+    it('エラー発生時にeventPublisherがあれば統合失敗イベントが発行される', async () => {
+      // Arrange（準備）
+      const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
+      const saveError = new Error('データベース保存エラー')
+
+      // 新規ユーザー作成時にエラーが発生するシナリオ
+      mockUserRepository.findByNextAuthId.mockResolvedValue(null)
+      mockUserRepository.existsByEmail.mockResolvedValue(false)
+      mockUserRepository.findByEmail.mockResolvedValue(null)
+      mockUserRepository.save.mockRejectedValue(saveError)
+
+      // eventPublisherのモック
+      mockEventPublisher.publish.mockResolvedValue(undefined)
+
+      // Act（実行）
+      const service = new UserIntegrationService(
+        mockUserRepository as UserRepository,
+        mockEventPublisher as any
+      )
+
+      // Assert（検証）
+      await expect(service.createOrUpdateFromNextAuth(nextAuthUser)).rejects.toThrow(
+        'データベース保存エラー'
+      )
+
+      // 統合失敗イベントが発行されたことを確認
+      expect(mockEventPublisher.publish).toHaveBeenCalledTimes(1)
+      expect(mockEventPublisher.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventName: 'user.nextAuthIntegrationFailed',
+          getPayload: expect.any(Function),
+        })
+      )
+    })
+
+    it('エラー発生時にeventPublisherがなければイベントは発行されない', async () => {
+      // Arrange（準備）
+      const nextAuthUser = new NextAuthUserBuilder().withTestUser().build()
+      const saveError = new Error('データベース保存エラー')
+
+      // 新規ユーザー作成時にエラーが発生するシナリオ
+      mockUserRepository.findByNextAuthId.mockResolvedValue(null)
+      mockUserRepository.existsByEmail.mockResolvedValue(false)
+      mockUserRepository.findByEmail.mockResolvedValue(null)
+      mockUserRepository.save.mockRejectedValue(saveError)
+
+      // Act（実行）
+      const service = new UserIntegrationService(mockUserRepository as UserRepository)
+
+      // Assert（検証）
+      await expect(service.createOrUpdateFromNextAuth(nextAuthUser)).rejects.toThrow(
+        'データベース保存エラー'
+      )
+
+      // イベントパブリッシャーが呼ばれないことを確認
+      expect(mockEventPublisher.publish).not.toHaveBeenCalled()
     })
   })
 })

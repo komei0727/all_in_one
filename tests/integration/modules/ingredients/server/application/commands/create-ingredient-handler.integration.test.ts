@@ -353,20 +353,22 @@ describe('CreateIngredientHandler Integration Tests', () => {
 
   describe('ビジネスルールの検証', () => {
     it('同名の食材を複数作成できる', async () => {
-      // Given: 同じ名前の食材を作成
+      // Given: 同じ名前の食材を作成（保存場所タイプは異なる）
       const sameName = faker.food.ingredient()
       const testDataIds = getTestDataIds()
+      const storageTypes = [
+        StorageType.REFRIGERATED,
+        StorageType.FROZEN,
+        StorageType.ROOM_TEMPERATURE,
+      ]
+      // 異なる保存場所タイプを選択して、重複チェックエラーを回避
       const command1 = new CreateIngredientCommandBuilder()
         .withUserId(testDataIds.users.defaultUser.domainUserId)
         .withName(sameName)
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
-          type: faker.helpers.arrayElement([
-            StorageType.REFRIGERATED,
-            StorageType.FROZEN,
-            StorageType.ROOM_TEMPERATURE,
-          ]),
+          type: storageTypes[0], // 冷蔵
         })
         .withPurchaseDate(new Date().toISOString())
         .build()
@@ -376,11 +378,7 @@ describe('CreateIngredientHandler Integration Tests', () => {
         .withCategoryId(testDataIds.categories.vegetable)
         .withQuantity(faker.number.int({ min: 1, max: 20 }), testDataIds.units.piece)
         .withStorageLocation({
-          type: faker.helpers.arrayElement([
-            StorageType.REFRIGERATED,
-            StorageType.FROZEN,
-            StorageType.ROOM_TEMPERATURE,
-          ]),
+          type: storageTypes[1], // 冷凍
         })
         .withPurchaseDate(new Date().toISOString())
         .build()
