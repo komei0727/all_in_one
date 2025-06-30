@@ -55,6 +55,7 @@ describe('Userエンティティ', () => {
       expect(user.getProfile().getDisplayName()).toBe('テストユーザー')
       expect(user.getStatus().isActive()).toBe(true)
       expect(user.isActive()).toBe(true)
+      expect(user.getCreatedAt()).toEqual(userData.createdAt)
     })
 
     it('NextAuthユーザーからUserエンティティを作成できる', () => {
