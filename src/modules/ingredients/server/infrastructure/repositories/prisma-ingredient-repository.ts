@@ -153,28 +153,6 @@ export class PrismaIngredientRepository implements IngredientRepository {
   }
 
   /**
-   * 食材を削除
-   * @param userId ユーザーID
-   * @param id 削除する食材のID
-   */
-  async delete(userId: string, id: IngredientId): Promise<void> {
-    // 論理削除の実装
-    // まずユーザーが所有する食材か確認
-    const ingredient = await this.findById(userId, id)
-    if (!ingredient) {
-      // ユーザーが所有しない食材は削除できない
-      return
-    }
-
-    await this.prisma.ingredient.update({
-      where: { id: id.getValue() },
-      data: {
-        deletedAt: new Date(),
-      },
-    })
-  }
-
-  /**
    * ユーザーIDで食材を検索
    * @param userId ユーザーID
    * @returns 食材のリスト

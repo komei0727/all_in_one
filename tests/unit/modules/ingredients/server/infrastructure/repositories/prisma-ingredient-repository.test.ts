@@ -410,45 +410,4 @@ describe('PrismaIngredientRepository', () => {
       expect(result.getExpiryInfo()).toBeNull()
     })
   })
-
-  describe('delete', () => {
-    it('食材を論理削除できる', async () => {
-      // モックの設定
-      vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(mockIngredientData as any)
-      vi.mocked(prismaClient.ingredient.update).mockResolvedValue({
-        ...mockIngredientData,
-        deletedAt: new Date(),
-      } as any)
-
-      // 実行
-      await repository.delete(userId, new IngredientId(ingredientId))
-
-      // 検証
-      expect(prismaClient.ingredient.findFirst).toHaveBeenCalledWith({
-        where: {
-          id: ingredientId,
-          userId: userId,
-          deletedAt: null,
-        },
-      })
-      expect(prismaClient.ingredient.update).toHaveBeenCalledWith({
-        where: { id: ingredientId },
-        data: {
-          deletedAt: expect.any(Date),
-        },
-      })
-    })
-
-    it('他のユーザーの食材は削除できない', async () => {
-      // モックの設定 - 食材が見つからない
-      vi.mocked(prismaClient.ingredient.findFirst).mockResolvedValue(null)
-
-      // 実行
-      const otherUserId = testDataHelpers.userId()
-      await repository.delete(otherUserId, new IngredientId(ingredientId))
-
-      // 検証 - updateが呼ばれないことを確認
-      expect(prismaClient.ingredient.update).not.toHaveBeenCalled()
-    })
-  })
 })

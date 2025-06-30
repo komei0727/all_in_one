@@ -1,7 +1,8 @@
-import { faker } from '@faker-js/faker/locale/ja'
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
-import { CategoryBuilder } from '../../../../../../__fixtures__/builders'
+import { CategoryId } from '@/modules/ingredients/server/domain/value-objects'
+import { PrismaCategoryRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-category-repository'
+
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -12,11 +13,13 @@ import {
 
 describe('PrismaCategoryRepository Integration Tests', () => {
   let prisma: ReturnType<typeof getTestPrismaClient>
+  let repository: PrismaCategoryRepository
 
   beforeEach(async () => {
     // 各テストの前にデータベースをセットアップ
     await setupIntegrationTest()
     prisma = getTestPrismaClient()
+    repository = new PrismaCategoryRepository(prisma as any)
   })
 
   afterEach(async () => {
@@ -29,42 +32,22 @@ describe('PrismaCategoryRepository Integration Tests', () => {
     await cleanupPrismaClient()
   })
 
-  describe('カテゴリーのCRUD操作', () => {
-    it('カテゴリーを作成できる', async () => {
-      // Given: ユニークなカテゴリーデータ
-      const uniqueName = `テストカテゴリー_${faker.string.alphanumeric(8)}`
-      const categoryBuilder = new CategoryBuilder().withName(uniqueName).withRandomDisplayOrder()
-      const categoryData = categoryBuilder.build()
+  describe('findAllActive', () => {
+    it('アクティブなカテゴリーを表示順で取得できる', async () => {
+      // When: アクティブなカテゴリーを取得
+      const categories = await repository.findAllActive()
 
-      // When: 新しいカテゴリーを作成
-      const newCategory = await prisma.category.create({
-        data: {
-          id: categoryData.getId(),
-          name: categoryData.getName(),
-          displayOrder: categoryData.getDisplayOrder(),
-        },
-      })
-
-      // Then: カテゴリーが作成されている
-      expect(newCategory).toBeDefined()
-      expect(newCategory.name).toBe(categoryData.getName())
-      expect(newCategory.displayOrder).toBe(categoryData.getDisplayOrder())
+      // Then: 3つのカテゴリーが表示順で取得される（シードデータ）
+      expect(categories).toHaveLength(3)
+      expect(categories[0].getName()).toBe('野菜')
+      expect(categories[0].getDisplayOrder()).toBe(1)
+      expect(categories[1].getName()).toBe('肉・魚')
+      expect(categories[1].getDisplayOrder()).toBe(2)
+      expect(categories[2].getName()).toBe('調味料')
+      expect(categories[2].getDisplayOrder()).toBe(3)
     })
 
-    it('IDでカテゴリーを取得できる', async () => {
-      // When: IDでカテゴリーを検索
-      const testDataIds = getTestDataIds()
-      const category = await prisma.category.findUnique({
-        where: { id: testDataIds.categories.vegetable },
-      })
-
-      // Then: カテゴリーが取得できる
-      expect(category).toBeDefined()
-      expect(category?.name).toBe('野菜')
-      expect(category?.displayOrder).toBe(1)
-    })
-
-    it('アクティブなカテゴリーを取得できる', async () => {
+    it('非アクティブなカテゴリーは取得されない', async () => {
       // Given: 1つのカテゴリーを非アクティブに
       const testDataIds = getTestDataIds()
       await prisma.category.update({
@@ -73,83 +56,62 @@ describe('PrismaCategoryRepository Integration Tests', () => {
       })
 
       // When: アクティブなカテゴリーを取得
-      const categories = await prisma.category.findMany({
-        where: { isActive: true },
-        orderBy: { displayOrder: 'asc' },
-      })
+      const categories = await repository.findAllActive()
 
       // Then: アクティブなカテゴリーのみ取得される
       expect(categories).toHaveLength(2)
-      expect(categories.find((c) => c.id === testDataIds.categories.meatFish)).toBeUndefined()
+      expect(categories.find((c) => c.getId() === testDataIds.categories.meatFish)).toBeUndefined()
     })
 
-    it('カテゴリーを更新できる', async () => {
-      // Given: 更新後のユニークな名前を準備
-      const testDataIds = getTestDataIds()
-      const uniqueName = `更新テストカテゴリー_${faker.string.alphanumeric(8)}`
-      const updatedCategory = new CategoryBuilder().withName(uniqueName).build()
-      const updatedName = updatedCategory.getName()
+    it('表示順通りに取得される', async () => {
+      // When: アクティブなカテゴリーを取得
+      const categories = await repository.findAllActive()
 
-      // When: カテゴリー名を更新
-      const updated = await prisma.category.update({
-        where: { id: testDataIds.categories.vegetable },
-        data: { name: updatedName },
-      })
-
-      // Then: カテゴリーが更新されている
-      expect(updated.name).toBe(updatedName)
-    })
-
-    it('カテゴリーを削除できる', async () => {
-      // When: カテゴリーを削除
-      const testDataIds = getTestDataIds()
-      await prisma.category.delete({
-        where: { id: testDataIds.categories.seasoning },
-      })
-
-      // Then: カテゴリーが削除されている
-      const deleted = await prisma.category.findUnique({
-        where: { id: testDataIds.categories.seasoning },
-      })
-      expect(deleted).toBeNull()
+      // Then: 表示順通りに並んでいる
+      const displayOrders = categories.map((c) => c.getDisplayOrder())
+      for (let i = 1; i < displayOrders.length; i++) {
+        expect(displayOrders[i]).toBeGreaterThanOrEqual(displayOrders[i - 1])
+      }
     })
   })
 
-  describe('データベース接続の確認', () => {
-    it('Prismaクライアントが正しく動作する', async () => {
-      // When: データベースに直接クエリ
-      const count = await prisma.category.count()
+  describe('findById', () => {
+    it('IDでカテゴリーを取得できる', async () => {
+      // When: IDでカテゴリーを検索
+      const testDataIds = getTestDataIds()
+      const category = await repository.findById(new CategoryId(testDataIds.categories.vegetable))
 
-      // Then: 3つのカテゴリーが存在する
-      expect(count).toBe(3)
+      // Then: カテゴリーが取得できる
+      expect(category).toBeDefined()
+      expect(category?.getId()).toBe(testDataIds.categories.vegetable)
+      expect(category?.getName()).toBe('野菜')
+      expect(category?.getDisplayOrder()).toBe(1)
     })
 
-    it('トランザクションが正しく動作する', async () => {
-      // Given: ランダムなカテゴリーデータ
-      const newCategoryId = faker.string.uuid()
-      const newCategoryName = faker.commerce.department()
-      const newDisplayOrder = faker.number.int({ min: 10, max: 99 })
+    it('存在しないIDの場合nullを返す', async () => {
+      // When: 存在しないIDで検索
+      const nonExistentId = 'cat_999999999999999999999999' // 存在しないID（正しいフォーマット）
+      const category = await repository.findById(new CategoryId(nonExistentId))
 
-      // When: トランザクション内で新しいカテゴリーを作成
-      const newCategory = await prisma.$transaction(async (tx) => {
-        return await tx.category.create({
-          data: {
-            id: newCategoryId,
-            name: newCategoryName,
-            displayOrder: newDisplayOrder,
-          },
-        })
+      // Then: nullが返される
+      expect(category).toBeNull()
+    })
+
+    it('非アクティブなカテゴリーも取得できる', async () => {
+      // Given: カテゴリーを非アクティブにする
+      const testDataIds = getTestDataIds()
+      await prisma.category.update({
+        where: { id: testDataIds.categories.seasoning },
+        data: { isActive: false },
       })
 
-      // Then: カテゴリーが作成されている
-      expect(newCategory).toBeDefined()
-      expect(newCategory.name).toBe(newCategoryName)
+      // When: IDで検索
+      const category = await repository.findById(new CategoryId(testDataIds.categories.seasoning))
 
-      // And: データベースに保存されている
-      const saved = await prisma.category.findUnique({
-        where: { id: newCategoryId },
-      })
-      expect(saved).toBeDefined()
+      // Then: 非アクティブでも取得できる
+      expect(category).toBeDefined()
+      expect(category?.getId()).toBe(testDataIds.categories.seasoning)
+      expect(category?.getName()).toBe('調味料')
     })
   })
 })

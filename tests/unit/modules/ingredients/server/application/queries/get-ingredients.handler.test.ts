@@ -19,7 +19,6 @@ describe('GetIngredientsHandler', () => {
       findById: vi.fn(),
       findByName: vi.fn(),
       save: vi.fn(),
-      delete: vi.fn(),
       findAll: vi.fn(),
       findByUserId: vi.fn(),
       findExpiringSoon: vi.fn(),

@@ -13,7 +13,6 @@ export const createMockIngredientRepository = (): IngredientRepository => ({
   findByName: vi.fn(),
   findByUserId: vi.fn(),
   findAll: vi.fn(),
-  delete: vi.fn(),
   findExpiringSoon: vi.fn(),
   findExpired: vi.fn(),
   findByCategory: vi.fn(),
