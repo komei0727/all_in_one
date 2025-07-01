@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
-import { GetActiveShoppingSessionQuery } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.query'
-import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions'
+import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
@@ -10,44 +9,75 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  */
 export async function GET(request: NextRequest) {
   try {
-    // URLパラメータからuserIdを取得
-    const searchParams = request.nextUrl.searchParams
-    const userId = searchParams.get('userId')
-
-    // ユーザーIDの検証
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    // 認証チェック
+    const session = await auth()
+    if (!session?.user?.domainUserId) {
+      return NextResponse.json(
+        {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required',
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        },
+        { status: 401 }
+      )
     }
 
-    // クエリを作成して実行
+    // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const handler = compositionRoot.getGetActiveShoppingSessionHandler()
-    const query = new GetActiveShoppingSessionQuery(userId)
-    const sessionDto = await handler.handle(query)
+    const apiHandler = compositionRoot.getGetActiveShoppingSessionApiHandler()
+    const response = await apiHandler.handle(request, session.user.domainUserId)
 
-    // セッションが見つからない場合は404を返す
-    if (!sessionDto) {
-      return NextResponse.json({ error: 'アクティブなセッションが見つかりません' }, { status: 404 })
+    // レスポンスが成功の場合はそのまま返す
+    if (response.status === 200) {
+      const data = (await response.json()) as Record<string, unknown>
+      return NextResponse.json(data)
     }
 
-    // レスポンスを返す
-    return NextResponse.json({
-      sessionId: sessionDto.sessionId,
-      userId: sessionDto.userId,
-      status: sessionDto.status,
-      startedAt: sessionDto.startedAt,
-      completedAt: sessionDto.completedAt,
-      deviceType: sessionDto.deviceType,
-      location: sessionDto.location,
-    })
+    // エラーレスポンスの場合は、標準フォーマットに変換
+    const errorData = (await response.json()) as { message?: string }
+    const errorCode = getErrorCode(response.status)
+
+    return NextResponse.json(
+      {
+        code: errorCode,
+        message: errorData.message || 'An error occurred',
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      },
+      { status: response.status }
+    )
   } catch (error) {
-    // NotFoundExceptionの場合は404を返す
-    if (error instanceof NotFoundException) {
-      return NextResponse.json({ error: error.message }, { status: 404 })
-    }
-
-    // その他のエラーは500を返す
+    // 予期しないエラー
     console.error('Failed to get active shopping session:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An unexpected error occurred',
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * HTTPステータスコードからエラーコードを取得
+ */
+function getErrorCode(status: number): string {
+  switch (status) {
+    case 400:
+      return 'VALIDATION_ERROR'
+    case 401:
+      return 'UNAUTHORIZED'
+    case 403:
+      return 'FORBIDDEN'
+    case 404:
+      return 'RESOURCE_NOT_FOUND'
+    case 409:
+      return 'CONFLICT'
+    default:
+      return 'INTERNAL_SERVER_ERROR'
   }
 }
