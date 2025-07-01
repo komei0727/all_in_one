@@ -9,7 +9,6 @@ import type {
   QuickAccessIngredient,
   IngredientCheckStatistics,
   TopCheckedIngredient,
-  MonthlySessionCount,
   MonthlyCheckCount,
   StockStatusBreakdown,
 } from '../../application/query-services/shopping-query-service.interface'
@@ -122,26 +121,53 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         take: 5,
       }),
 
-      // 月別セッション数の取得（生SQLクエリ）
-      this.prisma.$queryRaw<MonthlySessionCount[]>`
-        SELECT 
-          DATE_FORMAT(started_at, '%Y-%m') as yearMonth,
-          COUNT(*) as sessionCount
-        FROM shopping_sessions 
-        WHERE user_id = ${userId}
-          AND started_at >= ${startDate}
-        GROUP BY DATE_FORMAT(started_at, '%Y-%m')
-        ORDER BY yearMonth ASC
-      `,
+      // 月別セッション数の取得
+      // Prismaのnativeクエリを使用してデータベース依存を回避
+      this.prisma.shoppingSession
+        .findMany({
+          where: {
+            userId,
+            startedAt: {
+              gte: startDate,
+            },
+          },
+          select: {
+            startedAt: true,
+          },
+        })
+        .then((sessions) => {
+          // JavaScriptで月別に集計
+          const monthlyCounts = new Map<string, number>()
+
+          sessions.forEach((session) => {
+            const yearMonth = `${session.startedAt.getFullYear()}-${String(session.startedAt.getMonth() + 1).padStart(2, '0')}`
+            monthlyCounts.set(yearMonth, (monthlyCounts.get(yearMonth) || 0) + 1)
+          })
+
+          return Array.from(monthlyCounts.entries())
+            .map(([yearMonth, sessionCount]) => ({
+              yearMonth,
+              sessionCount,
+            }))
+            .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth))
+        }),
 
       // セッション時間計算用データ
-      this.prisma.$queryRaw<{ startedAt: Date; completedAt: Date | null }[]>`
-        SELECT started_at as startedAt, completed_at as completedAt
-        FROM shopping_sessions 
-        WHERE user_id = ${userId}
-          AND started_at >= ${startDate}
-          AND completed_at IS NOT NULL
-      `,
+      this.prisma.shoppingSession.findMany({
+        where: {
+          userId,
+          startedAt: {
+            gte: startDate,
+          },
+          completedAt: {
+            not: null,
+          },
+        },
+        select: {
+          startedAt: true,
+          completedAt: true,
+        },
+      }),
     ])
 
     // 平均セッション時間を計算

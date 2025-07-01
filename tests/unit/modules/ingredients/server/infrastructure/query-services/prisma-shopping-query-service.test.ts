@@ -147,10 +147,6 @@ describe('PrismaShoppingQueryService', () => {
           _count: { id: 8 },
         },
       ]
-      const mockMonthlyData = [
-        { month: '2025-06', sessionCount: 8 },
-        { month: '2025-07', sessionCount: 7 },
-      ]
 
       // セッション数のモック
       mockPrismaClient.shoppingSession.count.mockResolvedValue(mockSessionCount)
@@ -161,8 +157,26 @@ describe('PrismaShoppingQueryService', () => {
       // 頻繁チェック食材のモック
       mockPrismaClient.shoppingSessionItem.groupBy.mockResolvedValue(mockTopItems)
 
-      // 月次データのモック
-      mockPrismaClient.$queryRaw.mockResolvedValue(mockMonthlyData)
+      // 月次データのモック（findManyの結果）
+      const mockSessionsForMonthly = [
+        { startedAt: new Date('2025-06-15T10:00:00Z') },
+        { startedAt: new Date('2025-06-20T10:00:00Z') },
+        { startedAt: new Date('2025-07-01T10:00:00Z') },
+        { startedAt: new Date('2025-07-15T10:00:00Z') },
+      ]
+
+      // セッション時間計算用データのモック
+      const mockSessionsForDuration = [
+        {
+          startedAt: new Date('2025-07-01T10:00:00Z'),
+          completedAt: new Date('2025-07-01T10:30:00Z'),
+        },
+      ]
+
+      // findManyのモック（複数の呼び出しに対応）
+      mockPrismaClient.shoppingSession.findMany
+        .mockResolvedValueOnce(mockSessionsForMonthly) // 月次集計用
+        .mockResolvedValueOnce(mockSessionsForDuration) // セッション時間計算用
 
       const periodDays = 30
 
@@ -176,6 +190,10 @@ describe('PrismaShoppingQueryService', () => {
       expect(result.topCheckedIngredients[0].ingredientName).toBe('玉ねぎ')
       expect(result.topCheckedIngredients[0].checkCount).toBe(10)
       expect(result.monthlySessionCounts).toHaveLength(2)
+      expect(result.monthlySessionCounts[0].yearMonth).toBe('2025-06')
+      expect(result.monthlySessionCounts[0].sessionCount).toBe(2)
+      expect(result.monthlySessionCounts[1].yearMonth).toBe('2025-07')
+      expect(result.monthlySessionCounts[1].sessionCount).toBe(2)
 
       // 正しい期間でクエリが実行される
       expect(mockPrismaClient.shoppingSession.count).toHaveBeenCalledWith(
@@ -206,8 +224,10 @@ describe('PrismaShoppingQueryService', () => {
       mockPrismaClient.shoppingSession.count.mockResolvedValue(2)
       mockPrismaClient.shoppingSessionItem.count.mockResolvedValue(0)
       mockPrismaClient.shoppingSessionItem.groupBy.mockResolvedValue([])
-      mockPrismaClient.$queryRaw
-        .mockResolvedValueOnce([]) // monthlySessionCounts
+
+      // findManyのモック（複数の呼び出しに対応）
+      mockPrismaClient.shoppingSession.findMany
+        .mockResolvedValueOnce([]) // 月次集計用（空）
         .mockResolvedValueOnce(mockSessions) // セッション時間計算用
 
       // When: 統計を取得
@@ -222,7 +242,11 @@ describe('PrismaShoppingQueryService', () => {
       mockPrismaClient.shoppingSession.count.mockResolvedValue(0)
       mockPrismaClient.shoppingSessionItem.count.mockResolvedValue(0)
       mockPrismaClient.shoppingSessionItem.groupBy.mockResolvedValue([])
-      mockPrismaClient.$queryRaw.mockResolvedValue([])
+
+      // findManyのモック（複数の呼び出しに対応）
+      mockPrismaClient.shoppingSession.findMany
+        .mockResolvedValueOnce([]) // 月次集計用（空）
+        .mockResolvedValueOnce([]) // セッション時間計算用（空）
 
       // When: 統計を取得
       const result = await service.getShoppingStatistics(userId)

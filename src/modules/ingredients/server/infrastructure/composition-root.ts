@@ -17,6 +17,7 @@ import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingr
 import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
+import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
 import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
@@ -344,6 +345,13 @@ export class CompositionRoot {
    */
   public getGetShoppingStatisticsHandler(): GetShoppingStatisticsHandler {
     return new GetShoppingStatisticsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetShoppingStatisticsApiHandler instance (new instance each time)
+   */
+  public getGetShoppingStatisticsApiHandler(): GetShoppingStatisticsApiHandler {
+    return new GetShoppingStatisticsApiHandler(this.getGetShoppingStatisticsHandler())
   }
 
   /**

@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import { GET } from '@/app/api/v1/shopping-sessions/active/route'
+import { auth } from '@/auth'
 import { type GetActiveShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-active-shopping-session.handler'
 
 vi.mock('@/modules/ingredients/server/infrastructure/composition-root', () => ({
@@ -68,8 +69,7 @@ describe('GET /api/v1/shopping-sessions/active', () => {
   describe('認証', () => {
     it('認証されていない場合は401エラーを返す', async () => {
       // Given: 認証なし
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValueOnce(null)
+      ;(auth as any).mockResolvedValueOnce(null)
 
       const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions/active')
 
@@ -89,8 +89,7 @@ describe('GET /api/v1/shopping-sessions/active', () => {
   describe('正常系', () => {
     it('アクティブなショッピングセッションを取得できる', async () => {
       // Given: 認証済みユーザー
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValueOnce({
+      ;(auth as any).mockResolvedValueOnce({
         user: { domainUserId: userId },
       } as any)
 
@@ -130,8 +129,7 @@ describe('GET /api/v1/shopping-sessions/active', () => {
   describe('エラーハンドリング', () => {
     it('アクティブなセッションが存在しない場合は404エラーを返す', async () => {
       // Given: 認証済みユーザー
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValueOnce({
+      ;(auth as any).mockResolvedValueOnce({
         user: { domainUserId: userId },
       } as any)
 
@@ -159,8 +157,7 @@ describe('GET /api/v1/shopping-sessions/active', () => {
 
     it('予期しないエラーの場合は500エラーを返す', async () => {
       // Given: 認証済みユーザー
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValueOnce({
+      ;(auth as any).mockResolvedValueOnce({
         user: { domainUserId: userId },
       } as any)
 
