@@ -1,14 +1,17 @@
-import { faker } from '@faker-js/faker'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import { POST } from '@/app/api/v1/shopping-sessions/[sessionId]/complete/route'
-import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
-import {
-  BusinessRuleException,
-  NotFoundException,
-} from '@/modules/ingredients/server/domain/exceptions'
+import { auth } from '@/auth'
+import { type CompleteShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/complete-shopping-session.handler'
+import { ShoppingSessionId } from '@/modules/ingredients/server/domain/value-objects/shopping-session-id.vo'
+import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
+// auth関数をモック
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}))
+
+// CompositionRootをモック
 vi.mock('@/modules/ingredients/server/infrastructure/composition-root', () => ({
   CompositionRoot: {
     getInstance: vi.fn(),
@@ -62,27 +65,28 @@ class MockNextRequest {
 const NextRequest = MockNextRequest as any
 
 describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
-  let mockHandle: Mock
+  let mockAuth: Mock
+  let mockApiHandler: CompleteShoppingSessionApiHandler
   let sessionId: string
   let userId: string
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    sessionId = 'ses_' + faker.string.uuid()
-    userId = faker.string.uuid()
+    mockAuth = auth as Mock
+    sessionId = ShoppingSessionId.create().getValue()
+    userId = testDataHelpers.userId()
 
-    // ハンドラーのモックを作成
-    mockHandle = vi.fn()
-    const mockHandler: Partial<CompleteShoppingSessionHandler> = {
-      handle: mockHandle,
-    }
+    // APIハンドラーのモックを作成
+    mockApiHandler = {
+      handle: vi.fn(),
+    } as any
 
     // CompositionRootのモックを設定
     const { CompositionRoot } = await import(
       '@/modules/ingredients/server/infrastructure/composition-root'
     )
     vi.mocked(CompositionRoot.getInstance).mockReturnValue({
-      getCompleteShoppingSessionHandler: () => mockHandler as CompleteShoppingSessionHandler,
+      getCompleteShoppingSessionApiHandler: () => mockApiHandler,
     } as any)
   })
 
@@ -90,9 +94,11 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
     vi.clearAllMocks()
   })
 
-  describe('リクエスト検証', () => {
-    it('空のボディでリクエストすると400エラーを返す', async () => {
-      // Given: 空のボディ
+  describe('認証チェック', () => {
+    it('未認証の場合は401エラーを返す', async () => {
+      // Given: 未認証ユーザー
+      mockAuth.mockResolvedValueOnce(null)
+
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
@@ -107,40 +113,23 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       // When: APIを呼び出す
       const response = await POST(request, { params: { sessionId } })
 
-      // Then: 400エラーが返される
-      expect(response.status).toBe(400)
+      // Then: 401エラーが返される
+      expect(response.status).toBe(401)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'User ID is required',
-      })
-    })
-
-    it('無効なJSONでリクエストすると400エラーを返す', async () => {
-      // Given: 無効なJSON
-      const request = new NextRequest(
-        `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: 'invalid json',
-        }
-      )
-
-      // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId } })
-
-      // Then: 400エラーが返される
-      expect(response.status).toBe(400)
-      const data = await response.json()
-      expect(data.error).toContain('Invalid request')
+      expect(data).toHaveProperty('code', 'UNAUTHORIZED')
+      expect(data).toHaveProperty('message', 'Authentication required')
+      expect(data).toHaveProperty('timestamp')
+      expect(data).toHaveProperty('path')
     })
   })
 
   describe('正常系', () => {
     it('ショッピングセッションを完了できる', async () => {
-      // Given: 有効なリクエスト
+      // Given: 認証済みユーザー
+      mockAuth.mockResolvedValueOnce({
+        user: { domainUserId: userId },
+      })
+
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
@@ -148,24 +137,26 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({}),
         }
       )
 
-      // 完了したセッションDTOのモック
+      // APIハンドラーが成功レスポンスを返す
       const completedAt = new Date().toISOString()
-      const mockSessionDto = new ShoppingSessionDto(
-        sessionId,
-        userId,
-        'COMPLETED',
-        new Date(Date.now() - 3600000).toISOString(), // 1時間前に開始
-        completedAt,
-        null,
-        null
+      const mockResponse = new Response(
+        JSON.stringify({
+          sessionId,
+          userId,
+          status: 'COMPLETED',
+          startedAt: new Date(Date.now() - 3600000).toISOString(),
+          completedAt,
+          deviceType: null,
+          location: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       )
 
-      // ハンドラーがDTOを返す
-      mockHandle.mockResolvedValue(mockSessionDto)
+      ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
       const response = await POST(request, { params: { sessionId } })
@@ -173,27 +164,63 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       // Then: 200レスポンスが返される
       expect(response.status).toBe(200)
       const data = await response.json()
-      expect(data).toEqual({
-        sessionId: mockSessionDto.sessionId,
-        userId: mockSessionDto.userId,
-        status: mockSessionDto.status,
-        startedAt: mockSessionDto.startedAt,
-        completedAt: mockSessionDto.completedAt,
-        deviceType: mockSessionDto.deviceType,
-        location: mockSessionDto.location,
-      })
+      expect(data).toHaveProperty('sessionId', sessionId)
+      expect(data).toHaveProperty('userId', userId)
+      expect(data).toHaveProperty('status', 'COMPLETED')
+      expect(data).toHaveProperty('startedAt')
+      expect(data).toHaveProperty('completedAt', completedAt)
 
-      // ハンドラーが正しく呼ばれた
-      expect(mockHandle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sessionId,
-          userId,
-        })
-      )
+      // APIハンドラーが正しく呼ばれた
+      expect(mockApiHandler.handle).toHaveBeenCalledWith(request, { sessionId }, userId)
     })
   })
 
   describe('エラーハンドリング', () => {
+    beforeEach(() => {
+      // 各エラーテストで認証済みユーザーを設定
+      mockAuth.mockResolvedValueOnce({
+        user: { domainUserId: userId },
+      })
+    })
+
+    it('バリデーションエラーの場合は400エラーを返す', async () => {
+      // Given: 無効なセッションID
+      const invalidSessionId = 'invalid-session-id'
+      const request = new NextRequest(
+        `http://localhost:3000/api/v1/shopping-sessions/${invalidSessionId}/complete`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }
+      )
+
+      // APIハンドラーが400エラーを返す
+      const mockResponse = new Response(
+        JSON.stringify({
+          message: 'Invalid session ID format',
+          errors: [{ field: 'sessionId', message: 'Invalid session ID format' }],
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+
+      ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
+
+      // When: APIを呼び出す
+      const response = await POST(request, { params: { sessionId: invalidSessionId } })
+
+      // Then: 400エラーが返される
+      expect(response.status).toBe(400)
+      const data = await response.json()
+      expect(data).toHaveProperty('code', 'VALIDATION_ERROR')
+      expect(data).toHaveProperty('message')
+      expect(data).toHaveProperty('timestamp')
+      expect(data).toHaveProperty('path')
+      expect(data).toHaveProperty('errors')
+    })
+
     it('セッションが存在しない場合は404エラーを返す', async () => {
       // Given: 有効なリクエスト
       const request = new NextRequest(
@@ -203,12 +230,17 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({}),
         }
       )
 
-      // ハンドラーがNotFoundExceptionを投げる
-      mockHandle.mockRejectedValue(new NotFoundException('ShoppingSession', sessionId))
+      // APIハンドラーが404エラーを返す
+      const mockResponse = new Response(
+        JSON.stringify({ message: `ShoppingSession with ID ${sessionId} not found` }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      )
+
+      ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
       const response = await POST(request, { params: { sessionId } })
@@ -216,9 +248,10 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       // Then: 404エラーが返される
       expect(response.status).toBe(404)
       const data = await response.json()
-      expect(data).toEqual({
-        error: `ShoppingSession not found: ${sessionId}`,
-      })
+      expect(data).toHaveProperty('code', 'RESOURCE_NOT_FOUND')
+      expect(data).toHaveProperty('message')
+      expect(data).toHaveProperty('timestamp')
+      expect(data).toHaveProperty('path')
     })
 
     it('権限がない場合は403エラーを返す', async () => {
@@ -230,14 +263,17 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({}),
         }
       )
 
-      // ハンドラーがBusinessRuleExceptionを投げる
-      mockHandle.mockRejectedValue(
-        new BusinessRuleException('このセッションを完了する権限がありません')
+      // APIハンドラーが403エラーを返す
+      const mockResponse = new Response(
+        JSON.stringify({ message: 'You are not authorized to complete this session' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
       )
+
+      ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
       const response = await POST(request, { params: { sessionId } })
@@ -245,9 +281,10 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       // Then: 403エラーが返される
       expect(response.status).toBe(403)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'このセッションを完了する権限がありません',
-      })
+      expect(data).toHaveProperty('code', 'FORBIDDEN')
+      expect(data).toHaveProperty('message')
+      expect(data).toHaveProperty('timestamp')
+      expect(data).toHaveProperty('path')
     })
 
     it('予期しないエラーの場合は500エラーを返す', async () => {
@@ -259,12 +296,12 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({}),
         }
       )
 
-      // ハンドラーが予期しないエラーを投げる
-      mockHandle.mockRejectedValue(new Error('データベースエラー'))
+      // APIハンドラーがエラーを投げる
+      ;(mockApiHandler.handle as Mock).mockRejectedValue(new Error('データベースエラー'))
 
       // When: APIを呼び出す
       const response = await POST(request, { params: { sessionId } })
@@ -272,9 +309,10 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       // Then: 500エラーが返される
       expect(response.status).toBe(500)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'Internal server error',
-      })
+      expect(data).toHaveProperty('code', 'INTERNAL_SERVER_ERROR')
+      expect(data).toHaveProperty('message', 'An unexpected error occurred')
+      expect(data).toHaveProperty('timestamp')
+      expect(data).toHaveProperty('path')
     })
   })
 })

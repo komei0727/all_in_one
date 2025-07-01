@@ -44,7 +44,7 @@ export class StartShoppingSessionHandler {
       savedSession.getDeviceType()?.getValue() ?? null,
       savedSession.getLocation()
         ? savedSession.getLocationName() !== null
-          ? { placeName: savedSession.getLocationName() }
+          ? { placeName: savedSession.getLocationName()! }
           : {}
         : null,
       [] // checkedItems - 新規セッションなので空

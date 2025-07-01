@@ -1,8 +1,10 @@
 import { ZodError } from 'zod'
 
 import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
-import { BusinessRuleException } from '@/modules/shared/server/domain/exceptions/business-rule.exception'
-import { ResourceNotFoundException } from '@/modules/shared/server/domain/exceptions/resource-not-found.exception'
+import {
+  BusinessRuleException,
+  NotFoundException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
 
 import { completeShoppingSessionValidator } from '../../validators/complete-shopping-session.validator'
@@ -65,7 +67,7 @@ export class CompleteShoppingSessionApiHandler {
         )
       }
 
-      if (error instanceof ResourceNotFoundException) {
+      if (error instanceof NotFoundException) {
         return new Response(
           JSON.stringify({
             message: error.message,
@@ -78,7 +80,7 @@ export class CompleteShoppingSessionApiHandler {
       }
 
       if (error instanceof BusinessRuleException) {
-        const statusCode = error.message.includes('not authorized') ? 403 : 409
+        const statusCode = error.message.includes('権限がありません') ? 403 : 409
         return new Response(
           JSON.stringify({
             message: error.message,

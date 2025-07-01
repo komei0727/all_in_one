@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CompleteShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/complete-shopping-session.handler'
 import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
+import {
+  NotFoundException,
+  BusinessRuleException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { ShoppingSessionId } from '@/modules/ingredients/server/domain/value-objects/shopping-session-id.vo'
-import { BusinessRuleException } from '@/modules/shared/server/domain/exceptions/business-rule.exception'
-import { ResourceNotFoundException } from '@/modules/shared/server/domain/exceptions/resource-not-found.exception'
 
 import { shoppingSessionBuilder } from '../../../../../../../__fixtures__/builders/shopping-session.builder'
 
@@ -106,7 +108,7 @@ describe('CompleteShoppingSessionApiHandler', () => {
         })
 
         vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(
-          new ResourceNotFoundException('ShoppingSession', sessionId)
+          new NotFoundException('買い物セッション', sessionId)
         )
 
         // When: ハンドラーを実行
@@ -115,7 +117,7 @@ describe('CompleteShoppingSessionApiHandler', () => {
         // Then: 404エラーが返される
         expect(response.status).toBe(404)
         const responseData = await response.json()
-        expect(responseData.message).toBe(`ShoppingSession with ID ${sessionId} not found`)
+        expect(responseData.message).toBe(`買い物セッション not found: ${sessionId}`)
       })
 
       it('他のユーザーのセッションを完了しようとした場合、403エラーを返す', async () => {
@@ -128,7 +130,7 @@ describe('CompleteShoppingSessionApiHandler', () => {
         })
 
         vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(
-          new BusinessRuleException('You are not authorized to complete this session')
+          new BusinessRuleException('このセッションを完了する権限がありません')
         )
 
         // When: ハンドラーを実行
@@ -137,7 +139,7 @@ describe('CompleteShoppingSessionApiHandler', () => {
         // Then: 403エラーが返される
         expect(response.status).toBe(403)
         const responseData = await response.json()
-        expect(responseData.message).toBe('You are not authorized to complete this session')
+        expect(responseData.message).toBe('このセッションを完了する権限がありません')
       })
 
       it('既に完了したセッションの場合、409エラーを返す', async () => {

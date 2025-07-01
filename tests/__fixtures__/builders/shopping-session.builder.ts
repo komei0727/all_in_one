@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker'
 
 import { ShoppingSession } from '@/modules/ingredients/server/domain/entities/shopping-session.entity'
+import { type CheckedItem } from '@/modules/ingredients/server/domain/value-objects/checked-item.vo'
 import { DeviceType } from '@/modules/ingredients/server/domain/value-objects/device-type.vo'
 import { SessionStatus } from '@/modules/ingredients/server/domain/value-objects/session-status.vo'
 import { ShoppingLocation } from '@/modules/ingredients/server/domain/value-objects/shopping-location.vo'
@@ -14,6 +15,7 @@ export class ShoppingSessionBuilder {
   private completedAt?: Date
   private deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
   private location?: { latitude: number; longitude: number }
+  private checkedItems: CheckedItem[] = []
 
   constructor() {
     // デフォルト値をFakerで生成
@@ -65,6 +67,11 @@ export class ShoppingSessionBuilder {
     return this
   }
 
+  withCheckedItems(items: CheckedItem[]): ShoppingSessionBuilder {
+    this.checkedItems = items
+    return this
+  }
+
   build(): ShoppingSession {
     return new ShoppingSession({
       id: new ShoppingSessionId(this.sessionId),
@@ -72,7 +79,7 @@ export class ShoppingSessionBuilder {
       status: this.status === 'ACTIVE' ? SessionStatus.ACTIVE : SessionStatus.COMPLETED,
       startedAt: this.startedAt,
       completedAt: this.completedAt,
-      checkedItems: [],
+      checkedItems: this.checkedItems,
       deviceType: this.deviceType ? DeviceType.fromString(this.deviceType) : null,
       location: this.location
         ? ShoppingLocation.create({

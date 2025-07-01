@@ -107,7 +107,7 @@ describe('POST /api/v1/shopping-sessions', () => {
     it('未認証の場合は401エラーを返す', async () => {
       // Given: 認証されていない
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue(null)
+      vi.mocked(auth).mockResolvedValue(null as any)
 
       const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions', {
         method: 'POST',

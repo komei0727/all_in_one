@@ -58,8 +58,12 @@ export class CompleteShoppingSessionHandler {
       updatedSession.getStatus().getValue(),
       updatedSession.getStartedAt().toISOString(),
       updatedSession.getCompletedAt()?.toISOString() ?? null,
-      null, // deviceType - TODO: 将来実装
-      null, // location - TODO: 将来実装
+      updatedSession.getDeviceType()?.getValue() ?? null,
+      updatedSession.getLocation()
+        ? updatedSession.getLocationName() !== null
+          ? { placeName: updatedSession.getLocationName()! }
+          : {}
+        : null,
       checkedItemDtos
     )
   }

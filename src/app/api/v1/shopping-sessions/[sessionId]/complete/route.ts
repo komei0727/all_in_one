@@ -30,24 +30,26 @@ export async function POST(request: NextRequest, { params }: { params: { session
 
     // レスポンスが成功の場合はそのまま返す
     if (response.status === 200) {
-      const data = await response.json()
+      const data = (await response.json()) as Record<string, unknown>
       return NextResponse.json(data)
     }
 
     // エラーレスポンスの場合は、標準フォーマットに変換
-    const errorData = await response.json()
+    const errorData = (await response.json()) as { message?: string; errors?: unknown }
     const errorCode = getErrorCode(response.status)
 
-    return NextResponse.json(
-      {
-        code: errorCode,
-        message: errorData.message || 'An error occurred',
-        timestamp: new Date().toISOString(),
-        path: request.url,
-        ...(errorData.errors && { errors: errorData.errors }),
-      },
-      { status: response.status }
-    )
+    const errorResponse: Record<string, unknown> = {
+      code: errorCode,
+      message: errorData.message || 'An error occurred',
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    }
+
+    if (errorData.errors) {
+      errorResponse.errors = errorData.errors
+    }
+
+    return NextResponse.json(errorResponse, { status: response.status })
   } catch (error) {
     // 予期しないエラー
     console.error('Failed to complete shopping session:', error)
