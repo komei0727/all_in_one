@@ -3,6 +3,8 @@ import {
   ShoppingSessionId,
   SessionStatus,
   type CheckedItem,
+  type DeviceType,
+  type ShoppingLocation,
 } from '@/modules/ingredients/server/domain/value-objects'
 
 import { BaseBuilder } from '../base.builder'
@@ -15,6 +17,8 @@ interface ShoppingSessionProps {
   status: SessionStatus
   checkedItems: CheckedItem[]
   completedAt: Date | null
+  deviceType?: DeviceType | null
+  location?: ShoppingLocation | null
   isNew?: boolean
 }
 
@@ -134,6 +138,20 @@ export class ShoppingSessionBuilder extends BaseBuilder<ShoppingSessionProps, Sh
    */
   withIsNew(isNew: boolean): this {
     return this.with('isNew', isNew)
+  }
+
+  /**
+   * デバイスタイプを設定
+   */
+  withDeviceType(deviceType: DeviceType | null): this {
+    return this.with('deviceType', deviceType)
+  }
+
+  /**
+   * 位置情報を設定
+   */
+  withLocation(location: ShoppingLocation | null): this {
+    return this.with('location', location)
   }
 
   build(): ShoppingSession {

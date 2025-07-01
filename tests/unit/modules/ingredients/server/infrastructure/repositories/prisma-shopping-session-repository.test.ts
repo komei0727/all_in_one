@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PrismaClient } from '@/generated/prisma'
-import { SessionStatus, ShoppingSessionId } from '@/modules/ingredients/server/domain/value-objects'
+import {
+  SessionStatus,
+  ShoppingSessionId,
+  DeviceType,
+  ShoppingLocation,
+} from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
 import { CheckedItemBuilder, ShoppingSessionBuilder } from '@tests/__fixtures__/builders'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
@@ -67,7 +72,9 @@ describe('PrismaShoppingSessionRepository', () => {
         startedAt: session.getStartedAt(),
         completedAt: null,
         deviceType: null,
-        location: null,
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
         metadata: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -89,8 +96,10 @@ describe('PrismaShoppingSessionRepository', () => {
           status: 'ACTIVE',
           startedAt: session.getStartedAt(),
           completedAt: null,
-          deviceType: null,
-          location: undefined,
+          deviceType: undefined,
+          locationName: null,
+          locationLat: null,
+          locationLng: null,
           metadata: undefined,
         },
       })
@@ -111,7 +120,9 @@ describe('PrismaShoppingSessionRepository', () => {
         startedAt: session.getStartedAt(),
         completedAt: null,
         deviceType: null,
-        location: null,
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
         metadata: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -156,7 +167,9 @@ describe('PrismaShoppingSessionRepository', () => {
         startedAt: new Date(),
         completedAt: null,
         deviceType: null,
-        location: null,
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
         metadata: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -224,7 +237,9 @@ describe('PrismaShoppingSessionRepository', () => {
         startedAt: new Date(),
         completedAt: null,
         deviceType: null,
-        location: null,
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
         metadata: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -277,7 +292,9 @@ describe('PrismaShoppingSessionRepository', () => {
         startedAt: session.getStartedAt(),
         completedAt: session.getCompletedAt(),
         deviceType: null,
-        location: null,
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
         metadata: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -302,8 +319,10 @@ describe('PrismaShoppingSessionRepository', () => {
         data: {
           status: 'COMPLETED',
           completedAt: session.getCompletedAt(),
-          deviceType: null,
-          location: undefined,
+          deviceType: undefined,
+          locationName: null,
+          locationLat: null,
+          locationLng: null,
           metadata: undefined,
         },
       })
@@ -321,7 +340,9 @@ describe('PrismaShoppingSessionRepository', () => {
         startedAt: session.getStartedAt(),
         completedAt: null,
         deviceType: null,
-        location: null,
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
         metadata: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -350,6 +371,146 @@ describe('PrismaShoppingSessionRepository', () => {
             ingredientId: checkedItem.getIngredientId().getValue(),
           }),
         ]),
+      })
+    })
+  })
+
+  describe('deviceType and location mapping', () => {
+    it('deviceTypeとlocationを含むセッションを保存できる', async () => {
+      // Arrange
+      const sessionId = ShoppingSessionId.create()
+      const deviceType = DeviceType.MOBILE
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+
+      const session = new ShoppingSessionBuilder()
+        .withId(sessionId)
+        .withDeviceType(deviceType)
+        .withLocation(location)
+        .build()
+
+      const mockSessionData = {
+        id: sessionId.getValue(),
+        userId: session.getUserId(),
+        status: 'ACTIVE',
+        startedAt: session.getStartedAt(),
+        completedAt: null,
+        deviceType: 'MOBILE',
+        locationName: '東京駅前スーパー',
+        locationLat: 35.6762,
+        locationLng: 139.6503,
+        metadata: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        sessionItems: [],
+      }
+
+      ;(prismaClient.shoppingSession.create as any).mockResolvedValue(mockSessionData)
+
+      // Act
+      const savedSession = await repository.save(session)
+
+      // Assert
+      expect(savedSession.getDeviceType()).toBe(deviceType)
+      expect(savedSession.getLocation()).toStrictEqual(location)
+      expect(prismaClient.shoppingSession.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          deviceType: 'MOBILE',
+          locationName: '東京駅前スーパー',
+          locationLat: 35.6762,
+          locationLng: 139.6503,
+        }),
+      })
+    })
+
+    it('deviceTypeのみを含むセッションを保存できる', async () => {
+      // Arrange
+      const sessionId = ShoppingSessionId.create()
+      const deviceType = DeviceType.TABLET
+
+      const session = new ShoppingSessionBuilder()
+        .withId(sessionId)
+        .withDeviceType(deviceType)
+        .build()
+
+      const mockSessionData = {
+        id: sessionId.getValue(),
+        userId: session.getUserId(),
+        status: 'ACTIVE',
+        startedAt: session.getStartedAt(),
+        completedAt: null,
+        deviceType: 'TABLET',
+        locationName: null,
+        locationLat: null,
+        locationLng: null,
+        metadata: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        sessionItems: [],
+      }
+
+      ;(prismaClient.shoppingSession.create as any).mockResolvedValue(mockSessionData)
+
+      // Act
+      const savedSession = await repository.save(session)
+
+      // Assert
+      expect(savedSession.getDeviceType()).toBe(deviceType)
+      expect(savedSession.getLocation()).toBeNull()
+      expect(prismaClient.shoppingSession.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          deviceType: 'TABLET',
+          locationName: null,
+          locationLat: null,
+          locationLng: null,
+        }),
+      })
+    })
+
+    it('locationのみを含むセッションを保存できる', async () => {
+      // Arrange
+      const sessionId = ShoppingSessionId.create()
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+      })
+
+      const session = new ShoppingSessionBuilder().withId(sessionId).withLocation(location).build()
+
+      const mockSessionData = {
+        id: sessionId.getValue(),
+        userId: session.getUserId(),
+        status: 'ACTIVE',
+        startedAt: session.getStartedAt(),
+        completedAt: null,
+        deviceType: null,
+        locationName: null,
+        locationLat: 35.6762,
+        locationLng: 139.6503,
+        metadata: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        sessionItems: [],
+      }
+
+      ;(prismaClient.shoppingSession.create as any).mockResolvedValue(mockSessionData)
+
+      // Act
+      const savedSession = await repository.save(session)
+
+      // Assert
+      expect(savedSession.getDeviceType()).toBeNull()
+      expect(savedSession.getLocation()).toStrictEqual(location)
+      expect(prismaClient.shoppingSession.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          deviceType: undefined,
+          locationName: null,
+          locationLat: 35.6762,
+          locationLng: 139.6503,
+        }),
       })
     })
   })

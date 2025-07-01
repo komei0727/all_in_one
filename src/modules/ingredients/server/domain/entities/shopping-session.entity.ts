@@ -15,6 +15,8 @@ import {
   type IngredientName,
   type StockStatus,
   type ExpiryStatus,
+  type DeviceType,
+  type ShoppingLocation,
 } from '../value-objects'
 
 /**
@@ -28,6 +30,8 @@ export class ShoppingSession extends AggregateRoot {
   private completedAt: Date | null
   private status: SessionStatus
   private checkedItems: CheckedItem[]
+  private readonly deviceType: DeviceType | null
+  private readonly location: ShoppingLocation | null
 
   constructor(params: {
     id: ShoppingSessionId
@@ -36,6 +40,8 @@ export class ShoppingSession extends AggregateRoot {
     status: SessionStatus
     checkedItems: CheckedItem[]
     completedAt?: Date | null
+    deviceType?: DeviceType | null
+    location?: ShoppingLocation | null
     isNew?: boolean // 新規作成フラグ
   }) {
     super()
@@ -45,13 +51,22 @@ export class ShoppingSession extends AggregateRoot {
     this.status = params.status
     this.checkedItems = params.checkedItems
     this.completedAt = params.completedAt ?? null
+    this.deviceType = params.deviceType ?? null
+    this.location = params.location ?? null
 
     // 新規作成の場合はイベントを発行
     if (params.isNew) {
       this.addDomainEvent(
-        new ShoppingSessionStarted(this.id.getValue(), this.userId, this.startedAt, {
-          userId: this.userId,
-        })
+        new ShoppingSessionStarted(
+          this.id.getValue(),
+          this.userId,
+          this.startedAt,
+          {
+            userId: this.userId,
+          },
+          this.deviceType ?? undefined,
+          this.location ?? undefined
+        )
       )
     }
   }
@@ -99,10 +114,45 @@ export class ShoppingSession extends AggregateRoot {
   }
 
   /**
+   * デバイスタイプを取得
+   */
+  getDeviceType(): DeviceType | null {
+    return this.deviceType
+  }
+
+  /**
+   * 位置情報を取得
+   */
+  getLocation(): ShoppingLocation | null {
+    return this.location
+  }
+
+  /**
    * セッションがアクティブかどうか
    */
   isActive(): boolean {
     return this.status.isActive()
+  }
+
+  /**
+   * モバイルデバイスを使用しているかどうか
+   */
+  isUsingMobileDevice(): boolean {
+    return this.deviceType?.isMobile() ?? false
+  }
+
+  /**
+   * 位置情報が設定されているかどうか
+   */
+  hasLocation(): boolean {
+    return this.location !== null
+  }
+
+  /**
+   * 位置情報の名前を取得
+   */
+  getLocationName(): string | null {
+    return this.location?.getName() ?? null
   }
 
   /**

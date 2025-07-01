@@ -9,6 +9,8 @@ import {
   SessionStatus,
   ShoppingSessionId,
   StockStatus,
+  DeviceType,
+  ShoppingLocation,
 } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
 import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders'
@@ -109,6 +111,40 @@ describe('PrismaShoppingSessionRepository Integration', () => {
       expect(dbSession?.status).toBe('ACTIVE')
     })
 
+    it('deviceTypeとlocationを含むセッションを保存できる', async () => {
+      // Arrange
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+
+      const session = new ShoppingSessionBuilder()
+        .withUserId(testUserId)
+        .withStatus(SessionStatus.ACTIVE)
+        .withDeviceType(DeviceType.MOBILE)
+        .withLocation(location)
+        .withCheckedItems([])
+        .build()
+
+      // Act
+      const savedSession = await repository.save(session)
+
+      // Assert
+      expect(savedSession.getDeviceType()).toBe(DeviceType.MOBILE)
+      expect(savedSession.getLocation()).toStrictEqual(location)
+
+      // データベースから直接確認
+      const dbSession = await prisma.shoppingSession.findUnique({
+        where: { id: session.getId().getValue() },
+      })
+      expect(dbSession).not.toBeNull()
+      expect(dbSession?.deviceType).toBe('MOBILE')
+      expect(dbSession?.locationName).toBe('東京駅前スーパー')
+      expect(Number(dbSession?.locationLat)).toBeCloseTo(35.6762, 4)
+      expect(Number(dbSession?.locationLng)).toBeCloseTo(139.6503, 4)
+    })
+
     it('確認済みアイテムを含むセッションを保存できる', async () => {
       // Arrange
       // テスト用の食材を作成
@@ -181,6 +217,31 @@ describe('PrismaShoppingSessionRepository Integration', () => {
       // Assert
       expect(result).toBeNull()
     })
+
+    it('deviceTypeとlocationを含むセッションを取得できる', async () => {
+      // Arrange
+      const location = ShoppingLocation.create({
+        latitude: 34.6851,
+        longitude: 135.1815,
+        name: '大阪駅前商店街',
+      })
+
+      const session = new ShoppingSessionBuilder()
+        .withUserId(testUserId)
+        .withDeviceType(DeviceType.TABLET)
+        .withLocation(location)
+        .build()
+      await repository.save(session)
+
+      // Act
+      const foundSession = await repository.findById(session.getId())
+
+      // Assert
+      expect(foundSession).not.toBeNull()
+      expect(foundSession?.getDeviceType()).toBe(DeviceType.TABLET)
+      expect(foundSession?.getLocation()).toStrictEqual(location)
+      expect(foundSession?.getLocation()?.getName()).toBe('大阪駅前商店街')
+    })
   })
 
   describe('findActiveByUserId', () => {
@@ -243,6 +304,48 @@ describe('PrismaShoppingSessionRepository Integration', () => {
       })
       expect(dbSession?.status).toBe('COMPLETED')
       expect(dbSession?.completedAt).not.toBeNull()
+    })
+
+    it('deviceTypeとlocationを更新できる', async () => {
+      // Arrange
+      const session = new ShoppingSessionBuilder()
+        .withUserId(testUserId)
+        .withStatus(SessionStatus.ACTIVE)
+        .withDeviceType(DeviceType.MOBILE)
+        .build()
+      await repository.save(session)
+
+      // 位置情報を追加したセッションを作成
+      const location = ShoppingLocation.create({
+        latitude: 40.7128,
+        longitude: -74.006,
+        name: 'ニューヨーク店',
+      })
+      const updatedSessionEntity = new ShoppingSessionBuilder()
+        .withId(session.getId())
+        .withUserId(testUserId)
+        .withStatus(SessionStatus.ACTIVE)
+        .withStartedAt(session.getStartedAt())
+        .withDeviceType(DeviceType.DESKTOP)
+        .withLocation(location)
+        .withCheckedItems(session.getCheckedItems())
+        .build()
+
+      // Act
+      const updatedSession = await repository.update(updatedSessionEntity)
+
+      // Assert
+      expect(updatedSession.getDeviceType()).toBe(DeviceType.DESKTOP)
+      expect(updatedSession.getLocation()).toStrictEqual(location)
+
+      // データベースから直接確認
+      const dbSession = await prisma.shoppingSession.findUnique({
+        where: { id: session.getId().getValue() },
+      })
+      expect(dbSession?.deviceType).toBe('DESKTOP')
+      expect(dbSession?.locationName).toBe('ニューヨーク店')
+      expect(Number(dbSession?.locationLat)).toBeCloseTo(40.7128, 4)
+      expect(Number(dbSession?.locationLng)).toBeCloseTo(-74.006, 4)
     })
 
     it('確認済みアイテムを追加・更新できる', async () => {

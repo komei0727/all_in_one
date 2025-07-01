@@ -10,6 +10,8 @@ import {
   IngredientName,
   StockStatus,
   ExpiryStatus,
+  DeviceType,
+  ShoppingLocation,
 } from '@/modules/ingredients/server/domain/value-objects'
 import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders'
 
@@ -319,6 +321,226 @@ describe('ShoppingSession', () => {
       expect(needsAttentionItems).toHaveLength(2)
       expect(needsAttentionItems[0].getIngredientName().getValue()).toBe('在庫少の調味料')
       expect(needsAttentionItems[1].getIngredientName().getValue()).toBe('期限切れ間近の牛乳')
+    })
+  })
+
+  describe('deviceType and location', () => {
+    it('deviceTypeとlocationを指定してセッションを作成できる', () => {
+      // Given
+      const startedAt = new Date()
+      const deviceType = DeviceType.MOBILE
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+
+      // When
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt,
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        deviceType,
+        location,
+      })
+
+      // Then
+      expect(session.getDeviceType()).toBe(deviceType)
+      expect(session.getLocation()).toBe(location)
+    })
+
+    it('deviceTypeのみ指定してセッションを作成できる', () => {
+      // Given
+      const startedAt = new Date()
+      const deviceType = DeviceType.TABLET
+
+      // When
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt,
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        deviceType,
+      })
+
+      // Then
+      expect(session.getDeviceType()).toBe(deviceType)
+      expect(session.getLocation()).toBeNull()
+    })
+
+    it('locationのみ指定してセッションを作成できる', () => {
+      // Given
+      const startedAt = new Date()
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+      })
+
+      // When
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt,
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        location,
+      })
+
+      // Then
+      expect(session.getDeviceType()).toBeNull()
+      expect(session.getLocation()).toBe(location)
+    })
+
+    it('deviceTypeとlocationなしでセッションを作成できる', () => {
+      // Given
+      const startedAt = new Date()
+
+      // When
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt,
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+      })
+
+      // Then
+      expect(session.getDeviceType()).toBeNull()
+      expect(session.getLocation()).toBeNull()
+    })
+
+    it('モバイルデバイスの場合はisUsingMobileDevice()がtrueを返す', () => {
+      // Given
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        deviceType: DeviceType.MOBILE,
+      })
+
+      // When & Then
+      expect(session.isUsingMobileDevice()).toBe(true)
+    })
+
+    it('タブレットの場合はisUsingMobileDevice()がfalseを返す', () => {
+      // Given
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        deviceType: DeviceType.TABLET,
+      })
+
+      // When & Then
+      expect(session.isUsingMobileDevice()).toBe(false)
+    })
+
+    it('deviceTypeが未設定の場合はisUsingMobileDevice()がfalseを返す', () => {
+      // Given
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+      })
+
+      // When & Then
+      expect(session.isUsingMobileDevice()).toBe(false)
+    })
+
+    it('位置情報が設定されている場合はhasLocation()がtrueを返す', () => {
+      // Given
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+      })
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        location,
+      })
+
+      // When & Then
+      expect(session.hasLocation()).toBe(true)
+    })
+
+    it('位置情報が未設定の場合はhasLocation()がfalseを返す', () => {
+      // Given
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+      })
+
+      // When & Then
+      expect(session.hasLocation()).toBe(false)
+    })
+
+    it('位置情報に名前が設定されている場合はgetLocationName()で名前を取得できる', () => {
+      // Given
+      const locationName = '東京駅前スーパー'
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: locationName,
+      })
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        location,
+      })
+
+      // When & Then
+      expect(session.getLocationName()).toBe(locationName)
+    })
+
+    it('位置情報に名前が設定されていない場合はgetLocationName()がnullを返す', () => {
+      // Given
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+      })
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+        location,
+      })
+
+      // When & Then
+      expect(session.getLocationName()).toBeNull()
+    })
+
+    it('位置情報が未設定の場合はgetLocationName()がnullを返す', () => {
+      // Given
+      const session = new ShoppingSession({
+        id: sessionId,
+        userId,
+        startedAt: new Date(),
+        status: SessionStatus.ACTIVE,
+        checkedItems: [],
+      })
+
+      // When & Then
+      expect(session.getLocationName()).toBeNull()
     })
   })
 })

@@ -3,6 +3,7 @@ import type {
   SessionStatus as PrismaSessionStatus,
   StockStatus as PrismaStockStatus,
   ExpiryStatus as PrismaExpiryStatus,
+  DeviceType as PrismaDeviceType,
 } from '@/generated/prisma'
 
 import { ShoppingSession } from '../../domain/entities/shopping-session.entity'
@@ -14,6 +15,8 @@ import {
   SessionStatus,
   ShoppingSessionId,
   StockStatus,
+  DeviceType,
+  ShoppingLocation,
 } from '../../domain/value-objects'
 
 import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
@@ -40,8 +43,10 @@ export class PrismaShoppingSessionRepository implements ShoppingSessionRepositor
           status: this.mapSessionStatusToPrisma(session.getStatus()),
           startedAt: session.getStartedAt(),
           completedAt: session.getCompletedAt(),
-          deviceType: null, // TODO: デバイスタイプを実装時に追加
-          location: undefined, // TODO: ロケーション情報を実装時に追加
+          deviceType: session.getDeviceType()?.getValue() as PrismaDeviceType | null,
+          locationName: session.getLocation()?.getName() ?? null,
+          locationLat: session.getLocation()?.getLatitude() ?? null,
+          locationLng: session.getLocation()?.getLongitude() ?? null,
           metadata: undefined,
         },
       })
@@ -162,8 +167,10 @@ export class PrismaShoppingSessionRepository implements ShoppingSessionRepositor
         data: {
           status: this.mapSessionStatusToPrisma(session.getStatus()),
           completedAt: session.getCompletedAt(),
-          deviceType: null, // TODO: デバイスタイプを実装時に追加
-          location: undefined, // TODO: ロケーション情報を実装時に追加
+          deviceType: session.getDeviceType()?.getValue() as PrismaDeviceType | null,
+          locationName: session.getLocation()?.getName() ?? null,
+          locationLat: session.getLocation()?.getLatitude() ?? null,
+          locationLng: session.getLocation()?.getLongitude() ?? null,
           metadata: undefined,
         },
       })
@@ -207,9 +214,29 @@ export class PrismaShoppingSessionRepository implements ShoppingSessionRepositor
       status: PrismaSessionStatus
       startedAt: Date
       completedAt: Date | null
+      deviceType?: PrismaDeviceType | null
+      locationName?: string | null
+      locationLat?: unknown
+      locationLng?: unknown
     },
     checkedItems: CheckedItem[]
   ): ShoppingSession {
+    // deviceTypeの変換
+    let deviceType: DeviceType | null = null
+    if (prismaSession.deviceType) {
+      deviceType = DeviceType.fromString(prismaSession.deviceType)
+    }
+
+    // locationの変換
+    let location: ShoppingLocation | null = null
+    if (prismaSession.locationLat !== null && prismaSession.locationLng !== null) {
+      location = ShoppingLocation.create({
+        latitude: Number(prismaSession.locationLat),
+        longitude: Number(prismaSession.locationLng),
+        name: prismaSession.locationName || undefined,
+      })
+    }
+
     return new ShoppingSession({
       id: new ShoppingSessionId(prismaSession.id),
       userId: prismaSession.userId,
@@ -217,6 +244,8 @@ export class PrismaShoppingSessionRepository implements ShoppingSessionRepositor
       startedAt: prismaSession.startedAt,
       completedAt: prismaSession.completedAt,
       checkedItems,
+      deviceType,
+      location,
       isNew: false, // DBから読み込まれたエンティティは新規作成ではない
     })
   }
