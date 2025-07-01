@@ -1,3 +1,5 @@
+import type { CheckedItemDto } from './checked-item.dto'
+
 /**
  * 買い物セッションDTOクラス
  * APIレスポンスとして返す買い物セッション情報を保持する
@@ -12,7 +14,8 @@ export class ShoppingSessionDto {
     public readonly deviceType: string | null,
     public readonly location: {
       placeName?: string
-    } | null
+    } | null,
+    public readonly checkedItems?: CheckedItemDto[]
   ) {}
 
   /**
@@ -29,6 +32,7 @@ export class ShoppingSessionDto {
         completedAt: this.completedAt,
         deviceType: this.deviceType,
         location: this.location,
+        checkedItems: this.checkedItems?.map((item) => item.toJSON().data) || null,
       },
     }
   }

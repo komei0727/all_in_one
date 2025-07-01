@@ -1,4 +1,5 @@
 import { type GetActiveShoppingSessionQuery } from './get-active-shopping-session.query'
+import { CheckedItemDto } from '../dtos/checked-item.dto'
 import { ShoppingSessionDto } from '../dtos/shopping-session.dto'
 
 import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
@@ -22,6 +23,20 @@ export class GetActiveShoppingSessionHandler {
       return null
     }
 
+    // チェック済みアイテムをDTOに変換
+    const checkedItemDtos = activeSession
+      .getCheckedItems()
+      .map(
+        (item) =>
+          new CheckedItemDto(
+            item.getIngredientId().getValue(),
+            item.getIngredientName().getValue(),
+            item.getStockStatus().getValue(),
+            item.getExpiryStatus()?.getValue() ?? null,
+            item.getCheckedAt().toISOString()
+          )
+      )
+
     // DTOに変換して返す
     return new ShoppingSessionDto(
       activeSession.getId().getValue(),
@@ -30,7 +45,8 @@ export class GetActiveShoppingSessionHandler {
       activeSession.getStartedAt().toISOString(),
       activeSession.getCompletedAt()?.toISOString() ?? null,
       null, // deviceType - TODO: 将来実装
-      null // location - TODO: 将来実装
+      null, // location - TODO: 将来実装
+      checkedItemDtos
     )
   }
 }

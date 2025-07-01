@@ -1,6 +1,7 @@
 import { type CompleteShoppingSessionCommand } from './complete-shopping-session.command'
 import { BusinessRuleException, NotFoundException } from '../../domain/exceptions'
 import { ShoppingSessionId } from '../../domain/value-objects'
+import { CheckedItemDto } from '../dtos/checked-item.dto'
 import { ShoppingSessionDto } from '../dtos/shopping-session.dto'
 
 import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
@@ -37,6 +38,20 @@ export class CompleteShoppingSessionHandler {
     const updatedSession = await this.sessionRepository.update(session)
 
     // DTOに変換して返す
+    // チェック済みアイテムをDTOに変換
+    const checkedItemDtos = updatedSession
+      .getCheckedItems()
+      .map(
+        (item) =>
+          new CheckedItemDto(
+            item.getIngredientId().getValue(),
+            item.getIngredientName().getValue(),
+            item.getStockStatus().getValue(),
+            item.getExpiryStatus()?.getValue() ?? null,
+            item.getCheckedAt().toISOString()
+          )
+      )
+
     return new ShoppingSessionDto(
       updatedSession.getId().getValue(),
       updatedSession.getUserId(),
@@ -44,7 +59,8 @@ export class CompleteShoppingSessionHandler {
       updatedSession.getStartedAt().toISOString(),
       updatedSession.getCompletedAt()?.toISOString() ?? null,
       null, // deviceType - TODO: 将来実装
-      null // location - TODO: 将来実装
+      null, // location - TODO: 将来実装
+      checkedItemDtos
     )
   }
 }

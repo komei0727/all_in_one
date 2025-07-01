@@ -134,4 +134,25 @@ export class StockCalculationService {
       return total
     }, 0)
   }
+
+  /**
+   * 食材の在庫状態を判定
+   * @param ingredient 食材
+   * @returns 在庫状態
+   */
+  calculateStockStatus(ingredient: Ingredient): 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' {
+    const stock = ingredient.getIngredientStock()
+    const quantity = stock.getQuantity()
+    const threshold = stock.getThreshold()
+
+    if (quantity <= 0) {
+      return 'OUT_OF_STOCK'
+    }
+
+    if (threshold !== null && quantity <= threshold) {
+      return 'LOW_STOCK'
+    }
+
+    return 'IN_STOCK'
+  }
 }

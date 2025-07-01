@@ -114,4 +114,43 @@ export class ExpiryCheckService {
       return aDate.getTime() - bDate.getTime()
     })
   }
+
+  /**
+   * 食材の期限状態を判定
+   * @param ingredient 食材
+   * @returns 期限状態
+   */
+  checkExpiryStatus(
+    ingredient: Ingredient
+  ): 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED' {
+    const expiryInfo = ingredient.getExpiryInfo()
+
+    // 期限情報がない場合は新鮮として扱う
+    if (!expiryInfo) {
+      return 'FRESH'
+    }
+
+    // 期限切れチェック
+    if (expiryInfo.isExpired()) {
+      return 'EXPIRED'
+    }
+
+    // 期限までの日数を取得
+    const daysUntilExpiry = expiryInfo.getDaysUntilExpiry()
+
+    if (daysUntilExpiry === null) {
+      return 'FRESH'
+    }
+
+    // 期限状態を日数で判定
+    if (daysUntilExpiry <= 1) {
+      return 'CRITICAL' // 1日以内
+    } else if (daysUntilExpiry <= 3) {
+      return 'EXPIRING_SOON' // 3日以内
+    } else if (daysUntilExpiry <= 7) {
+      return 'NEAR_EXPIRY' // 7日以内
+    } else {
+      return 'FRESH' // 7日より先
+    }
+  }
 }

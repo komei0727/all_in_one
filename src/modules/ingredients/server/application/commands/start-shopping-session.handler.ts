@@ -25,7 +25,7 @@ export class StartShoppingSessionHandler {
     // セッションを永続化
     const savedSession = await this.sessionRepository.save(session)
 
-    // DTOに変換して返す
+    // DTOに変換して返す（新規セッションなのでcheckedItemsは空配列）
     return new ShoppingSessionDto(
       savedSession.getId().getValue(),
       savedSession.getUserId(),
@@ -33,7 +33,8 @@ export class StartShoppingSessionHandler {
       savedSession.getStartedAt().toISOString(),
       savedSession.getCompletedAt()?.toISOString() ?? null,
       null, // deviceType - TODO: 将来実装
-      null // location - TODO: 将来実装
+      null, // location - TODO: 将来実装
+      [] // checkedItems - 新規セッションなので空
     )
   }
 }

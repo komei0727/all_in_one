@@ -157,6 +157,43 @@ export class ShoppingSession extends AggregateRoot {
   }
 
   /**
+   * 食材を確認する（重複チェック版）
+   * @param checkedItem 確認済みアイテム
+   * @throws {BusinessRuleException} セッションがアクティブでない場合、または既にチェック済みの場合
+   */
+  checkIngredient(checkedItem: CheckedItem): void {
+    // アクティブなセッションでのみ食材確認可能
+    if (!this.isActive()) {
+      throw new BusinessRuleException('アクティブでないセッションでは食材を確認できません')
+    }
+
+    // 同じ食材が既に確認されている場合はエラー
+    const isAlreadyChecked = this.checkedItems.some((item) =>
+      item.getIngredientId().equals(checkedItem.getIngredientId())
+    )
+
+    if (isAlreadyChecked) {
+      throw new BusinessRuleException('この食材は既にチェック済みです')
+    }
+
+    // 新規追加
+    this.checkedItems.push(checkedItem)
+
+    // 食材確認イベントを発行
+    this.addDomainEvent(
+      new ItemChecked(
+        this.id.getValue(),
+        checkedItem.getIngredientId().getValue(),
+        checkedItem.getIngredientName().getValue(),
+        checkedItem.getStockStatus().getValue(),
+        checkedItem.getExpiryStatus().getValue(),
+        checkedItem.getCheckedAt(),
+        { userId: this.userId }
+      )
+    )
+  }
+
+  /**
    * セッションを完了する
    * @throws {BusinessRuleException} セッションがアクティブでない場合
    */

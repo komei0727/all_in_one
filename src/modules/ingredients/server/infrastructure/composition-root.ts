@@ -10,8 +10,10 @@ import { PrismaRepositoryFactory } from './repositories/prisma-repository-factor
 import { PrismaShoppingSessionRepository } from './repositories/prisma-shopping-session-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from './services/prisma-transaction-manager'
+import { CheckIngredientApiHandler } from '../api/handlers/commands/check-ingredient.handler'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
+import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
 import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
 import { DeleteIngredientHandler } from '../application/commands/delete-ingredient.handler'
@@ -270,5 +272,22 @@ export class CompositionRoot {
    */
   public getCompleteShoppingSessionHandler(): CompleteShoppingSessionHandler {
     return new CompleteShoppingSessionHandler(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get CheckIngredientHandler instance (new instance each time)
+   */
+  public getCheckIngredientHandler(): CheckIngredientHandler {
+    return new CheckIngredientHandler(
+      this.getShoppingSessionRepository(),
+      this.getIngredientRepository()
+    )
+  }
+
+  /**
+   * Get CheckIngredientApiHandler instance (new instance each time)
+   */
+  public getCheckIngredientApiHandler(): CheckIngredientApiHandler {
+    return new CheckIngredientApiHandler(this.getCheckIngredientHandler())
   }
 }

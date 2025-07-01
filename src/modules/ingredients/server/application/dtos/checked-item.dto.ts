@@ -6,19 +6,8 @@ export class CheckedItemDto {
   constructor(
     public readonly ingredientId: string,
     public readonly ingredientName: string,
-    public readonly categoryId: string,
-    public readonly categoryName: string,
     public readonly stockStatus: string,
     public readonly expiryStatus: string | null,
-    public readonly currentQuantity: {
-      amount: number
-      unit: {
-        id: string
-        name: string
-        symbol: string
-      }
-    },
-    public readonly threshold: number | null,
     public readonly checkedAt: string
   ) {}
 
@@ -28,15 +17,13 @@ export class CheckedItemDto {
    */
   toJSON() {
     return {
-      ingredientId: this.ingredientId,
-      ingredientName: this.ingredientName,
-      categoryId: this.categoryId,
-      categoryName: this.categoryName,
-      stockStatus: this.stockStatus,
-      expiryStatus: this.expiryStatus,
-      currentQuantity: this.currentQuantity,
-      threshold: this.threshold,
-      checkedAt: this.checkedAt,
+      data: {
+        ingredientId: this.ingredientId,
+        ingredientName: this.ingredientName,
+        stockStatus: this.stockStatus,
+        expiryStatus: this.expiryStatus,
+        checkedAt: this.checkedAt,
+      },
     }
   }
 }
