@@ -125,10 +125,14 @@ graph TD
         CheckedItem[確認済みアイテム<br/>値オブジェクト]
         SessionStatus[セッション状態<br/>値オブジェクト]
         UserId[ユーザーID<br/>値オブジェクト<br/>（認証コンテキストから）]
+        DeviceType[デバイスタイプ<br/>値オブジェクト]
+        ShoppingLocation[買い物場所<br/>値オブジェクト]
 
         ShoppingSession --> UserId
         ShoppingSession --> SessionStatus
         ShoppingSession --> CheckedItem
+        ShoppingSession --> DeviceType
+        ShoppingSession --> ShoppingLocation
     end
 ```
 
@@ -145,8 +149,19 @@ graph TD
    - 同一食材の重複確認は最新のもののみ保持
 
 3. **読み取り専用の保証**
+
    - 買い物セッション中は食材データの更新不可
    - 在庫確認のみ実行可能
+
+4. **デバイスタイプの制約**
+
+   - MOBILE、TABLET、DESKTOPのいずれかの値のみ許可
+   - セッション開始後の変更は不可
+
+5. **位置情報の整合性**
+   - 緯度は-90から90の範囲
+   - 経度は-180から180の範囲
+   - セッション開始後の変更は不可
 
 ### トランザクション境界
 
@@ -156,12 +171,12 @@ graph TD
 
 ### ドメインイベント
 
-| イベント                 | 発生タイミング   | ペイロード                                                 |
-| ------------------------ | ---------------- | ---------------------------------------------------------- |
-| ShoppingSessionStarted   | セッション開始時 | セッションID、ユーザーID、開始時刻                         |
-| ItemChecked              | 食材確認時       | セッションID、食材ID、食材名、在庫状態、期限状態、確認時刻 |
-| ShoppingSessionCompleted | セッション完了時 | セッションID、ユーザーID、継続時間、確認件数               |
-| ShoppingSessionAbandoned | セッション中断時 | セッションID、ユーザーID、継続時間、中断理由               |
+| イベント                 | 発生タイミング   | ペイロード                                                   |
+| ------------------------ | ---------------- | ------------------------------------------------------------ |
+| ShoppingSessionStarted   | セッション開始時 | セッションID、ユーザーID、開始時刻、デバイスタイプ、位置情報 |
+| ItemChecked              | 食材確認時       | セッションID、食材ID、食材名、在庫状態、期限状態、確認時刻   |
+| ShoppingSessionCompleted | セッション完了時 | セッションID、ユーザーID、継続時間、確認件数                 |
+| ShoppingSessionAbandoned | セッション中断時 | セッションID、ユーザーID、継続時間、中断理由                 |
 
 ## 集約間の関係
 
@@ -329,3 +344,4 @@ graph LR
 | 2025-06-24 | 初版                                                                               | @komei0727 |
 | 2025-06-24 | ユーザー認証統合に伴う修正（ドメインイベントへのユーザーID追加、アクセス制御強化） | Claude     |
 | 2025-06-28 | 買い物サポート機能統合に伴う修正（買い物セッション集約の追加）                     | Claude     |
+| 2025-07-01 | 買い物セッション集約にDeviceTypeとShoppingLocation値オブジェクトを追加             | Claude     |

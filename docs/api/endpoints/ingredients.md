@@ -1546,6 +1546,8 @@ interface EventsResponse {
 
 買い物モードを開始し、新しい買い物セッションを作成します。同時にアクティブなセッションは1つまでです。
 
+**注意**: 現在の実装では、`deviceType`と`location`はリクエストで受け取りますが、まだ永続化されません（DTOではnullで返されます）。
+
 ### エンドポイント情報
 
 - **メソッド**: `POST`
@@ -1559,13 +1561,13 @@ interface EventsResponse {
 
 ```typescript
 interface StartShoppingSessionRequest {
+  userId: string // ユーザーID（必須）
   deviceType?: 'MOBILE' | 'DESKTOP' | 'TABLET' // デバイスタイプ
   location?: {
-    latitude?: number
-    longitude?: number
-    placeName?: string // 店舗名など
+    name?: string // 場所の名前（最大100文字）
+    latitude: number // 緯度（-90から90の範囲）
+    longitude: number // 経度（-180から180の範囲）
   }
-  notes?: string // セッション開始時のメモ
 }
 ```
 
@@ -1580,12 +1582,14 @@ interface StartShoppingSessionResponse {
     userId: string
     status: 'ACTIVE'
     startedAt: string
-    deviceType?: string
-    location?: {
-      latitude?: number
-      longitude?: number
-      placeName?: string
-    }
+    completedAt: null
+    deviceType: string | null // 現在の実装ではnull
+    location: {
+      // 現在の実装ではnull
+      name?: string
+      latitude: number
+      longitude: number
+    } | null
   }
   meta: {
     timestamp: string
@@ -1598,6 +1602,9 @@ interface StartShoppingSessionResponse {
 
 | ステータスコード | エラーコード          | 説明                                   |
 | ---------------- | --------------------- | -------------------------------------- |
+| 400              | VALIDATION_ERROR      | リクエストパラメータが不正             |
+| 400              | INVALID_DEVICE_TYPE   | 無効なデバイスタイプ                   |
+| 400              | INVALID_LOCATION      | 無効な位置情報（緯度経度の範囲外）     |
 | 409              | ACTIVE_SESSION_EXISTS | 既にアクティブなセッションが存在します |
 | 401              | UNAUTHORIZED          | 認証が必要                             |
 
@@ -1630,6 +1637,12 @@ interface ActiveShoppingSessionResponse {
     duration: number // 秒単位
     checkedItemsCount: number
     lastActivityAt: string
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
+    location?: {
+      name?: string
+      latitude: number
+      longitude: number
+    }
   } | null // アクティブセッションがない場合はnull
   meta: {
     timestamp: string
@@ -1685,6 +1698,12 @@ interface CompleteShoppingSessionResponse {
     duration: number // 秒単位
     checkedItemsCount: number
     totalSpent?: number
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
+    location?: {
+      name?: string
+      latitude: number
+      longitude: number
+    }
   }
   meta: {
     timestamp: string
@@ -1805,9 +1824,11 @@ interface ShoppingHistoryResponse {
     duration: number // 秒単位
     checkedItemsCount: number
     totalSpent?: number
-    deviceType?: string
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
     location?: {
-      placeName?: string
+      name?: string
+      latitude: number
+      longitude: number
     }
   }>
   pagination: {
@@ -2248,6 +2269,7 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 | 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
 | 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加              | @komei0727 |
 | 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化             | Claude     |
+| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加（現在は実装未完了の注記付き） | Claude     |
 
 ## 関連ドキュメント
 

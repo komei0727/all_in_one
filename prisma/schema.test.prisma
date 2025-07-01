@@ -227,8 +227,10 @@ model ShoppingSession {
   status       String          // セッション状態 (SQLite: String)
   startedAt    DateTime        @default(now())
   completedAt  DateTime?       // セッション完了日時
-  deviceType   String?         // デバイスタイプ（mobile/tablet/web）
-  location     String?         // 位置情報（SQLite: String）
+  deviceType   String?         // デバイスタイプ（MOBILE/TABLET/DESKTOP）
+  locationName String?         // 場所の名前（最大100文字）
+  locationLat  Decimal?        // 緯度（-90から90）
+  locationLng  Decimal?        // 経度（-180から180）
   metadata     String?         // その他のメタデータ（SQLite: String）
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -242,6 +244,8 @@ model ShoppingSession {
   @@index([userId, status])
   @@index([startedAt])
   @@index([status])
+  @@index([deviceType])
+  @@index([locationLat, locationLng])
   @@map("shopping_sessions")
 }
 

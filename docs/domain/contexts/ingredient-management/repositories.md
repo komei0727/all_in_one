@@ -135,6 +135,8 @@ IngredientRepositoryは以下のドメインイベントの発行を担当：
 | findByDateRange(userId, startDate, endDate) | 期間内のセッション取得     | 統計分析             |
 | countActiveSession(userId)                  | アクティブセッション数確認 | 重複チェック         |
 | hasActiveSession(userId)                    | アクティブセッションの有無 | 新規セッション開始前 |
+| findByDeviceType(userId, deviceType)        | デバイス種別での絞り込み   | 利用デバイス分析     |
+| findByLocation(userId, location, radius)    | 位置情報での検索           | 店舗別分析           |
 
 ### 確認履歴管理
 
@@ -214,7 +216,7 @@ ShoppingSessionRepositoryは以下のドメインイベントの発行を担当�
 - 食材：userId, categoryId, expiryInfo（データベース実装ではbest_before_dateとuse_by_dateの個別インデックス）, storageLocation
 - カテゴリー：name, displayOrder
 - 単位：type, symbol
-- 買い物セッション：userId + status（アクティブセッション検索用）, startedAt
+- 買い物セッション：userId + status（アクティブセッション検索用）, startedAt, deviceType
 - 確認履歴：sessionId, ingredientId, checkedAt
 
 ### キャッシュ戦略
@@ -270,3 +272,4 @@ ShoppingSessionRepositoryは以下のドメインイベントの発行を担当�
 | 2025-06-24 | 初版                                                                                            | @komei0727 |
 | 2025-06-24 | ユーザー認証統合に伴う修正（アクセス制御の明記、インデックス追加）                              | Claude     |
 | 2025-06-28 | 買い物サポート機能統合に伴う修正（ShoppingSessionRepository追加、ドメインイベント発行責務追加） | Claude     |
+| 2025-07-01 | ShoppingSessionRepositoryにデバイス種別・位置情報での検索メソッドを追加、インデックス設計更新   | Claude     |
