@@ -23,6 +23,7 @@ import type { IngredientQueryService } from '../application/query-services/ingre
 import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
 import type { RepositoryFactory } from '../domain/repositories/repository-factory.interface'
+import type { ShoppingSessionRepository } from '../domain/repositories/shopping-session-repository.interface'
 import type { UnitRepository } from '../domain/repositories/unit-repository.interface'
 
 /**
@@ -38,6 +39,7 @@ export class CompositionRoot {
   private categoryRepository: CategoryRepository | null = null
   private unitRepository: UnitRepository | null = null
   private ingredientRepository: IngredientRepository | null = null
+  private shoppingSessionRepository: ShoppingSessionRepository | null = null
   private repositoryFactory: RepositoryFactory | null = null
   private ingredientQueryService: IngredientQueryService | null = null
   private transactionManager: TransactionManager | null = null
@@ -222,5 +224,18 @@ export class CompositionRoot {
       this.getRepositoryFactory(),
       this.getTransactionManager()
     )
+  }
+
+  /**
+   * Get ShoppingSessionRepository instance (singleton)
+   * TODO: Implement PrismaShoppingSessionRepository
+   */
+  public getShoppingSessionRepository(): ShoppingSessionRepository {
+    if (!this.shoppingSessionRepository) {
+      // TODO: Phase2で実装時にコメントアウトを解除
+      // this.shoppingSessionRepository = new PrismaShoppingSessionRepository(this.prismaClient)
+      throw new Error('ShoppingSessionRepository is not implemented yet')
+    }
+    return this.shoppingSessionRepository
   }
 }
