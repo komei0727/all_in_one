@@ -74,7 +74,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
       null,
       null,
       null,
-      undefined
+      []
     )
 
     mockApiHandler.handle.mockResolvedValue(expectedDto)

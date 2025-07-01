@@ -57,7 +57,7 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         session.startedAt.toISOString(),
         session.completedAt?.toISOString() ?? null,
         session.deviceType,
-        session.location ? { placeName: session.location as string } : null,
+        session.locationName ? { placeName: session.locationName } : null,
         checkedItems
       )
     })

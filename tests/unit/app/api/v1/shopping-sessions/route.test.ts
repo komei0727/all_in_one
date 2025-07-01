@@ -2,9 +2,15 @@ import { faker } from '@faker-js/faker'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import { POST } from '@/app/api/v1/shopping-sessions/route'
-import { type StartShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/start-shopping-session.handler'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
-import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions'
+import { type StartShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/start-shopping-session.handler'
+import {
+  BusinessRuleException,
+  ValidationException,
+} from '@/modules/ingredients/server/domain/exceptions'
+
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}))
 
 vi.mock('@/modules/ingredients/server/infrastructure/composition-root', () => ({
   CompositionRoot: {
@@ -61,14 +67,26 @@ const NextRequest = MockNextRequest as any
 describe('POST /api/v1/shopping-sessions', () => {
   let mockHandle: Mock
   let userId: string
+  let domainUserId: string
 
   beforeEach(async () => {
     vi.clearAllMocks()
     userId = faker.string.uuid()
+    domainUserId = faker.string.uuid()
+
+    // 認証のモックを設定（デフォルトは認証済み）
+    const { auth } = await import('@/auth')
+    vi.mocked(auth).mockResolvedValue({
+      user: {
+        id: userId,
+        domainUserId,
+        email: faker.internet.email(),
+      },
+    } as any)
 
     // ハンドラーのモックを作成
     mockHandle = vi.fn()
-    const mockHandler: Partial<StartShoppingSessionHandler> = {
+    const mockHandler: Partial<StartShoppingSessionApiHandler> = {
       handle: mockHandle,
     }
 
@@ -77,7 +95,7 @@ describe('POST /api/v1/shopping-sessions', () => {
       '@/modules/ingredients/server/infrastructure/composition-root'
     )
     vi.mocked(CompositionRoot.getInstance).mockReturnValue({
-      getStartShoppingSessionHandler: () => mockHandler as StartShoppingSessionHandler,
+      getStartShoppingSessionApiHandler: () => mockHandler as StartShoppingSessionApiHandler,
     } as any)
   })
 
@@ -85,9 +103,12 @@ describe('POST /api/v1/shopping-sessions', () => {
     vi.clearAllMocks()
   })
 
-  describe('リクエスト検証', () => {
-    it('空のボディでリクエストすると400エラーを返す', async () => {
-      // Given: 空のボディ
+  describe('認証', () => {
+    it('未認証の場合は401エラーを返す', async () => {
+      // Given: 認証されていない
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValue(null)
+
       const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions', {
         method: 'POST',
         headers: {
@@ -99,15 +120,37 @@ describe('POST /api/v1/shopping-sessions', () => {
       // When: APIを呼び出す
       const response = await POST(request)
 
+      // Then: 401エラーが返される
+      expect(response.status).toBe(401)
+      const data = await response.json()
+      expect(data.error.code).toBe('UNAUTHORIZED')
+    })
+  })
+
+  describe('リクエスト検証', () => {
+    it('バリデーションエラーの場合は400エラーを返す', async () => {
+      // Given: バリデーションエラー
+      mockHandle.mockRejectedValue(new ValidationException('deviceTypeは無効です'))
+
+      const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ deviceType: 'INVALID' }),
+      })
+
+      // When: APIを呼び出す
+      const response = await POST(request)
+
       // Then: 400エラーが返される
       expect(response.status).toBe(400)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'User ID is required',
-      })
+      expect(data.error.code).toBe('VALIDATION_ERROR')
+      expect(data.error.message).toBe('deviceTypeは無効です')
     })
 
-    it('無効なJSONでリクエストすると400エラーを返す', async () => {
+    it('無効なJSONでリクエストすると500エラーを返す', async () => {
       // Given: 無効なJSON
       const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions', {
         method: 'POST',
@@ -120,10 +163,10 @@ describe('POST /api/v1/shopping-sessions', () => {
       // When: APIを呼び出す
       const response = await POST(request)
 
-      // Then: 400エラーが返される
-      expect(response.status).toBe(400)
+      // Then: 500エラーが返される（JSONパースエラーは予期しないエラーとして扱われる）
+      expect(response.status).toBe(500)
       const data = await response.json()
-      expect(data.error).toContain('Invalid request')
+      expect(data.error.code).toBe('INTERNAL_ERROR')
     })
   })
 
@@ -135,22 +178,31 @@ describe('POST /api/v1/shopping-sessions', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({
+          deviceType: 'MOBILE',
+          location: {
+            latitude: 35.6762,
+            longitude: 139.6503,
+            address: '東京駅',
+          },
+        }),
       })
 
-      // セッションDTOのモック
-      const mockSessionDto = new ShoppingSessionDto(
-        'ses_' + faker.string.uuid(),
-        userId,
-        'ACTIVE',
-        new Date().toISOString(),
-        null,
-        null,
-        null
-      )
+      // APIハンドラーのレスポンスをモック
+      const mockResponse = {
+        sessionId: 'ses_' + faker.string.uuid(),
+        userId: domainUserId,
+        status: 'ACTIVE',
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        deviceType: 'MOBILE',
+        location: {
+          placeName: '東京駅',
+        },
+      }
 
-      // ハンドラーがDTOを返す
-      mockHandle.mockResolvedValue(mockSessionDto)
+      // ハンドラーがレスポンスを返す
+      mockHandle.mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
       const response = await POST(request)
@@ -158,20 +210,18 @@ describe('POST /api/v1/shopping-sessions', () => {
       // Then: 201レスポンスが返される
       expect(response.status).toBe(201)
       const data = await response.json()
-      expect(data).toEqual({
-        sessionId: mockSessionDto.sessionId,
-        userId: mockSessionDto.userId,
-        status: mockSessionDto.status,
-        startedAt: mockSessionDto.startedAt,
-        completedAt: mockSessionDto.completedAt,
-        deviceType: mockSessionDto.deviceType,
-        location: mockSessionDto.location,
-      })
+      expect(data).toEqual(mockResponse)
 
-      // ハンドラーが正しく呼ばれた
+      // ハンドラーが正しく呼ばれた（userIdはdomainUserIdに置き換えられる）
       expect(mockHandle).toHaveBeenCalledWith(
         expect.objectContaining({
-          userId,
+          userId: domainUserId,
+          deviceType: 'MOBILE',
+          location: {
+            latitude: 35.6762,
+            longitude: 139.6503,
+            address: '東京駅',
+          },
         })
       )
     })
@@ -185,7 +235,7 @@ describe('POST /api/v1/shopping-sessions', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({}),
       })
 
       // ハンドラーがビジネスルール例外を投げる
@@ -199,9 +249,8 @@ describe('POST /api/v1/shopping-sessions', () => {
       // Then: 409エラーが返される
       expect(response.status).toBe(409)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'アクティブなセッションが既に存在します',
-      })
+      expect(data.error.code).toBe('BUSINESS_RULE_VIOLATION')
+      expect(data.error.message).toBe('アクティブなセッションが既に存在します')
     })
 
     it('予期しないエラーの場合は500エラーを返す', async () => {
@@ -211,7 +260,7 @@ describe('POST /api/v1/shopping-sessions', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({}),
       })
 
       // ハンドラーが予期しないエラーを投げる
@@ -223,9 +272,8 @@ describe('POST /api/v1/shopping-sessions', () => {
       // Then: 500エラーが返される
       expect(response.status).toBe(500)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'Internal server error',
-      })
+      expect(data.error.code).toBe('INTERNAL_ERROR')
+      expect(data.error.message).toBe('内部エラーが発生しました')
     })
   })
 })

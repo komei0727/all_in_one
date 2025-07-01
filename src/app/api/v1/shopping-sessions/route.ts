@@ -1,7 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
-import { StartShoppingSessionCommand } from '@/modules/ingredients/server/application/commands/start-shopping-session.command'
-import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions'
+import { auth } from '@/auth'
+import {
+  BusinessRuleException,
+  ValidationException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
@@ -10,52 +13,79 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  */
 export async function POST(request: NextRequest) {
   try {
+    // 認証チェック
+    const session = await auth()
+    if (!session?.user?.domainUserId) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'UNAUTHORIZED',
+            message: '認証が必要です',
+            timestamp: new Date().toISOString(),
+            path: '/api/v1/shopping-sessions',
+          },
+        },
+        { status: 401 }
+      )
+    }
+
     // リクエストボディを解析
-    let body: unknown
-    try {
-      body = await request.json()
-    } catch {
-      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
-    }
+    const body = (await request.json()) as unknown
 
-    // ユーザーIDの検証
-    if (!body || typeof body !== 'object' || !('userId' in body)) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-    }
-
-    const { userId } = body as { userId: string }
-
-    if (!userId || typeof userId !== 'string') {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-    }
-
-    // コマンドを作成して実行
+    // DIコンテナからAPIハンドラーを取得
     const compositionRoot = CompositionRoot.getInstance()
-    const handler = compositionRoot.getStartShoppingSessionHandler()
-    const command = new StartShoppingSessionCommand(userId)
-    const sessionDto = await handler.handle(command)
+    const apiHandler = compositionRoot.getStartShoppingSessionApiHandler()
 
-    // レスポンスを返す
-    return NextResponse.json(
-      {
-        sessionId: sessionDto.sessionId,
-        userId: sessionDto.userId,
-        status: sessionDto.status,
-        startedAt: sessionDto.startedAt,
-        completedAt: sessionDto.completedAt,
-        deviceType: sessionDto.deviceType,
-        location: sessionDto.location,
-      },
-      { status: 201 }
-    )
+    // ハンドラーの実行（userIdはセッションから取得）
+    const result = await apiHandler.handle({
+      ...(body as object),
+      userId: session.user.domainUserId,
+    })
+
+    // 成功レスポンス（201 Created）
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
-    // ビジネスルール例外の場合は409を返す
+    // エラーハンドリング
+    if (error instanceof ValidationException) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: error.message,
+            timestamp: new Date().toISOString(),
+            path: '/api/v1/shopping-sessions',
+          },
+        },
+        { status: 400 }
+      )
+    }
+
     if (error instanceof BusinessRuleException) {
-      return NextResponse.json({ error: error.message }, { status: 409 })
+      return NextResponse.json(
+        {
+          error: {
+            code: 'BUSINESS_RULE_VIOLATION',
+            message: error.message,
+            timestamp: new Date().toISOString(),
+            path: '/api/v1/shopping-sessions',
+          },
+        },
+        { status: 409 }
+      )
     }
 
     // その他のエラーは500を返す
     console.error('Failed to start shopping session:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: '内部エラーが発生しました',
+          timestamp: new Date().toISOString(),
+          path: '/api/v1/shopping-sessions',
+        },
+      },
+      { status: 500 }
+    )
   }
 }

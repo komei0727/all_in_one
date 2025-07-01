@@ -13,6 +13,7 @@ import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from './services/prisma-transaction-manager'
 import { CheckIngredientApiHandler } from '../api/handlers/commands/check-ingredient.handler'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
+import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
 import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
@@ -265,6 +266,13 @@ export class CompositionRoot {
       this.getShoppingSessionFactory(),
       this.getShoppingSessionRepository()
     )
+  }
+
+  /**
+   * Get StartShoppingSessionApiHandler instance (new instance each time)
+   */
+  public getStartShoppingSessionApiHandler(): StartShoppingSessionApiHandler {
+    return new StartShoppingSessionApiHandler(this.getStartShoppingSessionHandler())
   }
 
   /**

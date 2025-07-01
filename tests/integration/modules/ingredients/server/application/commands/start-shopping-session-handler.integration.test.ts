@@ -5,6 +5,7 @@ import { PrismaClient } from '@/generated/prisma-test'
 import { StartShoppingSessionCommand } from '@/modules/ingredients/server/application/commands/start-shopping-session.command'
 import { StartShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/start-shopping-session.handler'
 import { ShoppingSessionFactory } from '@/modules/ingredients/server/domain/factories/shopping-session.factory'
+import { DeviceType, ShoppingLocation } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
@@ -149,6 +150,87 @@ describe('StartShoppingSessionHandler Integration Tests', () => {
       // データベースに2つのセッションが存在
       const sessions = await prisma.shoppingSession.findMany()
       expect(sessions).toHaveLength(2)
+    })
+
+    it('deviceTypeとlocationを含むセッションを開始できる', async () => {
+      // Given: deviceTypeとlocationを含むコマンド
+      const deviceType = DeviceType.MOBILE
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+      const command = new StartShoppingSessionCommand(testUserId, deviceType, location)
+
+      // When: ハンドラーを実行
+      const result = await handler.handle(command)
+
+      // Then: DTOにdeviceTypeとlocationが含まれる
+      expect(result.deviceType).toBe('MOBILE')
+      expect(result.location).toEqual({
+        placeName: '東京駅前スーパー',
+      })
+
+      // データベースに保存されている
+      const savedSession = await prisma.shoppingSession.findUnique({
+        where: { id: result.sessionId },
+      })
+      expect(savedSession).toBeDefined()
+      expect(savedSession?.deviceType).toBe('MOBILE')
+      expect(savedSession?.locationName).toBe('東京駅前スーパー')
+      expect(savedSession?.locationLat).toBeTruthy()
+      expect(savedSession?.locationLng).toBeTruthy()
+    })
+
+    it('deviceTypeのみを含むセッションを開始できる', async () => {
+      // Given: deviceTypeのみを含むコマンド
+      const deviceType = DeviceType.TABLET
+      const command = new StartShoppingSessionCommand(testUserId, deviceType)
+
+      // When: ハンドラーを実行
+      const result = await handler.handle(command)
+
+      // Then: DTOにdeviceTypeが含まれ、locationはnull
+      expect(result.deviceType).toBe('TABLET')
+      expect(result.location).toBeNull()
+
+      // データベースに保存されている
+      const savedSession = await prisma.shoppingSession.findUnique({
+        where: { id: result.sessionId },
+      })
+      expect(savedSession).toBeDefined()
+      expect(savedSession?.deviceType).toBe('TABLET')
+      expect(savedSession?.locationName).toBeNull()
+      expect(savedSession?.locationLat).toBeNull()
+      expect(savedSession?.locationLng).toBeNull()
+    })
+
+    it('locationのみを含むセッションを開始できる', async () => {
+      // Given: locationのみを含むコマンド
+      const location = ShoppingLocation.create({
+        latitude: 34.6851,
+        longitude: 135.1815,
+      })
+      const command = new StartShoppingSessionCommand(testUserId, undefined, location)
+
+      // When: ハンドラーを実行
+      const result = await handler.handle(command)
+
+      // Then: DTOにlocationが含まれ、deviceTypeはnull
+      expect(result.deviceType).toBeNull()
+      expect(result.location).toEqual({
+        placeName: null,
+      })
+
+      // データベースに保存されている
+      const savedSession = await prisma.shoppingSession.findUnique({
+        where: { id: result.sessionId },
+      })
+      expect(savedSession).toBeDefined()
+      expect(savedSession?.deviceType).toBeNull()
+      expect(savedSession?.locationName).toBeNull()
+      expect(savedSession?.locationLat).toBeTruthy()
+      expect(savedSession?.locationLng).toBeTruthy()
     })
   })
 })

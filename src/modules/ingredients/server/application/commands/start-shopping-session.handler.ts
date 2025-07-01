@@ -20,7 +20,16 @@ export class StartShoppingSessionHandler {
    */
   async handle(command: StartShoppingSessionCommand): Promise<ShoppingSessionDto> {
     // ファクトリを使用して新しいセッションを作成（重複チェック含む）
-    const session = await this.sessionFactory.create(command.userId)
+    // deviceTypeとlocationがある場合はオプションとして渡す
+    const options = {
+      ...(command.deviceType && { deviceType: command.deviceType }),
+      ...(command.location && { location: command.location }),
+    }
+
+    const session = await this.sessionFactory.create(
+      command.userId,
+      Object.keys(options).length > 0 ? options : undefined
+    )
 
     // セッションを永続化
     const savedSession = await this.sessionRepository.save(session)
@@ -32,8 +41,12 @@ export class StartShoppingSessionHandler {
       savedSession.getStatus().getValue(),
       savedSession.getStartedAt().toISOString(),
       savedSession.getCompletedAt()?.toISOString() ?? null,
-      null, // deviceType - TODO: 将来実装
-      null, // location - TODO: 将来実装
+      savedSession.getDeviceType()?.getValue() ?? null,
+      savedSession.getLocation()
+        ? savedSession.getLocationName() !== null
+          ? { placeName: savedSession.getLocationName() }
+          : {}
+        : null,
       [] // checkedItems - 新規セッションなので空
     )
   }
