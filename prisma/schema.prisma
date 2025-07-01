@@ -48,6 +48,7 @@ enum OperationType {
 enum SessionStatus {
   ACTIVE    // アクティブ（買い物中）
   COMPLETED // 完了
+  ABANDONED // 中断
 }
 
 // Stock status enum for shopping mode
@@ -60,7 +61,9 @@ enum StockStatus {
 // Expiry status enum for shopping mode
 enum ExpiryStatus {
   FRESH          // 新鮮
+  NEAR_EXPIRY    // 期限が近い
   EXPIRING_SOON  // 期限間近
+  CRITICAL       // 危機的
   EXPIRED        // 期限切れ
 }
 

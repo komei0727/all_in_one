@@ -144,7 +144,7 @@ describe('CheckedItem', () => {
       })
 
       // Then: 優先度が正しく計算される（在庫状態 + 期限状態）
-      expect(highPriority.getPriority()).toBe(6) // 3 + 3
+      expect(highPriority.getPriority()).toBe(8) // 3 + 5
       expect(mediumPriority.getPriority()).toBe(3) // 2 + 1
       expect(lowPriority.getPriority()).toBe(2) // 1 + 1
     })
