@@ -2,13 +2,16 @@ import { faker } from '@faker-js/faker'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import { GET } from '@/app/api/v1/shopping-sessions/active/route'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
-import { type GetActiveShoppingSessionHandler } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.handler'
+import { type GetActiveShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-active-shopping-session.handler'
 
 vi.mock('@/modules/ingredients/server/infrastructure/composition-root', () => ({
   CompositionRoot: {
     getInstance: vi.fn(),
   },
+}))
+
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
 }))
 
 // NextRequestのモック
@@ -42,9 +45,9 @@ describe('GET /api/v1/shopping-sessions/active', () => {
     vi.clearAllMocks()
     userId = faker.string.uuid()
 
-    // ハンドラーのモックを作成
+    // APIハンドラーのモックを作成
     mockHandle = vi.fn()
-    const mockHandler: Partial<GetActiveShoppingSessionHandler> = {
+    const mockApiHandler: Partial<GetActiveShoppingSessionApiHandler> = {
       handle: mockHandle,
     }
 
@@ -53,7 +56,8 @@ describe('GET /api/v1/shopping-sessions/active', () => {
       '@/modules/ingredients/server/infrastructure/composition-root'
     )
     vi.mocked(CompositionRoot.getInstance).mockReturnValue({
-      getGetActiveShoppingSessionHandler: () => mockHandler as GetActiveShoppingSessionHandler,
+      getGetActiveShoppingSessionApiHandler: () =>
+        mockApiHandler as GetActiveShoppingSessionApiHandler,
     } as any)
   })
 
@@ -61,43 +65,54 @@ describe('GET /api/v1/shopping-sessions/active', () => {
     vi.clearAllMocks()
   })
 
-  describe('リクエスト検証', () => {
-    it('userIdパラメータがない場合は400エラーを返す', async () => {
-      // Given: userIdパラメータなし
+  describe('認証', () => {
+    it('認証されていない場合は401エラーを返す', async () => {
+      // Given: 認証なし
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValueOnce(null)
+
       const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions/active')
 
       // When: APIを呼び出す
       const response = await GET(request)
 
-      // Then: 400エラーが返される
-      expect(response.status).toBe(400)
+      // Then: 401エラーが返される
+      expect(response.status).toBe(401)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'User ID is required',
+      expect(data).toMatchObject({
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required',
       })
     })
   })
 
   describe('正常系', () => {
     it('アクティブなショッピングセッションを取得できる', async () => {
-      // Given: 有効なリクエスト
-      const request = new NextRequest(
-        `http://localhost:3000/api/v1/shopping-sessions/active?userId=${userId}`
-      )
+      // Given: 認証済みユーザー
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValueOnce({
+        user: { domainUserId: userId },
+      } as any)
 
-      // セッションDTOのモック
-      const mockSessionDto = new ShoppingSessionDto(
-        'ses_' + faker.string.uuid(),
+      const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions/active')
+
+      // APIハンドラーが成功レスポンスを返す
+      const mockResponseData = {
+        sessionId: 'ses_' + faker.string.alphanumeric(24),
         userId,
-        'ACTIVE',
-        new Date().toISOString(),
-        null,
-        null,
-        null
-      )
+        status: 'ACTIVE',
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        deviceType: 'MOBILE',
+        location: { placeName: 'スーパーマーケット' },
+      }
 
-      // ハンドラーがDTOを返す
-      mockHandle.mockResolvedValue(mockSessionDto)
+      mockHandle.mockResolvedValue(
+        new Response(JSON.stringify(mockResponseData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
 
       // When: APIを呼び出す
       const response = await GET(request)
@@ -105,34 +120,30 @@ describe('GET /api/v1/shopping-sessions/active', () => {
       // Then: 200レスポンスが返される
       expect(response.status).toBe(200)
       const data = await response.json()
-      expect(data).toEqual({
-        sessionId: mockSessionDto.sessionId,
-        userId: mockSessionDto.userId,
-        status: mockSessionDto.status,
-        startedAt: mockSessionDto.startedAt,
-        completedAt: mockSessionDto.completedAt,
-        deviceType: mockSessionDto.deviceType,
-        location: mockSessionDto.location,
-      })
+      expect(data).toEqual(mockResponseData)
 
-      // ハンドラーが正しく呼ばれた
-      expect(mockHandle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId,
-        })
-      )
+      // APIハンドラーが正しく呼ばれた
+      expect(mockHandle).toHaveBeenCalledWith(expect.any(Object), userId)
     })
   })
 
   describe('エラーハンドリング', () => {
     it('アクティブなセッションが存在しない場合は404エラーを返す', async () => {
-      // Given: 有効なリクエスト
-      const request = new NextRequest(
-        `http://localhost:3000/api/v1/shopping-sessions/active?userId=${userId}`
-      )
+      // Given: 認証済みユーザー
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValueOnce({
+        user: { domainUserId: userId },
+      } as any)
 
-      // ハンドラーがnullを返す
-      mockHandle.mockResolvedValue(null)
+      const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions/active')
+
+      // APIハンドラーが404レスポンスを返す
+      mockHandle.mockResolvedValue(
+        new Response(JSON.stringify({ message: 'No active shopping session found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
 
       // When: APIを呼び出す
       const response = await GET(request)
@@ -140,18 +151,22 @@ describe('GET /api/v1/shopping-sessions/active', () => {
       // Then: 404エラーが返される
       expect(response.status).toBe(404)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'アクティブなセッションが見つかりません',
+      expect(data).toMatchObject({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'No active shopping session found',
       })
     })
 
     it('予期しないエラーの場合は500エラーを返す', async () => {
-      // Given: 有効なリクエスト
-      const request = new NextRequest(
-        `http://localhost:3000/api/v1/shopping-sessions/active?userId=${userId}`
-      )
+      // Given: 認証済みユーザー
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValueOnce({
+        user: { domainUserId: userId },
+      } as any)
 
-      // ハンドラーが予期しないエラーを投げる
+      const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions/active')
+
+      // APIハンドラーがエラーを投げる
       mockHandle.mockRejectedValue(new Error('データベースエラー'))
 
       // When: APIを呼び出す
@@ -160,8 +175,9 @@ describe('GET /api/v1/shopping-sessions/active', () => {
       // Then: 500エラーが返される
       expect(response.status).toBe(500)
       const data = await response.json()
-      expect(data).toEqual({
-        error: 'Internal server error',
+      expect(data).toMatchObject({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An unexpected error occurred',
       })
     })
   })
