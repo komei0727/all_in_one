@@ -91,6 +91,7 @@ describe('ShoppingSessionDto', () => {
           completedAt,
           deviceType,
           location,
+          checkedItems: null,
         },
       })
     })

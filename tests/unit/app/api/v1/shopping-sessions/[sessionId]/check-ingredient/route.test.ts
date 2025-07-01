@@ -73,7 +73,8 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
       new Date().toISOString(),
       null,
       null,
-      null
+      null,
+      undefined
     )
 
     mockApiHandler.handle.mockResolvedValue(expectedDto)
@@ -102,6 +103,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
       completedAt: expectedDto.completedAt,
       deviceType: expectedDto.deviceType,
       location: expectedDto.location,
+      checkedItems: expectedDto.checkedItems,
     })
 
     // APIハンドラーが正しい引数で呼ばれる

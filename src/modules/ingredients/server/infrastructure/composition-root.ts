@@ -4,6 +4,7 @@ import type { EventBus } from '@/modules/shared/server/application/services/even
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
 
 import { PrismaIngredientQueryService } from './query-services/prisma-ingredient-query-service'
+import { PrismaShoppingQueryService } from './query-services/prisma-shopping-query-service'
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
 import { PrismaRepositoryFactory } from './repositories/prisma-repository-factory'
@@ -22,11 +23,16 @@ import { UpdateIngredientHandler } from '../application/commands/update-ingredie
 import { GetActiveShoppingSessionHandler } from '../application/queries/get-active-shopping-session.handler'
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
 import { GetIngredientByIdHandler } from '../application/queries/get-ingredient-by-id.handler'
+import { GetIngredientCheckStatisticsHandler } from '../application/queries/get-ingredient-check-statistics.handler'
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
+import { GetQuickAccessIngredientsHandler } from '../application/queries/get-quick-access-ingredients.handler'
+import { GetRecentSessionsHandler } from '../application/queries/get-recent-sessions.handler'
+import { GetShoppingStatisticsHandler } from '../application/queries/get-shopping-statistics.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
 import { ShoppingSessionFactory } from '../domain/factories/shopping-session.factory'
 
 import type { IngredientQueryService } from '../application/query-services/ingredient-query-service.interface'
+import type { ShoppingQueryService } from '../application/query-services/shopping-query-service.interface'
 import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
 import type { RepositoryFactory } from '../domain/repositories/repository-factory.interface'
@@ -49,6 +55,7 @@ export class CompositionRoot {
   private shoppingSessionRepository: ShoppingSessionRepository | null = null
   private repositoryFactory: RepositoryFactory | null = null
   private ingredientQueryService: IngredientQueryService | null = null
+  private shoppingQueryService: ShoppingQueryService | null = null
   private transactionManager: TransactionManager | null = null
   private eventBus: EventBus | null = null
 
@@ -289,5 +296,43 @@ export class CompositionRoot {
    */
   public getCheckIngredientApiHandler(): CheckIngredientApiHandler {
     return new CheckIngredientApiHandler(this.getCheckIngredientHandler())
+  }
+
+  /**
+   * Get ShoppingQueryService instance (singleton)
+   */
+  public getShoppingQueryService(): ShoppingQueryService {
+    if (!this.shoppingQueryService) {
+      this.shoppingQueryService = new PrismaShoppingQueryService(this.prismaClient)
+    }
+    return this.shoppingQueryService
+  }
+
+  /**
+   * Get GetRecentSessionsHandler instance (new instance each time)
+   */
+  public getGetRecentSessionsHandler(): GetRecentSessionsHandler {
+    return new GetRecentSessionsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetShoppingStatisticsHandler instance (new instance each time)
+   */
+  public getGetShoppingStatisticsHandler(): GetShoppingStatisticsHandler {
+    return new GetShoppingStatisticsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetQuickAccessIngredientsHandler instance (new instance each time)
+   */
+  public getGetQuickAccessIngredientsHandler(): GetQuickAccessIngredientsHandler {
+    return new GetQuickAccessIngredientsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetIngredientCheckStatisticsHandler instance (new instance each time)
+   */
+  public getGetIngredientCheckStatisticsHandler(): GetIngredientCheckStatisticsHandler {
+    return new GetIngredientCheckStatisticsHandler(this.getShoppingQueryService())
   }
 }
