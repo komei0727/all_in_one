@@ -7,17 +7,22 @@ import { PrismaIngredientQueryService } from './query-services/prisma-ingredient
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
 import { PrismaRepositoryFactory } from './repositories/prisma-repository-factory'
+import { PrismaShoppingSessionRepository } from './repositories/prisma-shopping-session-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from './services/prisma-transaction-manager'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
+import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
 import { DeleteIngredientHandler } from '../application/commands/delete-ingredient.handler'
+import { StartShoppingSessionHandler } from '../application/commands/start-shopping-session.handler'
 import { UpdateIngredientHandler } from '../application/commands/update-ingredient.handler'
+import { GetActiveShoppingSessionHandler } from '../application/queries/get-active-shopping-session.handler'
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
 import { GetIngredientByIdHandler } from '../application/queries/get-ingredient-by-id.handler'
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
+import { ShoppingSessionFactory } from '../domain/factories/shopping-session.factory'
 
 import type { IngredientQueryService } from '../application/query-services/ingredient-query-service.interface'
 import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
@@ -228,14 +233,42 @@ export class CompositionRoot {
 
   /**
    * Get ShoppingSessionRepository instance (singleton)
-   * TODO: Implement PrismaShoppingSessionRepository
    */
   public getShoppingSessionRepository(): ShoppingSessionRepository {
     if (!this.shoppingSessionRepository) {
-      // TODO: Phase2で実装時にコメントアウトを解除
-      // this.shoppingSessionRepository = new PrismaShoppingSessionRepository(this.prismaClient)
-      throw new Error('ShoppingSessionRepository is not implemented yet')
+      this.shoppingSessionRepository = new PrismaShoppingSessionRepository(this.prismaClient)
     }
     return this.shoppingSessionRepository
+  }
+
+  /**
+   * Get ShoppingSessionFactory instance (new instance each time)
+   */
+  public getShoppingSessionFactory(): ShoppingSessionFactory {
+    return new ShoppingSessionFactory(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get StartShoppingSessionHandler instance (new instance each time)
+   */
+  public getStartShoppingSessionHandler(): StartShoppingSessionHandler {
+    return new StartShoppingSessionHandler(
+      this.getShoppingSessionFactory(),
+      this.getShoppingSessionRepository()
+    )
+  }
+
+  /**
+   * Get GetActiveShoppingSessionHandler instance (new instance each time)
+   */
+  public getGetActiveShoppingSessionHandler(): GetActiveShoppingSessionHandler {
+    return new GetActiveShoppingSessionHandler(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get CompleteShoppingSessionHandler instance (new instance each time)
+   */
+  public getCompleteShoppingSessionHandler(): CompleteShoppingSessionHandler {
+    return new CompleteShoppingSessionHandler(this.getShoppingSessionRepository())
   }
 }
