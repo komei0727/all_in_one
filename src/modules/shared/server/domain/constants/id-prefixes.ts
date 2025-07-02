@@ -15,6 +15,8 @@ export const ID_PREFIXES = {
   unit: 'unt_',
   /** ユーザーID */
   user: 'usr_',
+  /** 買い物セッションID */
+  shoppingSession: 'ses_',
 } as const
 
 /** IDプレフィックスの型 */

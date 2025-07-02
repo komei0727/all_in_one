@@ -54,14 +54,16 @@
 
 ### 買い物サポート
 
-- `POST /api/v1/shopping/sessions` - 買い物セッション開始
-- `GET /api/v1/shopping/sessions/active` - アクティブセッション取得
-- `PUT /api/v1/shopping/sessions/{id}/complete` - セッション完了
-- `POST /api/v1/shopping/sessions/{id}/check/{ingredientId}` - 食材確認
-- `GET /api/v1/shopping/history` - 買い物履歴取得
-- `GET /api/v1/shopping/quick-access` - クイックアクセス食材取得
+- `POST /api/v1/shopping-sessions` - 買い物セッション開始
+- `GET /api/v1/shopping-sessions/active` - アクティブセッション取得
+- `PUT /api/v1/shopping-sessions/{id}/complete` - セッション完了
+- `DELETE /api/v1/shopping-sessions/{id}` - セッション放棄
+- `POST /api/v1/shopping-sessions/{id}/check/{ingredientId}` - 食材確認
+- `GET /api/v1/shopping-sessions/history` - 買い物履歴取得
+- `GET /api/v1/shopping-sessions/recent` - 最近のセッション取得
+- `GET /api/v1/shopping-sessions/quick-access-ingredients` - クイックアクセス食材取得
 - `GET /api/v1/shopping/categories/{id}/ingredients` - カテゴリー別食材取得（買い物用）
-- `GET /api/v1/shopping/statistics` - 買い物統計取得
+- `GET /api/v1/shopping-sessions/statistics` - 買い物統計取得
 
 ### マスタデータ
 
@@ -1546,10 +1548,12 @@ interface EventsResponse {
 
 買い物モードを開始し、新しい買い物セッションを作成します。同時にアクティブなセッションは1つまでです。
 
+**注意**: 現在の実装では、`deviceType`と`location`はリクエストで受け取りますが、まだ永続化されません（DTOではnullで返されます）。
+
 ### エンドポイント情報
 
 - **メソッド**: `POST`
-- **パス**: `/api/v1/shopping/sessions`
+- **パス**: `/api/v1/shopping-sessions`
 - **認証**: 必要
 - **権限**: 認証ユーザー
 
@@ -1559,13 +1563,13 @@ interface EventsResponse {
 
 ```typescript
 interface StartShoppingSessionRequest {
+  userId: string // ユーザーID（必須）
   deviceType?: 'MOBILE' | 'DESKTOP' | 'TABLET' // デバイスタイプ
   location?: {
-    latitude?: number
-    longitude?: number
-    placeName?: string // 店舗名など
+    name?: string // 場所の名前（最大100文字）
+    latitude: number // 緯度（-90から90の範囲）
+    longitude: number // 経度（-180から180の範囲）
   }
-  notes?: string // セッション開始時のメモ
 }
 ```
 
@@ -1580,12 +1584,14 @@ interface StartShoppingSessionResponse {
     userId: string
     status: 'ACTIVE'
     startedAt: string
-    deviceType?: string
-    location?: {
-      latitude?: number
-      longitude?: number
-      placeName?: string
-    }
+    completedAt: null
+    deviceType: string | null // 現在の実装ではnull
+    location: {
+      // 現在の実装ではnull
+      name?: string
+      latitude: number
+      longitude: number
+    } | null
   }
   meta: {
     timestamp: string
@@ -1598,6 +1604,9 @@ interface StartShoppingSessionResponse {
 
 | ステータスコード | エラーコード          | 説明                                   |
 | ---------------- | --------------------- | -------------------------------------- |
+| 400              | VALIDATION_ERROR      | リクエストパラメータが不正             |
+| 400              | INVALID_DEVICE_TYPE   | 無効なデバイスタイプ                   |
+| 400              | INVALID_LOCATION      | 無効な位置情報（緯度経度の範囲外）     |
 | 409              | ACTIVE_SESSION_EXISTS | 既にアクティブなセッションが存在します |
 | 401              | UNAUTHORIZED          | 認証が必要                             |
 
@@ -1612,7 +1621,7 @@ interface StartShoppingSessionResponse {
 ### エンドポイント情報
 
 - **メソッド**: `GET`
-- **パス**: `/api/v1/shopping/sessions/active`
+- **パス**: `/api/v1/shopping-sessions/active`
 - **認証**: 必要
 - **権限**: 認証ユーザー
 
@@ -1630,6 +1639,12 @@ interface ActiveShoppingSessionResponse {
     duration: number // 秒単位
     checkedItemsCount: number
     lastActivityAt: string
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
+    location?: {
+      name?: string
+      latitude: number
+      longitude: number
+    }
   } | null // アクティブセッションがない場合はnull
   meta: {
     timestamp: string
@@ -1649,7 +1664,7 @@ interface ActiveShoppingSessionResponse {
 ### エンドポイント情報
 
 - **メソッド**: `PUT`
-- **パス**: `/api/v1/shopping/sessions/{id}/complete`
+- **パス**: `/api/v1/shopping-sessions/{id}/complete`
 - **認証**: 必要
 - **権限**: セッションの所有者
 
@@ -1685,6 +1700,12 @@ interface CompleteShoppingSessionResponse {
     duration: number // 秒単位
     checkedItemsCount: number
     totalSpent?: number
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
+    location?: {
+      name?: string
+      latitude: number
+      longitude: number
+    }
   }
   meta: {
     timestamp: string
@@ -1692,6 +1713,43 @@ interface CompleteShoppingSessionResponse {
   }
 }
 ```
+
+#### エラーレスポンス
+
+| ステータスコード | エラーコード              | 説明                       |
+| ---------------- | ------------------------- | -------------------------- |
+| 404              | SESSION_NOT_FOUND         | セッションが見つからない   |
+| 409              | SESSION_ALREADY_COMPLETED | セッションは既に完了済み   |
+| 403              | FORBIDDEN                 | セッションの所有者ではない |
+
+---
+
+## セッション放棄
+
+### 概要
+
+アクティブな買い物セッションを放棄します。
+
+### エンドポイント情報
+
+- **メソッド**: `DELETE`
+- **パス**: `/api/v1/shopping-sessions/{id}`
+- **認証**: 必要
+- **権限**: セッションの所有者
+
+### リクエスト
+
+#### パスパラメータ
+
+| パラメータ | 型     | 必須 | 説明                     |
+| ---------- | ------ | ---- | ------------------------ |
+| id         | string | Yes  | セッションID（CUID形式） |
+
+### レスポンス
+
+#### 成功時（204 No Content）
+
+レスポンスボディなし
 
 #### エラーレスポンス
 
@@ -1712,7 +1770,7 @@ interface CompleteShoppingSessionResponse {
 ### エンドポイント情報
 
 - **メソッド**: `POST`
-- **パス**: `/api/v1/shopping/sessions/{sessionId}/check/{ingredientId}`
+- **パス**: `/api/v1/shopping-sessions/{sessionId}/check/{ingredientId}`
 - **認証**: 必要
 - **権限**: セッションと食材の所有者
 
@@ -1775,7 +1833,7 @@ interface CheckIngredientResponse {
 ### エンドポイント情報
 
 - **メソッド**: `GET`
-- **パス**: `/api/v1/shopping/history`
+- **パス**: `/api/v1/shopping-sessions/history`
 - **認証**: 必要
 - **権限**: 認証ユーザー
 
@@ -1805,9 +1863,71 @@ interface ShoppingHistoryResponse {
     duration: number // 秒単位
     checkedItemsCount: number
     totalSpent?: number
-    deviceType?: string
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
     location?: {
-      placeName?: string
+      name?: string
+      latitude: number
+      longitude: number
+    }
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+```
+
+---
+
+## 最近のセッション取得
+
+### 概要
+
+最近の買い物セッションを取得します。
+
+### エンドポイント情報
+
+- **メソッド**: `GET`
+- **パス**: `/api/v1/shopping-sessions/recent`
+- **認証**: 必要
+- **権限**: 認証ユーザー
+
+### リクエスト
+
+#### クエリパラメータ
+
+| パラメータ | 型     | 必須 | デフォルト | 説明               |
+| ---------- | ------ | ---- | ---------- | ------------------ |
+| limit      | number | No   | 10         | 取得件数（最大50） |
+| page       | number | No   | 1          | ページ番号         |
+
+### レスポンス
+
+#### 成功時（200 OK）
+
+```typescript
+interface RecentSessionsResponse {
+  data: Array<{
+    sessionId: string
+    status: 'COMPLETED' | 'ABANDONED'
+    startedAt: string
+    completedAt?: string
+    duration: number // 秒単位
+    checkedItemsCount: number
+    totalSpent?: number
+    deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
+    location?: {
+      name?: string
+      latitude: number
+      longitude: number
     }
   }>
   pagination: {
@@ -1831,12 +1951,12 @@ interface ShoppingHistoryResponse {
 
 ### 概要
 
-最近確認した食材やよく確認する食材を取得します。買い物モードでの高速アクセス用です。
+最近確認した食材やよく確認する食材を取得します。買い物モードでの高速アクセス用です.
 
 ### エンドポイント情報
 
 - **メソッド**: `GET`
-- **パス**: `/api/v1/shopping/quick-access`
+- **パス**: `/api/v1/shopping-sessions/quick-access-ingredients`
 - **認証**: 必要
 - **権限**: 認証ユーザー
 
@@ -1960,7 +2080,7 @@ interface ShoppingCategoryIngredientsResponse {
 ### エンドポイント情報
 
 - **メソッド**: `GET`
-- **パス**: `/api/v1/shopping/statistics`
+- **パス**: `/api/v1/shopping-sessions/statistics`
 - **認証**: 必要
 - **権限**: 認証ユーザー
 
@@ -2248,6 +2368,7 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 | 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
 | 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加              | @komei0727 |
 | 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化             | Claude     |
+| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加（現在は実装未完了の注記付き） | Claude     |
 
 ## 関連ドキュメント
 

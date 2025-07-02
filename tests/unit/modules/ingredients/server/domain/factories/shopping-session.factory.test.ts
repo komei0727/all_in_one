@@ -6,7 +6,11 @@ import { ShoppingSessionStarted } from '@/modules/ingredients/server/domain/even
 import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions'
 import { ShoppingSessionFactory } from '@/modules/ingredients/server/domain/factories/shopping-session.factory'
 import type { ShoppingSessionRepository } from '@/modules/ingredients/server/domain/repositories/shopping-session-repository.interface'
-import { SessionStatus } from '@/modules/ingredients/server/domain/value-objects'
+import {
+  SessionStatus,
+  DeviceType,
+  ShoppingLocation,
+} from '@/modules/ingredients/server/domain/value-objects'
 
 describe('ShoppingSessionFactory', () => {
   let factory: ShoppingSessionFactory
@@ -93,6 +97,73 @@ describe('ShoppingSessionFactory', () => {
 
       // リポジトリが呼ばれたことを検証
       expect(mockRepository.findActiveByUserId).toHaveBeenCalledWith(userId)
+    })
+  })
+
+  describe('create with deviceType and location', () => {
+    it('deviceTypeとlocationを指定してセッションを作成できる', async () => {
+      // Given
+      mockRepository.findActiveByUserId = vi.fn().mockResolvedValue(null)
+      const deviceType = DeviceType.MOBILE
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+
+      // When
+      const session = await factory.create(userId, { deviceType, location })
+
+      // Then
+      expect(session).toBeInstanceOf(ShoppingSession)
+      expect(session.getUserId()).toBe(userId)
+      expect(session.getStatus()).toBe(SessionStatus.ACTIVE)
+      expect(session.getDeviceType()).toBe(deviceType)
+      expect(session.getLocation()).toBe(location)
+
+      // リポジトリが呼ばれたことを検証
+      expect(mockRepository.findActiveByUserId).toHaveBeenCalledWith(userId)
+    })
+
+    it('deviceTypeのみ指定してセッションを作成できる', async () => {
+      // Given
+      mockRepository.findActiveByUserId = vi.fn().mockResolvedValue(null)
+      const deviceType = DeviceType.TABLET
+
+      // When
+      const session = await factory.create(userId, { deviceType })
+
+      // Then
+      expect(session.getDeviceType()).toBe(deviceType)
+      expect(session.getLocation()).toBeNull()
+    })
+
+    it('locationのみ指定してセッションを作成できる', async () => {
+      // Given
+      mockRepository.findActiveByUserId = vi.fn().mockResolvedValue(null)
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+      })
+
+      // When
+      const session = await factory.create(userId, { location })
+
+      // Then
+      expect(session.getDeviceType()).toBeNull()
+      expect(session.getLocation()).toBe(location)
+    })
+
+    it('オプションパラメータなしでセッションを作成できる', async () => {
+      // Given
+      mockRepository.findActiveByUserId = vi.fn().mockResolvedValue(null)
+
+      // When
+      const session = await factory.create(userId)
+
+      // Then
+      expect(session.getDeviceType()).toBeNull()
+      expect(session.getLocation()).toBeNull()
     })
   })
 })

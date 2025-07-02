@@ -2,6 +2,8 @@ import { ShoppingSession } from '@/modules/ingredients/server/domain/entities/sh
 import {
   ShoppingSessionId,
   SessionStatus,
+  DeviceType,
+  ShoppingLocation,
   type CheckedItem,
 } from '@/modules/ingredients/server/domain/value-objects'
 
@@ -15,6 +17,8 @@ interface ShoppingSessionProps {
   status: SessionStatus
   checkedItems: CheckedItem[]
   completedAt: Date | null
+  deviceType?: DeviceType | null
+  location?: ShoppingLocation | null
   isNew?: boolean
 }
 
@@ -134,6 +138,43 @@ export class ShoppingSessionBuilder extends BaseBuilder<ShoppingSessionProps, Sh
    */
   withIsNew(isNew: boolean): this {
     return this.with('isNew', isNew)
+  }
+
+  /**
+   * デバイスタイプを設定
+   */
+  withDeviceType(deviceType: DeviceType | string | null): this {
+    if (typeof deviceType === 'string') {
+      // 文字列の場合はDeviceType値オブジェクトに変換
+      return this.with('deviceType', DeviceType.fromString(deviceType))
+    }
+    return this.with('deviceType', deviceType)
+  }
+
+  /**
+   * 位置情報を設定（座標から）
+   */
+  withLocation(latitude: number, longitude: number, name?: string): this
+  /**
+   * 位置情報を設定（ShoppingLocationオブジェクトから）
+   */
+  withLocation(location: ShoppingLocation | null): this
+  withLocation(
+    latitudeOrLocation: number | ShoppingLocation | null,
+    longitude?: number,
+    name?: string
+  ): this {
+    if (typeof latitudeOrLocation === 'number' && typeof longitude === 'number') {
+      // 座標から ShoppingLocation を作成
+      const location = ShoppingLocation.create({
+        latitude: latitudeOrLocation,
+        longitude,
+        name,
+      })
+      return this.with('location', location)
+    }
+    // ShoppingLocation または null をそのまま設定
+    return this.with('location', latitudeOrLocation as ShoppingLocation | null)
   }
 
   build(): ShoppingSession {

@@ -128,24 +128,39 @@
 
 買い物モードでの活動セッションを管理するテーブル。
 
-| カラム名     | 型        | 制約                   | 説明                                |
-| ------------ | --------- | ---------------------- | ----------------------------------- |
-| id           | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                |
-| user_id      | TEXT      | NOT NULL               | ユーザーID（セッションの所有者）    |
-| status       | TEXT      | NOT NULL               | セッション状態（ACTIVE/COMPLETED）  |
-| started_at   | TIMESTAMP | NOT NULL DEFAULT NOW() | セッション開始日時                  |
-| completed_at | TIMESTAMP | NULL                   | セッション完了日時                  |
-| device_type  | TEXT      | NULL                   | デバイスタイプ（mobile/tablet/web） |
-| location     | JSONB     | NULL                   | 位置情報（店舗名等）                |
-| metadata     | JSONB     | NULL                   | その他のメタデータ                  |
-| created_at   | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                            |
-| updated_at   | TIMESTAMP | NOT NULL               | 更新日時                            |
+| カラム名      | 型        | 制約                   | 説明                                         |
+| ------------- | --------- | ---------------------- | -------------------------------------------- |
+| id            | TEXT      | PRIMARY KEY            | CUID形式の一意識別子                         |
+| user_id       | TEXT      | NOT NULL               | ユーザーID（セッションの所有者）             |
+| status        | TEXT      | NOT NULL               | セッション状態（ACTIVE/COMPLETED/ABANDONED） |
+| started_at    | TIMESTAMP | NOT NULL DEFAULT NOW() | セッション開始日時                           |
+| completed_at  | TIMESTAMP | NULL                   | セッション完了日時                           |
+| device_type   | TEXT      | NULL                   | デバイスタイプ（MOBILE/TABLET/DESKTOP）      |
+| location_name | TEXT      | NULL                   | 場所の名前（最大100文字）                    |
+| location_lat  | DECIMAL   | NULL                   | 緯度（-90から90の範囲）                      |
+| location_lng  | DECIMAL   | NULL                   | 経度（-180から180の範囲）                    |
+| metadata      | JSONB     | NULL                   | その他のメタデータ                           |
+| created_at    | TIMESTAMP | NOT NULL DEFAULT NOW() | 作成日時                                     |
+| updated_at    | TIMESTAMP | NOT NULL               | 更新日時                                     |
 
 **制約**:
 
 - `check_session_status` - ステータスは定義された値のみ
   ```sql
-  CHECK (status IN ('ACTIVE', 'COMPLETED'))
+  CHECK (status IN ('ACTIVE', 'COMPLETED', 'ABANDONED'))
+  ```
+- `check_device_type` - デバイスタイプは定義された値のみ
+  ```sql
+  CHECK (device_type IS NULL OR device_type IN ('MOBILE', 'TABLET', 'DESKTOP'))
+  ```
+- `check_location_coordinates` - 位置情報の妥当性
+  ```sql
+  CHECK (
+    (location_lat IS NULL AND location_lng IS NULL) OR
+    (location_lat IS NOT NULL AND location_lng IS NOT NULL AND
+     location_lat >= -90 AND location_lat <= 90 AND
+     location_lng >= -180 AND location_lng <= 180)
+  )
   ```
 - `check_completion_consistency` - 完了時刻は開始時刻以降
   ```sql
@@ -164,6 +179,8 @@
 - `idx_shopping_sessions_user_status` - ユーザー別・ステータス別検索
 - `idx_shopping_sessions_started_at` - 開始日時順ソート
 - `idx_shopping_sessions_active` - アクティブセッション検索（WHERE status = 'ACTIVE'）
+- `idx_shopping_sessions_device_type` - デバイスタイプ別検索
+- `idx_shopping_sessions_location` - 位置情報による地理検索（location_lat, location_lng）
 
 ### shopping_session_items（買い物セッション確認履歴）テーブル
 
@@ -483,3 +500,4 @@ WHERE deleted_at IS NULL;
 | 2025-06-22 | 初版作成 - DDD設計に基づくテーブル構成                                                          | @komei0727 |
 | 2025-06-24 | 集約設計に合わせて修正：ingredient_stocksをingredientsに統合、user_id追加、CASCADE→RESTRICT変更 | Claude     |
 | 2025-06-28 | 買い物サポート機能統合：買い物セッションテーブル追加、インデックス最適化、パフォーマンス改善    | Claude     |
+| 2025-07-01 | shopping_sessionsテーブルにdeviceTypeとlocation関連カラムを追加、制約とインデックスを更新       | Claude     |

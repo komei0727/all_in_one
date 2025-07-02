@@ -48,6 +48,14 @@ enum OperationType {
 enum SessionStatus {
   ACTIVE    // アクティブ（買い物中）
   COMPLETED // 完了
+  ABANDONED // 中断
+}
+
+// Device type enum for shopping sessions
+enum DeviceType {
+  MOBILE  // モバイル（スマートフォン）
+  TABLET  // タブレット
+  DESKTOP // デスクトップ
 }
 
 // Stock status enum for shopping mode
@@ -60,7 +68,9 @@ enum StockStatus {
 // Expiry status enum for shopping mode
 enum ExpiryStatus {
   FRESH          // 新鮮
+  NEAR_EXPIRY    // 期限が近い
   EXPIRING_SOON  // 期限間近
+  CRITICAL       // 危機的
   EXPIRED        // 期限切れ
 }
 
@@ -277,8 +287,10 @@ model ShoppingSession {
   status       SessionStatus   // セッション状態
   startedAt    DateTime        @default(now())
   completedAt  DateTime?       // セッション完了日時
-  deviceType   String?         // デバイスタイプ（mobile/tablet/web）
-  location     Json?           // 位置情報（店舗名等）
+  deviceType   DeviceType?     // デバイスタイプ（MOBILE/TABLET/DESKTOP）
+  locationName String?         @db.VarChar(100) // 場所の名前（最大100文字）
+  locationLat  Decimal?        @db.Decimal(10, 8) // 緯度（-90から90）
+  locationLng  Decimal?        @db.Decimal(11, 8) // 経度（-180から180）
   metadata     Json?           // その他のメタデータ
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -291,6 +303,8 @@ model ShoppingSession {
   @@index([userId, status])
   @@index([startedAt])
   @@index([status])
+  @@index([deviceType])
+  @@index([locationLat, locationLng])
   @@map("shopping_sessions")
 }
 

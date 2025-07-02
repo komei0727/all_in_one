@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker'
 import { describe, it, expect } from 'vitest'
 
 import { ShoppingSessionStarted } from '@/modules/ingredients/server/domain/events/shopping-session-started.event'
+import { DeviceType, ShoppingLocation } from '@/modules/ingredients/server/domain/value-objects'
 
 describe('ShoppingSessionStarted', () => {
   // テスト用の有効なデータを生成
@@ -148,6 +149,122 @@ describe('ShoppingSessionStarted', () => {
       sessionId: data.sessionId,
       userId: data.userId,
       startedAt: data.startedAt.toISOString(),
+    })
+  })
+
+  describe('deviceType and location', () => {
+    it('deviceTypeとlocationを含むイベントを作成できる', () => {
+      // Given
+      const data = createValidData()
+      const deviceType = DeviceType.MOBILE
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+
+      // When
+      const event = new ShoppingSessionStarted(
+        data.sessionId,
+        data.userId,
+        data.startedAt,
+        {},
+        deviceType,
+        location
+      )
+
+      // Then
+      expect(event.deviceType).toBe(deviceType)
+      expect(event.location).toBe(location)
+    })
+
+    it('deviceTypeのみを含むイベントを作成できる', () => {
+      // Given
+      const data = createValidData()
+      const deviceType = DeviceType.TABLET
+
+      // When
+      const event = new ShoppingSessionStarted(
+        data.sessionId,
+        data.userId,
+        data.startedAt,
+        {},
+        deviceType
+      )
+
+      // Then
+      expect(event.deviceType).toBe(deviceType)
+      expect(event.location).toBeUndefined()
+    })
+
+    it('locationのみを含むイベントを作成できる', () => {
+      // Given
+      const data = createValidData()
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+      })
+
+      // When
+      const event = new ShoppingSessionStarted(
+        data.sessionId,
+        data.userId,
+        data.startedAt,
+        {},
+        undefined,
+        location
+      )
+
+      // Then
+      expect(event.deviceType).toBeUndefined()
+      expect(event.location).toBe(location)
+    })
+
+    it('deviceTypeとlocationなしでイベントを作成できる', () => {
+      // Given
+      const data = createValidData()
+
+      // When
+      const event = new ShoppingSessionStarted(data.sessionId, data.userId, data.startedAt)
+
+      // Then
+      expect(event.deviceType).toBeUndefined()
+      expect(event.location).toBeUndefined()
+    })
+
+    it('deviceTypeとlocationを含むペイロードを返す', () => {
+      // Given
+      const data = createValidData()
+      const deviceType = DeviceType.MOBILE
+      const location = ShoppingLocation.create({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        name: '東京駅前スーパー',
+      })
+
+      // When
+      const event = new ShoppingSessionStarted(
+        data.sessionId,
+        data.userId,
+        data.startedAt,
+        {},
+        deviceType,
+        location
+      )
+      const payload = event.toJSON().payload
+
+      // Then
+      expect(payload).toEqual({
+        sessionId: data.sessionId,
+        userId: data.userId,
+        startedAt: data.startedAt.toISOString(),
+        deviceType: 'MOBILE',
+        location: {
+          name: '東京駅前スーパー',
+          latitude: 35.6762,
+          longitude: 139.6503,
+        },
+      })
     })
   })
 })

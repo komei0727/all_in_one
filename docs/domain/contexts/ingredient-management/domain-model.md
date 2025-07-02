@@ -108,26 +108,30 @@
 
 #### 属性
 
-| 属性         | 型                | 説明               | 制約                      |
-| ------------ | ----------------- | ------------------ | ------------------------- |
-| id           | ShoppingSessionId | 一意識別子         | 必須、不変                |
-| userId       | UserId            | ユーザーID         | 必須、セッションの所有者  |
-| startedAt    | Date              | 開始日時           | 必須、不変                |
-| completedAt  | Date              | 完了日時           | 任意、完了時に設定        |
-| status       | SessionStatus     | セッション状態     | 必須（ACTIVE, COMPLETED） |
-| checkedItems | CheckedItem[]     | 確認済み食材リスト | 必須、確認履歴            |
+| 属性         | 型                | 説明               | 制約                                      |
+| ------------ | ----------------- | ------------------ | ----------------------------------------- |
+| id           | ShoppingSessionId | 一意識別子         | 必須、不変                                |
+| userId       | UserId            | ユーザーID         | 必須、セッションの所有者                  |
+| startedAt    | Date              | 開始日時           | 必須、不変                                |
+| completedAt  | Date              | 完了日時           | 任意、完了時に設定                        |
+| status       | SessionStatus     | セッション状態     | 必須（ACTIVE, COMPLETED, ABANDONED）      |
+| checkedItems | CheckedItem[]     | 確認済み食材リスト | 必須、確認履歴                            |
+| deviceType   | DeviceType        | デバイス種別       | 任意、セッション開始時のデバイス          |
+| location     | ShoppingLocation  | 買い物場所         | 任意、セッション開始時の場所（GPSベース） |
 
 #### ビジネスルール
 
 - 同一ユーザーで同時にアクティブなセッションは1つのみ
 - 完了済みセッションは再開不可
 - セッション中は食材データの更新不可（読み取り専用）
+- deviceTypeとlocationはセッション開始時に設定され、変更不可
 
 #### 主要な振る舞い
 
 - `start()` - セッションを開始する
 - `checkItem(ingredientId)` - 食材を確認する
 - `complete()` - セッションを完了する
+- `abandon(reason)` - セッションを中断する
 - `getDuration()` - セッション継続時間を取得する
 
 ## 値オブジェクト
@@ -148,8 +152,10 @@
 | UnitId            | 単位の識別           | 必須、不変                                     |
 | UnitName          | 単位名の表現         | 必須、一意                                     |
 | ShoppingSessionId | セッションの一意識別 | 必須、不変                                     |
-| SessionStatus     | セッション状態の表現 | ACTIVE, COMPLETED                              |
+| SessionStatus     | セッション状態の表現 | ACTIVE, COMPLETED, ABANDONED                   |
 | CheckedItem       | 確認済み食材の情報   | 食材ID、確認時刻、在庫状態                     |
+| DeviceType        | デバイス種別の表現   | MOBILE, TABLET, DESKTOP                        |
+| ShoppingLocation  | 買い物場所の表現     | 名前、GPS座標（緯度経度）                      |
 
 ### IngredientStock（在庫情報）
 
@@ -242,11 +248,48 @@
 
 - `ACTIVE` - アクティブ（買い物中）
 - `COMPLETED` - 完了
+- `ABANDONED` - 中断
 
 #### ビジネスルール
 
-- 状態遷移は ACTIVE → COMPLETED の一方向のみ
-- COMPLETED状態からACTIVEへの戻りは不可
+- 状態遷移は ACTIVE → COMPLETED または ACTIVE → ABANDONED の一方向のみ
+- COMPLETED/ABANDONED状態からACTIVEへの戻りは不可
+
+### DeviceType（デバイス種別）
+
+買い物セッションで使用されるデバイスの種別を表現する値オブジェクト。
+
+#### 値
+
+- `MOBILE` - スマートフォン
+- `TABLET` - タブレット
+- `DESKTOP` - デスクトップPC
+
+#### ビジネスルール
+
+- 値は定義された3つのいずれかでなければならない
+- セッション開始後の変更は不可
+
+### ShoppingLocation（買い物場所）
+
+買い物を行っている場所の情報を表現する値オブジェクト。
+
+#### 属性
+
+- `name` - 場所の名前（任意、最大100文字、例：「〇〇スーパー△△店」）
+- `latitude` - 緯度（必須、-90から90の範囲）
+- `longitude` - 経度（必須、-180から180の範囲）
+
+#### ビジネスルール
+
+- GPS座標（緯度・経度）は必須
+- 場所の名前は任意だが、指定する場合は最大100文字まで
+- セッション開始後の変更は不可
+
+#### 主要な振る舞い
+
+- `getCoordinates()` - GPS座標を取得（{latitude, longitude}）
+- `getDistanceTo(location)` - 他の場所との距離を計算（km）
 
 ## ドメインサービス
 
@@ -329,11 +372,12 @@
 
 ## 更新履歴
 
-| 日付       | 内容                                                                                | 作成者     |
-| ---------- | ----------------------------------------------------------------------------------- | ---------- |
-| 2025-06-24 | 初版                                                                                | @komei0727 |
-| 2025-06-24 | IngredientStockエンティティ追加、UserId追加、ドメインサービス名統一                 | @komei0727 |
-| 2025-06-24 | ユーザー認証コンテキストとの統合に伴う修正（UserIdの出所明記、アクセス制御追加）    | Claude     |
-| 2025-06-24 | Ingredientエンティティに価格（Price）と購入日（purchaseDate）フィールドを追加       | Claude     |
-| 2025-06-24 | StorageLocation値オブジェクトを追加（API仕様に合わせて修正）                        | Claude     |
-| 2025-06-28 | 買い物サポート機能統合（ShoppingSession、関連値オブジェクト、ドメインサービス追加） | Claude     |
+| 日付       | 内容                                                                                              | 作成者     |
+| ---------- | ------------------------------------------------------------------------------------------------- | ---------- |
+| 2025-06-24 | 初版                                                                                              | @komei0727 |
+| 2025-06-24 | IngredientStockエンティティ追加、UserId追加、ドメインサービス名統一                               | @komei0727 |
+| 2025-06-24 | ユーザー認証コンテキストとの統合に伴う修正（UserIdの出所明記、アクセス制御追加）                  | Claude     |
+| 2025-06-24 | Ingredientエンティティに価格（Price）と購入日（purchaseDate）フィールドを追加                     | Claude     |
+| 2025-06-24 | StorageLocation値オブジェクトを追加（API仕様に合わせて修正）                                      | Claude     |
+| 2025-06-28 | 買い物サポート機能統合（ShoppingSession、関連値オブジェクト、ドメインサービス追加）               | Claude     |
+| 2025-07-01 | ShoppingSessionにdeviceTypeとlocation追加、関連値オブジェクト（DeviceType、ShoppingLocation）追加 | Claude     |

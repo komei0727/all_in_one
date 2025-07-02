@@ -200,7 +200,7 @@ interface CheckedItem {
 
 #### セッション開始
 
-**エンドポイント**: `POST /api/v1/shopping/sessions`
+**エンドポイント**: `POST /api/v1/shopping-sessions`
 
 **リクエスト**:
 
@@ -264,7 +264,7 @@ interface CheckedItem {
 
 #### 食材確認
 
-**エンドポイント**: `POST /api/v1/shopping/sessions/{sessionId}/check/{ingredientId}`
+**エンドポイント**: `POST /api/v1/shopping-sessions/{sessionId}/check/{ingredientId}`
 
 **リクエスト**:
 

@@ -4,10 +4,10 @@ import { PrefixedCuidId } from '@/modules/shared/server/domain/value-objects'
 
 /**
  * 買い物セッションのID値オブジェクト
- * ss_から始まるCUID形式のIDを管理する
+ * ses_から始まるCUID形式のIDを管理する
  */
 export class ShoppingSessionId extends PrefixedCuidId {
-  private static readonly PREFIX = 'ss_'
+  private static readonly PREFIX = 'ses_'
 
   /**
    * フィールド名を取得

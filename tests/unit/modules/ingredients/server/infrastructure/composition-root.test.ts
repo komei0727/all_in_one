@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { PrismaClient } from '@/generated/prisma'
+import { StartShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/start-shopping-session.handler'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
@@ -75,6 +76,25 @@ describe('CompositionRoot', () => {
 
       // Assert
       expect(handler1).not.toBe(handler2) // Handlers should be new instances
+    })
+  })
+
+  describe('API handler creation', () => {
+    it('should create StartShoppingSessionApiHandler with proper dependencies', () => {
+      // Act
+      const handler = compositionRoot.getStartShoppingSessionApiHandler()
+
+      // Assert
+      expect(handler).toBeInstanceOf(StartShoppingSessionApiHandler)
+    })
+
+    it('should return new API handler instances on each call', () => {
+      // Act
+      const handler1 = compositionRoot.getStartShoppingSessionApiHandler()
+      const handler2 = compositionRoot.getStartShoppingSessionApiHandler()
+
+      // Assert
+      expect(handler1).not.toBe(handler2) // API handlers should be new instances
     })
   })
 

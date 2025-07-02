@@ -465,19 +465,24 @@ async batchConsumeStock(command: BatchConsumeCommand): Promise<BatchResult> {
 **フロー**:
 
 1. ユーザーIDの取得（認証コンテキストから取得済み）
-2. アクティブセッションの存在確認
-3. 既存のアクティブセッションがある場合:
+2. デバイスタイプの検証（MOBILE/TABLET/DESKTOP）
+3. 位置情報の検証（緯度・経度の範囲）
+4. アクティブセッションの存在確認
+5. 既存のアクティブセッションがある場合:
    - 30分以上経過していれば自動的に中断（Abandoned）
    - そうでなければエラー
-4. 新規ShoppingSessionエンティティの生成
-5. リポジトリへの保存
-6. ドメインイベントの発行
-   - ShoppingSessionStarted（セッションID、ユーザーID、開始時刻）
-7. レスポンスDTOの生成
+6. 新規ShoppingSessionエンティティの生成
+   - deviceTypeとlocationを含めて生成
+7. リポジトリへの保存
+8. ドメインイベントの発行
+   - ShoppingSessionStarted（セッションID、ユーザーID、開始時刻、デバイスタイプ、位置情報）
+9. レスポンスDTOの生成
 
 **エラーケース**:
 
 - アクティブセッション存在 → ActiveSessionExistsException
+- 無効なデバイスタイプ → ValidationException
+- 無効な位置情報 → ValidationException
 - 認証エラー → UnauthorizedException
 
 ### ユースケース: 食材在庫確認
@@ -984,3 +989,4 @@ export interface IngredientDetailView {
 | 2025-06-28 | 買い物サポート機能統合に伴う修正（ShoppingApplicationService、ShoppingAssistService追加） | Claude     |
 | 2025-06-28 | 処理フロー改善（トランザクション境界、イベント発行、非同期処理、セッション管理の詳細化）  | Claude     |
 | 2025-06-30 | CQRSパターン導入に伴う修正（QueryService追加、食材詳細取得の最適化）                      | Claude     |
+| 2025-07-01 | 買い物セッション開始フローにデバイスタイプと位置情報の検証を追加                          | Claude     |

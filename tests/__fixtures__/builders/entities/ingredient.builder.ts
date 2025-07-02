@@ -296,6 +296,39 @@ export class IngredientBuilder extends BaseBuilder<IngredientProps, Ingredient> 
     return this.with('deletedAt', deletedAt)
   }
 
+  /**
+   * 閾値を設定
+   */
+  withThreshold(threshold: number | null): this {
+    const currentStock = this.props.ingredientStock
+    if (!currentStock) {
+      throw new Error('ingredientStock must be set before calling withThreshold')
+    }
+    const newStock = new IngredientStock({
+      quantity: currentStock.getQuantity(),
+      unitId: currentStock.getUnitId(),
+      storageLocation: currentStock.getStorageLocation(),
+      threshold,
+    })
+    return this.with('ingredientStock', newStock)
+  }
+
+  /**
+   * 新鮮な期限（十分先の期限）を設定
+   */
+  withFreshDates(): this {
+    const useByDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1年後
+    const bestBeforeDate = new Date(Date.now() + 547 * 24 * 60 * 60 * 1000) // 1.5年後
+    return this.withExpiryInfo({ bestBeforeDate, useByDate })
+  }
+
+  /**
+   * 期限を直接設定
+   */
+  withExpiryDates(bestBeforeDate: Date | null, useByDate: Date | null): this {
+    return this.withExpiryInfo({ bestBeforeDate, useByDate })
+  }
+
   build(): Ingredient {
     return new Ingredient(this.props as IngredientProps)
   }

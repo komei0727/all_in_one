@@ -11,14 +11,14 @@ describe('ShoppingSessionId', () => {
 
       // Then: 正しいフォーマットのIDが生成される
       expect(sessionId).toBeInstanceOf(ShoppingSessionId)
-      expect(sessionId.getValue()).toMatch(/^ss_[a-z0-9]{24}$/)
+      expect(sessionId.getValue()).toMatch(/^ses_[a-z0-9]{24}$/)
     })
   })
 
   describe('constructor', () => {
     it('有効なIDで作成できる', () => {
       // Given: 有効なセッションID
-      const validId = `ss_${faker.string.alphanumeric({ length: 25, casing: 'lower' })}`
+      const validId = `ses_${faker.string.alphanumeric({ length: 24, casing: 'lower' })}`
 
       // When: IDでインスタンスを作成
       const sessionId = new ShoppingSessionId(validId)
@@ -38,13 +38,13 @@ describe('ShoppingSessionId', () => {
 
       // When/Then: エラーが発生
       expect(() => new ShoppingSessionId(invalidId)).toThrow(
-        '買い物セッションIDはss_で始まる必要があります'
+        '買い物セッションIDはses_で始まる必要があります'
       )
     })
 
     it('無効な長さのIDは拒否される', () => {
       // Given: 短すぎるID
-      const shortId = `ss_${faker.string.alphanumeric({ length: 10, casing: 'lower' })}`
+      const shortId = `ses_${faker.string.alphanumeric({ length: 10, casing: 'lower' })}`
 
       // When/Then: エラーが発生
       expect(() => new ShoppingSessionId(shortId)).toThrow('IDはCUID v2形式で入力してください')
@@ -52,7 +52,7 @@ describe('ShoppingSessionId', () => {
 
     it('大文字を含むIDは拒否される', () => {
       // Given: 大文字を含むID
-      const uppercaseId = `ss_${faker.string.alphanumeric({ length: 25, casing: 'upper' })}`
+      const uppercaseId = `ses_${faker.string.alphanumeric({ length: 24, casing: 'upper' })}`
 
       // When/Then: エラーが発生
       expect(() => new ShoppingSessionId(uppercaseId)).toThrow('IDはCUID v2形式で入力してください')
@@ -62,7 +62,7 @@ describe('ShoppingSessionId', () => {
   describe('equals', () => {
     it('同じIDの場合はtrueを返す', () => {
       // Given: 同じID文字列
-      const idString = `ss_${faker.string.alphanumeric({ length: 25, casing: 'lower' })}`
+      const idString = `ses_${faker.string.alphanumeric({ length: 24, casing: 'lower' })}`
       const sessionId1 = new ShoppingSessionId(idString)
       const sessionId2 = new ShoppingSessionId(idString)
 

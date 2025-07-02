@@ -9,6 +9,7 @@ import {
   SessionStatus,
   StockStatus,
   ExpiryStatus,
+  DeviceType,
   Prisma,
 } from '@/generated/prisma'
 
@@ -338,8 +339,10 @@ async function main() {
       status: SessionStatus.COMPLETED,
       startedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2時間前に開始
       completedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1時間前に完了
-      deviceType: 'mobile',
-      location: JSON.stringify({ placeName: 'スーパーマーケット ABC' }),
+      deviceType: DeviceType.MOBILE,
+      locationName: 'スーパーマーケット ABC',
+      locationLat: new Prisma.Decimal(35.6812), // 東京の緯度
+      locationLng: new Prisma.Decimal(139.7671), // 東京の経度
       metadata: JSON.stringify({ totalDuration: 3600 }),
     },
   })
@@ -384,6 +387,39 @@ async function main() {
   ])
 
   console.log(`Created shopping session with ${sessionItems.length} checked items`)
+
+  // Create an active shopping session (different device type)
+  const activeSessionId = generateId.session()
+  const activeShoppingSession = await prisma.shoppingSession.create({
+    data: {
+      id: activeSessionId,
+      userId,
+      status: SessionStatus.ACTIVE,
+      startedAt: new Date(now.getTime() - 30 * 60 * 1000), // 30分前に開始
+      deviceType: DeviceType.TABLET,
+      locationName: 'イオンモール東京',
+      locationLat: new Prisma.Decimal(35.6762), // 別の場所の緯度
+      locationLng: new Prisma.Decimal(139.6503), // 別の場所の経度
+      metadata: JSON.stringify({ sessionType: 'weekly-shopping' }),
+    },
+  })
+  console.log(`Created active shopping session: ${activeShoppingSession.id}`)
+
+  // Create a desktop session (planning phase, no location)
+  const desktopSessionId = generateId.session()
+  const desktopShoppingSession = await prisma.shoppingSession.create({
+    data: {
+      id: desktopSessionId,
+      userId,
+      status: SessionStatus.ABANDONED,
+      startedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3日前に開始
+      completedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000), // 15分後に中断
+      deviceType: DeviceType.DESKTOP,
+      // locationName, locationLat, locationLng are null (planning at home)
+      metadata: JSON.stringify({ abandonReason: 'timeout' }),
+    },
+  })
+  console.log(`Created desktop shopping session: ${desktopShoppingSession.id}`)
 
   // Create sample stock histories
   const stockHistories = await Promise.all([
@@ -447,7 +483,12 @@ async function main() {
         eventData: JSON.stringify({
           sessionId,
           userId,
-          deviceType: 'mobile',
+          deviceType: DeviceType.MOBILE,
+          location: {
+            name: 'スーパーマーケット ABC',
+            latitude: 35.6812,
+            longitude: 139.7671,
+          },
         }),
         eventVersion: 1,
         occurredAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),

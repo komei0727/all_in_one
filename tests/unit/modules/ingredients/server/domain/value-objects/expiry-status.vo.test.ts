@@ -57,9 +57,9 @@ describe('ExpiryStatus', () => {
     it('日数から適切なステータスを判定できる', () => {
       // When/Then: 期限までの日数でステータス判定
       expect(ExpiryStatus.fromDaysUntilExpiry(10).equals(ExpiryStatus.FRESH)).toBe(true)
-      expect(ExpiryStatus.fromDaysUntilExpiry(7).equals(ExpiryStatus.FRESH)).toBe(true)
+      expect(ExpiryStatus.fromDaysUntilExpiry(7).equals(ExpiryStatus.NEAR_EXPIRY)).toBe(true)
       expect(ExpiryStatus.fromDaysUntilExpiry(3).equals(ExpiryStatus.EXPIRING_SOON)).toBe(true)
-      expect(ExpiryStatus.fromDaysUntilExpiry(1).equals(ExpiryStatus.EXPIRING_SOON)).toBe(true)
+      expect(ExpiryStatus.fromDaysUntilExpiry(1).equals(ExpiryStatus.CRITICAL)).toBe(true)
       expect(ExpiryStatus.fromDaysUntilExpiry(0).equals(ExpiryStatus.EXPIRED)).toBe(true)
       expect(ExpiryStatus.fromDaysUntilExpiry(-1).equals(ExpiryStatus.EXPIRED)).toBe(true)
     })
@@ -111,9 +111,11 @@ describe('ExpiryStatus', () => {
   describe('優先度', () => {
     describe('getPriority', () => {
       it('各ステータスの優先度を返す', () => {
-        // Then: EXPIRED > EXPIRING_SOON > FRESH
-        expect(ExpiryStatus.EXPIRED.getPriority()).toBe(3)
-        expect(ExpiryStatus.EXPIRING_SOON.getPriority()).toBe(2)
+        // Then: EXPIRED > CRITICAL > EXPIRING_SOON > NEAR_EXPIRY > FRESH
+        expect(ExpiryStatus.EXPIRED.getPriority()).toBe(5)
+        expect(ExpiryStatus.CRITICAL.getPriority()).toBe(4)
+        expect(ExpiryStatus.EXPIRING_SOON.getPriority()).toBe(3)
+        expect(ExpiryStatus.NEAR_EXPIRY.getPriority()).toBe(2)
         expect(ExpiryStatus.FRESH.getPriority()).toBe(1)
       })
     })

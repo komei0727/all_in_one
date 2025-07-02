@@ -20,13 +20,17 @@ describe('PrismaUserRepository（統合テスト）', () => {
     prisma = new TestPrismaClient()
     repository = new PrismaUserRepository(prisma as unknown as PrismaClient)
 
-    // テストデータをクリア
+    // テストデータをクリア（外部キー制約を考慮した順序）
+    await prisma.ingredient.deleteMany()
+    await prisma.shoppingSession.deleteMany()
     await prisma.domainUser.deleteMany()
     await prisma.user.deleteMany()
   })
 
   afterEach(async () => {
-    // テスト後のクリーンアップ
+    // テスト後のクリーンアップ（外部キー制約を考慮した順序）
+    await prisma.ingredient.deleteMany()
+    await prisma.shoppingSession.deleteMany()
     await prisma.domainUser.deleteMany()
     await prisma.user.deleteMany()
     await prisma.$disconnect()

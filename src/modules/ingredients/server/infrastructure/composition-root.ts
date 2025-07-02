@@ -4,25 +4,52 @@ import type { EventBus } from '@/modules/shared/server/application/services/even
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
 
 import { PrismaIngredientQueryService } from './query-services/prisma-ingredient-query-service'
+import { PrismaShoppingQueryService } from './query-services/prisma-shopping-query-service'
 import { PrismaCategoryRepository } from './repositories/prisma-category-repository'
 import { PrismaIngredientRepository } from './repositories/prisma-ingredient-repository'
 import { PrismaRepositoryFactory } from './repositories/prisma-repository-factory'
+import { PrismaShoppingSessionRepository } from './repositories/prisma-shopping-session-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from './services/prisma-transaction-manager'
+import { AbandonShoppingSessionApiHandler } from '../api/handlers/commands/abandon-shopping-session.handler'
+import { CheckIngredientApiHandler } from '../api/handlers/commands/check-ingredient.handler'
+import { CompleteShoppingSessionApiHandler } from '../api/handlers/commands/complete-shopping-session.handler'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
+import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
+import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
+import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/get-ingredient-check-statistics.handler'
+import { GetIngredientsByCategoryApiHandler } from '../api/handlers/queries/get-ingredients-by-category.handler'
+import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
+import { GetRecentSessionsApiHandler } from '../api/handlers/queries/get-recent-sessions.handler'
+import { GetSessionHistoryApiHandler } from '../api/handlers/queries/get-session-history.handler'
+import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
+import { AbandonShoppingSessionHandler } from '../application/commands/abandon-shopping-session.handler'
+import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
+import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
 import { DeleteIngredientHandler } from '../application/commands/delete-ingredient.handler'
+import { StartShoppingSessionHandler } from '../application/commands/start-shopping-session.handler'
 import { UpdateIngredientHandler } from '../application/commands/update-ingredient.handler'
+import { GetActiveShoppingSessionHandler } from '../application/queries/get-active-shopping-session.handler'
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
 import { GetIngredientByIdHandler } from '../application/queries/get-ingredient-by-id.handler'
+import { GetIngredientCheckStatisticsHandler } from '../application/queries/get-ingredient-check-statistics.handler'
+import { GetIngredientsByCategoryHandler } from '../application/queries/get-ingredients-by-category.handler'
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
+import { GetQuickAccessIngredientsHandler } from '../application/queries/get-quick-access-ingredients.handler'
+import { GetRecentSessionsHandler } from '../application/queries/get-recent-sessions.handler'
+import { GetSessionHistoryHandler } from '../application/queries/get-session-history.handler'
+import { GetShoppingStatisticsHandler } from '../application/queries/get-shopping-statistics.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
+import { ShoppingSessionFactory } from '../domain/factories/shopping-session.factory'
 
 import type { IngredientQueryService } from '../application/query-services/ingredient-query-service.interface'
+import type { ShoppingQueryService } from '../application/query-services/shopping-query-service.interface'
 import type { CategoryRepository } from '../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../domain/repositories/ingredient-repository.interface'
 import type { RepositoryFactory } from '../domain/repositories/repository-factory.interface'
+import type { ShoppingSessionRepository } from '../domain/repositories/shopping-session-repository.interface'
 import type { UnitRepository } from '../domain/repositories/unit-repository.interface'
 
 /**
@@ -38,8 +65,10 @@ export class CompositionRoot {
   private categoryRepository: CategoryRepository | null = null
   private unitRepository: UnitRepository | null = null
   private ingredientRepository: IngredientRepository | null = null
+  private shoppingSessionRepository: ShoppingSessionRepository | null = null
   private repositoryFactory: RepositoryFactory | null = null
   private ingredientQueryService: IngredientQueryService | null = null
+  private shoppingQueryService: ShoppingQueryService | null = null
   private transactionManager: TransactionManager | null = null
   private eventBus: EventBus | null = null
 
@@ -222,5 +251,195 @@ export class CompositionRoot {
       this.getRepositoryFactory(),
       this.getTransactionManager()
     )
+  }
+
+  /**
+   * Get ShoppingSessionRepository instance (singleton)
+   */
+  public getShoppingSessionRepository(): ShoppingSessionRepository {
+    if (!this.shoppingSessionRepository) {
+      this.shoppingSessionRepository = new PrismaShoppingSessionRepository(this.prismaClient)
+    }
+    return this.shoppingSessionRepository
+  }
+
+  /**
+   * Get ShoppingSessionFactory instance (new instance each time)
+   */
+  public getShoppingSessionFactory(): ShoppingSessionFactory {
+    return new ShoppingSessionFactory(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get StartShoppingSessionHandler instance (new instance each time)
+   */
+  public getStartShoppingSessionHandler(): StartShoppingSessionHandler {
+    return new StartShoppingSessionHandler(
+      this.getShoppingSessionFactory(),
+      this.getShoppingSessionRepository()
+    )
+  }
+
+  /**
+   * Get StartShoppingSessionApiHandler instance (new instance each time)
+   */
+  public getStartShoppingSessionApiHandler(): StartShoppingSessionApiHandler {
+    return new StartShoppingSessionApiHandler(this.getStartShoppingSessionHandler())
+  }
+
+  /**
+   * Get GetActiveShoppingSessionHandler instance (new instance each time)
+   */
+  public getGetActiveShoppingSessionHandler(): GetActiveShoppingSessionHandler {
+    return new GetActiveShoppingSessionHandler(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get GetActiveShoppingSessionApiHandler instance (new instance each time)
+   */
+  public getGetActiveShoppingSessionApiHandler(): GetActiveShoppingSessionApiHandler {
+    return new GetActiveShoppingSessionApiHandler(this.getGetActiveShoppingSessionHandler())
+  }
+
+  /**
+   * Get CompleteShoppingSessionHandler instance (new instance each time)
+   */
+  public getCompleteShoppingSessionHandler(): CompleteShoppingSessionHandler {
+    return new CompleteShoppingSessionHandler(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get CompleteShoppingSessionApiHandler instance (new instance each time)
+   */
+  public getCompleteShoppingSessionApiHandler(): CompleteShoppingSessionApiHandler {
+    return new CompleteShoppingSessionApiHandler(this.getCompleteShoppingSessionHandler())
+  }
+
+  /**
+   * Get AbandonShoppingSessionHandler instance (new instance each time)
+   */
+  public getAbandonShoppingSessionHandler(): AbandonShoppingSessionHandler {
+    return new AbandonShoppingSessionHandler(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get AbandonShoppingSessionApiHandler instance (new instance each time)
+   */
+  public getAbandonShoppingSessionApiHandler(): AbandonShoppingSessionApiHandler {
+    return new AbandonShoppingSessionApiHandler(this.getAbandonShoppingSessionHandler())
+  }
+
+  /**
+   * Get CheckIngredientHandler instance (new instance each time)
+   */
+  public getCheckIngredientHandler(): CheckIngredientHandler {
+    return new CheckIngredientHandler(
+      this.getShoppingSessionRepository(),
+      this.getIngredientRepository()
+    )
+  }
+
+  /**
+   * Get CheckIngredientApiHandler instance (new instance each time)
+   */
+  public getCheckIngredientApiHandler(): CheckIngredientApiHandler {
+    return new CheckIngredientApiHandler(this.getCheckIngredientHandler())
+  }
+
+  /**
+   * Get ShoppingQueryService instance (singleton)
+   */
+  public getShoppingQueryService(): ShoppingQueryService {
+    if (!this.shoppingQueryService) {
+      this.shoppingQueryService = new PrismaShoppingQueryService(this.prismaClient)
+    }
+    return this.shoppingQueryService
+  }
+
+  /**
+   * Get GetRecentSessionsHandler instance (new instance each time)
+   */
+  public getGetRecentSessionsHandler(): GetRecentSessionsHandler {
+    return new GetRecentSessionsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetShoppingStatisticsHandler instance (new instance each time)
+   */
+  public getGetShoppingStatisticsHandler(): GetShoppingStatisticsHandler {
+    return new GetShoppingStatisticsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetRecentSessionsApiHandler instance (new instance each time)
+   */
+  public getGetRecentSessionsApiHandler(): GetRecentSessionsApiHandler {
+    return new GetRecentSessionsApiHandler(this.getGetRecentSessionsHandler())
+  }
+
+  /**
+   * Get GetShoppingStatisticsApiHandler instance (new instance each time)
+   */
+  public getGetShoppingStatisticsApiHandler(): GetShoppingStatisticsApiHandler {
+    return new GetShoppingStatisticsApiHandler(this.getGetShoppingStatisticsHandler())
+  }
+
+  /**
+   * Get GetQuickAccessIngredientsApiHandler instance (new instance each time)
+   */
+  public getGetQuickAccessIngredientsApiHandler(): GetQuickAccessIngredientsApiHandler {
+    return new GetQuickAccessIngredientsApiHandler(this.getGetQuickAccessIngredientsHandler())
+  }
+
+  /**
+   * Get GetQuickAccessIngredientsHandler instance (new instance each time)
+   */
+  public getGetQuickAccessIngredientsHandler(): GetQuickAccessIngredientsHandler {
+    return new GetQuickAccessIngredientsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetIngredientCheckStatisticsApiHandler instance (new instance each time)
+   */
+  public getGetIngredientCheckStatisticsApiHandler(): GetIngredientCheckStatisticsApiHandler {
+    return new GetIngredientCheckStatisticsApiHandler(this.getGetIngredientCheckStatisticsHandler())
+  }
+
+  /**
+   * Get GetIngredientCheckStatisticsHandler instance (new instance each time)
+   */
+  public getGetIngredientCheckStatisticsHandler(): GetIngredientCheckStatisticsHandler {
+    return new GetIngredientCheckStatisticsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetIngredientsByCategoryHandler instance (new instance each time)
+   */
+  public getGetIngredientsByCategoryHandler(): GetIngredientsByCategoryHandler {
+    return new GetIngredientsByCategoryHandler(
+      this.getCategoryRepository(),
+      this.getIngredientRepository()
+    )
+  }
+
+  /**
+   * Get GetIngredientsByCategoryApiHandler instance (new instance each time)
+   */
+  public getIngredientsByCategoryApiHandler(): GetIngredientsByCategoryApiHandler {
+    return new GetIngredientsByCategoryApiHandler(this.getGetIngredientsByCategoryHandler())
+  }
+
+  /**
+   * Get GetSessionHistoryHandler instance (new instance each time)
+   */
+  public getGetSessionHistoryHandler(): GetSessionHistoryHandler {
+    return new GetSessionHistoryHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetSessionHistoryApiHandler instance (new instance each time)
+   */
+  public getGetSessionHistoryApiHandler(): GetSessionHistoryApiHandler {
+    return new GetSessionHistoryApiHandler(this.getGetSessionHistoryHandler())
   }
 }

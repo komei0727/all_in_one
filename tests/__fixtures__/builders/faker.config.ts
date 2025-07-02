@@ -135,6 +135,7 @@ export const testDataHelpers = {
   categoryId: () => ID_PREFIXES.category + createId(),
   unitId: () => ID_PREFIXES.unit + createId(),
   userId: () => ID_PREFIXES.user + createId(),
+  shoppingSessionId: () => ID_PREFIXES.shoppingSession + createId(),
 
   /**
    * ランダムなカテゴリー名を取得
