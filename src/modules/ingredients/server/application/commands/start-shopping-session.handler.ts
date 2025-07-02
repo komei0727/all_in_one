@@ -43,9 +43,11 @@ export class StartShoppingSessionHandler {
       savedSession.getCompletedAt()?.toISOString() ?? null,
       savedSession.getDeviceType()?.getValue() ?? null,
       savedSession.getLocation()
-        ? savedSession.getLocationName() !== null
-          ? { placeName: savedSession.getLocationName()! }
-          : {}
+        ? {
+            latitude: savedSession.getLocation()!.getLatitude(),
+            longitude: savedSession.getLocation()!.getLongitude(),
+            placeName: savedSession.getLocationName() ?? undefined,
+          }
         : null,
       [] // checkedItems - 新規セッションなので空
     )

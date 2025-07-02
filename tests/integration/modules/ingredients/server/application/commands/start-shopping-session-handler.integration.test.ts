@@ -168,6 +168,8 @@ describe('StartShoppingSessionHandler Integration Tests', () => {
       // Then: DTOにdeviceTypeとlocationが含まれる
       expect(result.deviceType).toBe('MOBILE')
       expect(result.location).toEqual({
+        latitude: 35.6762,
+        longitude: 139.6503,
         placeName: '東京駅前スーパー',
       })
 
@@ -219,6 +221,8 @@ describe('StartShoppingSessionHandler Integration Tests', () => {
       // Then: DTOにlocationが含まれ、deviceTypeはnull
       expect(result.deviceType).toBeNull()
       expect(result.location).toEqual({
+        latitude: 34.6851,
+        longitude: 135.1815,
         placeName: undefined,
       })
 

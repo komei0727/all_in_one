@@ -126,6 +126,8 @@ describe('StartShoppingSessionHandler', () => {
       expect(result).toBeInstanceOf(ShoppingSessionDto)
       expect(result.deviceType).toBe('MOBILE')
       expect(result.location).toEqual({
+        latitude: 35.6762,
+        longitude: 139.6503,
         placeName: '東京駅前スーパー',
       })
 
@@ -192,7 +194,11 @@ describe('StartShoppingSessionHandler', () => {
 
       // Then: DTOにlocationが含まれ、deviceTypeはnull
       expect(result.deviceType).toBeNull()
-      expect(result.location).toEqual({})
+      expect(result.location).toEqual({
+        latitude: 34.6851,
+        longitude: 135.1815,
+        placeName: undefined,
+      })
 
       // ファクトリが正しいパラメータで呼ばれた
       expect(mockFactory.create).toHaveBeenCalledWith(userId, {

@@ -113,8 +113,14 @@ export class CheckIngredientHandler {
       updatedSession.getStatus().getValue(),
       updatedSession.getStartedAt().toISOString(),
       updatedSession.getCompletedAt()?.toISOString() ?? null,
-      null, // deviceType - TODO: 将来実装
-      null, // location - TODO: 将来実装
+      updatedSession.getDeviceType()?.getValue() ?? null,
+      updatedSession.getLocation()
+        ? {
+            latitude: updatedSession.getLocation()!.getLatitude(),
+            longitude: updatedSession.getLocation()!.getLongitude(),
+            placeName: updatedSession.getLocationName() ?? undefined,
+          }
+        : null,
       checkedItemDtos
     )
   }

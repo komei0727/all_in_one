@@ -60,9 +60,11 @@ export class CompleteShoppingSessionHandler {
       updatedSession.getCompletedAt()?.toISOString() ?? null,
       updatedSession.getDeviceType()?.getValue() ?? null,
       updatedSession.getLocation()
-        ? updatedSession.getLocationName() !== null
-          ? { placeName: updatedSession.getLocationName()! }
-          : {}
+        ? {
+            latitude: updatedSession.getLocation()!.getLatitude(),
+            longitude: updatedSession.getLocation()!.getLongitude(),
+            placeName: updatedSession.getLocationName() ?? undefined,
+          }
         : null,
       checkedItemDtos
     )

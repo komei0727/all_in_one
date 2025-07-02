@@ -128,8 +128,12 @@ describe('CompleteShoppingSession API Integration', () => {
       const data = await result.json()
 
       expect(data.deviceType).toBe('MOBILE')
-      // locationが空オブジェクトで返されることを確認（locationは存在するがplaceNameがない場合）
-      expect(data.location).toEqual({})
+      // locationにlatitudeとlongitudeが含まれることを確認
+      expect(data.location).toEqual({
+        latitude: 35.6762,
+        longitude: 139.6503,
+        placeName: undefined,
+      })
     })
   })
 
