@@ -38,19 +38,20 @@ export class UpdateIngredientApiHandler extends BaseApiHandler<
       unknown
     >
 
-    // ingredientIdの取得
-    const ingredientId = params.ingredientId || params.params?.ingredientId || ''
+    // ingredientIdの取得（idパラメータからも取得）
+    const ingredientId = params.ingredientId || params.params?.ingredientId || params.id || ''
 
     // ボディのバリデーション
     const body = { ...params }
     delete body.ingredientId
     delete body.params
+    delete body.id
 
     const validatedBody = updateIngredientSchema.parse(body)
 
     return {
       ...validatedBody,
-      ingredientId,
+      ingredientId: ingredientId as string,
     }
   }
 
