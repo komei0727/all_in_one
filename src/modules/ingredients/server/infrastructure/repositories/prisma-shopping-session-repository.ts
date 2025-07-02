@@ -5,6 +5,7 @@ import type {
   ExpiryStatus as PrismaExpiryStatus,
   DeviceType as PrismaDeviceType,
 } from '@/generated/prisma'
+import { PrismaErrorConverter } from '@/modules/shared/server/infrastructure/prisma-error-converter'
 
 import { ShoppingSession } from '../../domain/entities/shopping-session.entity'
 import {
@@ -33,47 +34,53 @@ export class PrismaShoppingSessionRepository implements ShoppingSessionRepositor
    * @returns 保存されたセッション
    */
   async save(session: ShoppingSession): Promise<ShoppingSession> {
-    // トランザクション内でセッションとアイテムを保存
-    const result = await this.prisma.$transaction(async (tx) => {
-      // セッションの保存
-      const savedSession = await tx.shoppingSession.create({
-        data: {
-          id: session.getId().getValue(),
-          userId: session.getUserId(),
-          status: this.mapSessionStatusToPrisma(session.getStatus()),
-          startedAt: session.getStartedAt(),
-          completedAt: session.getCompletedAt(),
-          deviceType: session.getDeviceType()?.getValue() as PrismaDeviceType | null,
-          locationName: session.getLocation()?.getName() ?? null,
-          locationLat: session.getLocation()?.getLatitude() ?? null,
-          locationLng: session.getLocation()?.getLongitude() ?? null,
-          metadata: undefined,
-        },
-      })
+    return await PrismaErrorConverter.wrapOperation(
+      async () => {
+        // トランザクション内でセッションとアイテムを保存
+        const result = await this.prisma.$transaction(async (tx) => {
+          // セッションの保存
+          const savedSession = await tx.shoppingSession.create({
+            data: {
+              id: session.getId().getValue(),
+              userId: session.getUserId(),
+              status: this.mapSessionStatusToPrisma(session.getStatus()),
+              startedAt: session.getStartedAt(),
+              completedAt: session.getCompletedAt(),
+              deviceType: session.getDeviceType()?.getValue() as PrismaDeviceType | null,
+              locationName: session.getLocation()?.getName() ?? null,
+              locationLat: session.getLocation()?.getLatitude() ?? null,
+              locationLng: session.getLocation()?.getLongitude() ?? null,
+              metadata: undefined,
+            },
+          })
 
-      // チェック済みアイテムの保存
-      const checkedItems = session.getCheckedItems()
-      if (checkedItems.length > 0) {
-        await tx.shoppingSessionItem.createMany({
-          data: checkedItems.map((item) => ({
-            sessionId: session.getId().getValue(),
-            ingredientId: item.getIngredientId().getValue(),
-            ingredientName: item.getIngredientName().getValue(),
-            stockStatus: this.mapStockStatusToPrisma(item.getStockStatus()),
-            expiryStatus: item.getExpiryStatus()
-              ? this.mapExpiryStatusToPrisma(item.getExpiryStatus())
-              : null,
-            checkedAt: item.getCheckedAt(),
-            metadata: undefined,
-          })),
+          // チェック済みアイテムの保存
+          const checkedItems = session.getCheckedItems()
+          if (checkedItems.length > 0) {
+            await tx.shoppingSessionItem.createMany({
+              data: checkedItems.map((item) => ({
+                sessionId: session.getId().getValue(),
+                ingredientId: item.getIngredientId().getValue(),
+                ingredientName: item.getIngredientName().getValue(),
+                stockStatus: this.mapStockStatusToPrisma(item.getStockStatus()),
+                expiryStatus: item.getExpiryStatus()
+                  ? this.mapExpiryStatusToPrisma(item.getExpiryStatus())
+                  : null,
+                checkedAt: item.getCheckedAt(),
+                metadata: undefined,
+              })),
+            })
+          }
+
+          return { savedSession, checkedItems }
         })
-      }
 
-      return { savedSession, checkedItems }
-    })
-
-    // エンティティの再構築
-    return this.toEntity(result.savedSession, result.checkedItems)
+        // エンティティの再構築
+        return this.toEntity(result.savedSession, result.checkedItems)
+      },
+      'save',
+      { sessionId: session.getId().getValue() }
+    )
   }
 
   /**
