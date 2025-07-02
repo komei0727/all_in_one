@@ -6,6 +6,7 @@ import { type BaseApiHandler } from './base-api-handler'
 import { UniversalExceptionConverter } from './exception-converter'
 import { ApiUnauthorizedException } from './exceptions/api-unauthorized.exception'
 import { type ErrorContext } from './exceptions/error-context'
+import { ResponseFormatter } from './response-formatter'
 
 /**
  * ルートオプション
@@ -31,7 +32,7 @@ export class UnifiedRouteFactory {
   ) {
     return async (
       request: NextRequest,
-      _params?: Record<string, unknown>
+      routeContext?: { params: Promise<Record<string, string>> | Record<string, string> }
     ): Promise<NextResponse> => {
       const context: ErrorContext = {
         method: 'POST',
@@ -44,17 +45,41 @@ export class UnifiedRouteFactory {
         // 1. 認証処理
         const userId = await this.authenticateRequest(request, options.requireAuth !== false)
 
-        // 2. リクエストボディの取得
-        const body = (await request.json()) as unknown
+        // 2. パラメータを解決（Promiseの場合はawait）
+        let params: Record<string, string> = {}
+        if (routeContext?.params) {
+          params =
+            routeContext.params instanceof Promise ? await routeContext.params : routeContext.params
+        }
 
-        // 3. APIハンドラーの実行
+        // 3. リクエストボディの取得
+        let body: Record<string, unknown> = {}
+        try {
+          // Content-Typeに関係なく、JSONの解析を試みる（寛容なアプローチ）
+          const text = await request.text()
+          if (text.trim()) {
+            body = JSON.parse(text) as Record<string, unknown>
+          }
+        } catch (_error) {
+          // JSONパースエラーの場合は例外として扱う
+          const contentType = request.headers.get('content-type')
+          if (contentType?.includes('application/json')) {
+            throw new Error('Invalid JSON format in request body')
+          }
+          // Content-Typeが不正でもJSONとして解析できない場合は無視
+        }
+
+        // 4. パラメータとボディを統合
+        const requestData = { ...params, ...body }
+
+        // 5. APIハンドラーの実行
         const apiHandler = apiHandlerFactory()
-        const result = await apiHandler.handle(body, userId, context)
+        const result = await apiHandler.handle(requestData, userId)
 
-        // 4. 成功レスポンスの生成
+        // 6. 成功レスポンスの生成
         return this.createSuccessResponse(result, 201)
       } catch (error) {
-        // 5. 統一エラーハンドリング
+        // 7. 統一エラーハンドリング
         return this.handleError(error, context)
       }
     }
@@ -69,7 +94,7 @@ export class UnifiedRouteFactory {
   ) {
     return async (
       request: NextRequest,
-      _params?: Record<string, unknown>
+      routeContext?: { params: Promise<Record<string, string>> | Record<string, string> }
     ): Promise<NextResponse> => {
       const context: ErrorContext = {
         method: 'GET',
@@ -81,9 +106,16 @@ export class UnifiedRouteFactory {
       try {
         const userId = await this.authenticateRequest(request, options.requireAuth !== false)
 
+        // パラメータを解決（Promiseの場合はawait）
+        let params: Record<string, string> = {}
+        if (routeContext?.params) {
+          params =
+            routeContext.params instanceof Promise ? await routeContext.params : routeContext.params
+        }
+
         // URLパラメータとクエリパラメータの結合
         const queryData = {
-          ..._params,
+          ...params,
           ...Object.fromEntries(new URL(request.url).searchParams),
         }
 
@@ -106,7 +138,7 @@ export class UnifiedRouteFactory {
   ) {
     return async (
       request: NextRequest,
-      _params?: Record<string, unknown>
+      routeContext?: { params: Promise<Record<string, string>> | Record<string, string> }
     ): Promise<NextResponse> => {
       const context: ErrorContext = {
         method: 'PUT',
@@ -118,15 +150,22 @@ export class UnifiedRouteFactory {
       try {
         const userId = await this.authenticateRequest(request, options.requireAuth !== false)
 
+        // パラメータを解決（Promiseの場合はawait）
+        let params: Record<string, string> = {}
+        if (routeContext?.params) {
+          params =
+            routeContext.params instanceof Promise ? await routeContext.params : routeContext.params
+        }
+
         // リクエストボディとパラメータの結合
         const body = (await request.json()) as Record<string, unknown>
         const requestData = {
-          ..._params,
+          ...params,
           ...body,
         }
 
         const apiHandler = apiHandlerFactory()
-        const result = await apiHandler.handle(requestData, userId, context)
+        const result = await apiHandler.handle(requestData, userId)
 
         return this.createSuccessResponse(result, 200)
       } catch (error) {
@@ -144,9 +183,9 @@ export class UnifiedRouteFactory {
   ) {
     return async (
       request: NextRequest,
-      _params?: Record<string, unknown>
+      routeContext?: { params: Promise<Record<string, string>> | Record<string, string> }
     ): Promise<NextResponse> => {
-      const context: ErrorContext = {
+      const errorContext: ErrorContext = {
         method: 'DELETE',
         path: request.url,
         userAgent: request.headers.get('user-agent') || undefined,
@@ -156,12 +195,39 @@ export class UnifiedRouteFactory {
       try {
         const userId = await this.authenticateRequest(request, options.requireAuth !== false)
 
+        // パラメータを解決（Promiseの場合はawait）
+        let params: Record<string, string> = {}
+        if (routeContext?.params) {
+          params =
+            routeContext.params instanceof Promise ? await routeContext.params : routeContext.params
+        }
+
+        // リクエストボディがある場合は取得（オプション）
+        let body: Record<string, unknown> = {}
+        try {
+          // Content-Typeに関係なく、JSONの解析を試みる（寛容なアプローチ）
+          const text = await request.text()
+          if (text.trim()) {
+            body = JSON.parse(text) as Record<string, unknown>
+          }
+        } catch (_error) {
+          // JSONパースエラーの場合は例外として扱う
+          const contentType = request.headers.get('content-type')
+          if (contentType?.includes('application/json')) {
+            throw new Error('Invalid JSON format in request body')
+          }
+          // Content-Typeが不正でもJSONとして解析できない場合は無視
+        }
+
+        // パラメータとボディを統合
+        const requestData = { ...params, ...body }
+
         const apiHandler = apiHandlerFactory()
-        const result = await apiHandler.handle(_params || {}, userId, context)
+        const result = await apiHandler.handle(requestData, userId, errorContext)
 
         return this.createSuccessResponse(result, 200)
       } catch (error) {
-        return this.handleError(error, context)
+        return this.handleError(error, errorContext)
       }
     }
   }
@@ -188,28 +254,48 @@ export class UnifiedRouteFactory {
   private static createSuccessResponse<T>(data: T, status: number): NextResponse {
     // nullの場合は404エラーとして扱う（特にGET操作で見つからない場合）
     if (data === null && status === 200) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'RESOURCE_NOT_FOUND',
-            message: 'Resource not found',
-            timestamp: new Date().toISOString(),
-          },
+      const errorResponse = {
+        error: {
+          code: 'RESOURCE_NOT_FOUND',
+          message: 'Resource not found',
+          type: 'NOT_FOUND' as const,
+          timestamp: new Date().toISOString(),
+          path: '', // 呼び出し元で設定される
         },
-        {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
+        meta: {
+          timestamp: new Date().toISOString(),
+          correlationId: '', // 実際のアプリケーションではUUIDを生成
+        },
+      }
+
+      return NextResponse.json(errorResponse, {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // DTOがtoJSON()メソッドを持っている場合は呼び出す
-    const responseData =
-      data && typeof data === 'object' && 'toJSON' in data
-        ? (data as { toJSON: () => unknown }).toJSON()
-        : data
+    let processedData = data
+    if (data && typeof data === 'object' && 'toJSON' in data) {
+      processedData = (data as { toJSON: () => unknown }).toJSON() as T
+    }
 
-    return NextResponse.json(responseData, {
+    // DELETEリクエストで204 No Contentの場合はメタデータのみ返す
+    if (status === 204) {
+      const response = ResponseFormatter.meta()
+      return NextResponse.json(response, {
+        status: 204,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      })
+    }
+
+    // 共通メタデータを付与したレスポンスを生成
+    const formattedResponse = ResponseFormatter.success(processedData)
+
+    return NextResponse.json(formattedResponse, {
       status,
       headers: {
         'Content-Type': 'application/json',
@@ -225,14 +311,19 @@ export class UnifiedRouteFactory {
     // API例外への統一変換
     const apiException = UniversalExceptionConverter.convert(error, context)
 
-    // 構造化エラーレスポンスの生成
+    // 統一エラーレスポンス形式の生成
     const errorResponse = {
       error: {
         code: apiException.errorCode,
         message: apiException.message,
+        type: this.mapToErrorType(apiException.statusCode),
         timestamp: apiException.timestamp,
         path: context.path,
         ...(apiException.context && { details: apiException.context }),
+      },
+      meta: {
+        timestamp: new Date().toISOString(),
+        correlationId: this.generateCorrelationId(),
       },
     }
 
@@ -246,5 +337,33 @@ export class UnifiedRouteFactory {
       status: apiException.statusCode,
       headers: { 'Content-Type': 'application/json' },
     })
+  }
+
+  /**
+   * HTTPステータスコードからエラータイプをマッピング
+   */
+  private static mapToErrorType(
+    statusCode: number
+  ): 'BUSINESS_RULE_VIOLATION' | 'VALIDATION_ERROR' | 'NOT_FOUND' | 'SYSTEM_ERROR' {
+    if (statusCode >= 400 && statusCode < 500) {
+      switch (statusCode) {
+        case 400:
+          return 'VALIDATION_ERROR'
+        case 404:
+          return 'NOT_FOUND'
+        case 409:
+          return 'BUSINESS_RULE_VIOLATION'
+        default:
+          return 'VALIDATION_ERROR'
+      }
+    }
+    return 'SYSTEM_ERROR'
+  }
+
+  /**
+   * 相関IDの生成（簡易実装）
+   */
+  private static generateCorrelationId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 }
