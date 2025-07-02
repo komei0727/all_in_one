@@ -15,9 +15,11 @@ import { AbandonShoppingSessionApiHandler } from '../api/handlers/commands/aband
 import { CheckIngredientApiHandler } from '../api/handlers/commands/check-ingredient.handler'
 import { CompleteShoppingSessionApiHandler } from '../api/handlers/commands/complete-shopping-session.handler'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
+import { DeleteIngredientApiHandler } from '../api/handlers/commands/delete-ingredient.handler'
 import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
+import { GetIngredientByIdApiHandler } from '../api/handlers/queries/get-ingredient-by-id.handler'
 import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/get-ingredient-check-statistics.handler'
 import { GetIngredientsByCategoryApiHandler } from '../api/handlers/queries/get-ingredients-by-category.handler'
 import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
@@ -223,6 +225,13 @@ export class CompositionRoot {
   }
 
   /**
+   * Get GetIngredientByIdApiHandler instance (new instance each time)
+   */
+  public getGetIngredientByIdApiHandler(): GetIngredientByIdApiHandler {
+    return new GetIngredientByIdApiHandler(this.getGetIngredientByIdHandler())
+  }
+
+  /**
    * Get UpdateIngredientHandler instance (new instance each time)
    */
   public getUpdateIngredientHandler(): UpdateIngredientHandler {
@@ -251,6 +260,13 @@ export class CompositionRoot {
       this.getRepositoryFactory(),
       this.getTransactionManager()
     )
+  }
+
+  /**
+   * Get DeleteIngredientApiHandler instance (new instance each time)
+   */
+  public getDeleteIngredientApiHandler(): DeleteIngredientApiHandler {
+    return new DeleteIngredientApiHandler(this.getDeleteIngredientHandler())
   }
 
   /**

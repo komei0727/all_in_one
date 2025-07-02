@@ -1,58 +1,49 @@
+import { type ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
 import { type GetActiveShoppingSessionHandler } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.handler'
 import { GetActiveShoppingSessionQuery } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.query'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+
+/**
+ * GetActiveShoppingSessionリクエストの型定義
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface GetActiveShoppingSessionRequest {
+  // GETリクエストのため、特別なパラメータはなし
+}
 
 /**
  * アクティブな買い物セッション取得APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
  */
-export class GetActiveShoppingSessionApiHandler {
-  constructor(private readonly getActiveShoppingSessionHandler: GetActiveShoppingSessionHandler) {}
+export class GetActiveShoppingSessionApiHandler extends BaseApiHandler<
+  GetActiveShoppingSessionRequest,
+  ShoppingSessionDto | null
+> {
+  constructor(private readonly getActiveShoppingSessionHandler: GetActiveShoppingSessionHandler) {
+    super()
+  }
 
-  async handle(request: Request, userId: string): Promise<Response> {
-    try {
-      // クエリを作成して実行
-      const query = new GetActiveShoppingSessionQuery(userId)
-      const sessionDto = await this.getActiveShoppingSessionHandler.handle(query)
+  /**
+   * リクエストのバリデーション
+   * このAPIでは特別なバリデーションは不要
+   */
+  validate(_data: unknown): GetActiveShoppingSessionRequest {
+    return {}
+  }
 
-      // セッションが見つからない場合は404を返す
-      if (!sessionDto) {
-        return new Response(
-          JSON.stringify({
-            message: 'No active shopping session found',
-          }),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
+  /**
+   * ビジネスロジックの実行
+   * アクティブなセッションの取得処理
+   */
+  async execute(
+    request: GetActiveShoppingSessionRequest,
+    userId: string
+  ): Promise<ShoppingSessionDto | null> {
+    // クエリを作成して実行
+    const query = new GetActiveShoppingSessionQuery(userId)
+    const sessionDto = await this.getActiveShoppingSessionHandler.handle(query)
 
-      // レスポンスを作成
-      const response = {
-        sessionId: sessionDto.sessionId,
-        userId: sessionDto.userId,
-        status: sessionDto.status,
-        startedAt: sessionDto.startedAt,
-        completedAt: sessionDto.completedAt,
-        deviceType: sessionDto.deviceType,
-        location: sessionDto.location,
-      }
-
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // 予期しないエラー
-      console.error('Unexpected error in GetActiveShoppingSessionApiHandler:', error)
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    // セッションが見つからない場合はnullを返す（404エラーではなく正常なレスポンスとして扱う）
+    return sessionDto
   }
 }

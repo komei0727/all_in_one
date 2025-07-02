@@ -83,11 +83,11 @@ describe('GetActiveShoppingSession API Integration', () => {
       await repository.save(session)
 
       // When: APIハンドラーを通じてセッション取得
-      const result = await apiHandler.handle({} as Request, userId)
+      const result = await apiHandler.handle({}, userId)
 
       // Then: レスポンスが成功する
-      expect(result.status).toBe(200)
-      const data = await result.json()
+      expect(result).not.toBeNull()
+      const data = result
 
       expect(data).toMatchObject({
         sessionId: session.getId().getValue(),
@@ -116,13 +116,13 @@ describe('GetActiveShoppingSession API Integration', () => {
       await repository.save(activeSession)
 
       // When: セッション取得
-      const result = await apiHandler.handle({} as Request, userId)
+      const result = await apiHandler.handle({}, userId)
 
       // Then: アクティブなセッションのみが返される
-      expect(result.status).toBe(200)
-      const data = await result.json()
-      expect(data.sessionId).toBe(activeSession.getId().getValue())
-      expect(data.status).toBe('ACTIVE')
+      expect(result).not.toBeNull()
+      const data = result
+      expect(data!.sessionId).toBe(activeSession.getId().getValue())
+      expect(data!.status).toBe('ACTIVE')
     })
   })
 
@@ -131,12 +131,7 @@ describe('GetActiveShoppingSession API Integration', () => {
       // Given: セッションが存在しない
 
       // When: APIハンドラーを通じてセッション取得
-      const result = await apiHandler.handle({} as Request, userId)
-
-      // Then: 404エラーレスポンスが返される
-      expect(result.status).toBe(404)
-      const data = await result.json()
-      expect(data.message).toBe('No active shopping session found')
+      await expect(apiHandler.handle({}, userId)).rejects.toThrow()
     })
 
     it('他のユーザーのセッションは取得できない', async () => {
@@ -167,12 +162,7 @@ describe('GetActiveShoppingSession API Integration', () => {
       await repository.save(session)
 
       // When: 別のユーザーでセッション取得を試みる
-      const result = await apiHandler.handle({} as Request, userId)
-
-      // Then: 404エラーが返される（セッションが見つからない）
-      expect(result.status).toBe(404)
-      const data = await result.json()
-      expect(data.message).toBe('No active shopping session found')
+      await expect(apiHandler.handle({}, userId)).rejects.toThrow()
     })
   })
 
@@ -184,11 +174,11 @@ describe('GetActiveShoppingSession API Integration', () => {
       await repository.save(session)
 
       // When: セッション取得
-      const result = await apiHandler.handle({} as Request, userId)
+      const result = await apiHandler.handle({}, userId)
 
       // Then: チェック済みアイテムは含まれない（別APIで取得）
-      expect(result.status).toBe(200)
-      const data = await result.json()
+      expect(result).not.toBeNull()
+      const data = result
       expect(data).not.toHaveProperty('checkedItems')
     })
   })

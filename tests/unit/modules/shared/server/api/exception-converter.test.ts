@@ -231,6 +231,7 @@ describe('UniversalExceptionConverter', () => {
     it('開発環境では詳細なエラー情報を含む', () => {
       // Given: 未知のエラーと開発環境
       const originalEnv = process.env.NODE_ENV
+      // @ts-expect-error - テストのためにNODE_ENVを書き換え
       process.env.NODE_ENV = 'development'
 
       try {
@@ -246,6 +247,7 @@ describe('UniversalExceptionConverter', () => {
         expect(result.context?.errorType).toBe('object')
         expect(result.context?.errorConstructor).toBe('Error')
       } finally {
+        // @ts-expect-error - テストのためにNODE_ENVを書き換え
         process.env.NODE_ENV = originalEnv
       }
     })
@@ -253,6 +255,7 @@ describe('UniversalExceptionConverter', () => {
     it('本番環境では安全なエラーメッセージを返す', () => {
       // Given: 未知のエラーと本番環境
       const originalEnv = process.env.NODE_ENV
+      // @ts-expect-error - テストのためにNODE_ENVを書き換え
       process.env.NODE_ENV = 'production'
 
       try {
@@ -270,6 +273,7 @@ describe('UniversalExceptionConverter', () => {
           expect(result.context).not.toHaveProperty('errorMessage')
         }
       } finally {
+        // @ts-expect-error - テストのためにNODE_ENVを書き換え
         process.env.NODE_ENV = originalEnv
       }
     })

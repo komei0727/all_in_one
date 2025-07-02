@@ -74,7 +74,6 @@ describe('StartShoppingSession API Integration', () => {
     it('新しい買い物セッションを開始できる', async () => {
       // Given: 有効なリクエスト
       const request: StartShoppingSessionRequest = {
-        userId,
         deviceType: 'MOBILE',
         location: {
           latitude: 35.6762,
@@ -84,12 +83,11 @@ describe('StartShoppingSession API Integration', () => {
       }
 
       // When: APIハンドラーを通じてセッション開始
-      const result = await apiHandler.handle(request)
+      const result = await apiHandler.handle(request, userId)
 
       // Then: セッションが作成される
       expect(result).toMatchObject({
         sessionId: expect.any(String),
-        userId,
         status: 'ACTIVE',
         startedAt: expect.any(String), // APIレスポンスは文字列として返される
         completedAt: null,
@@ -110,15 +108,14 @@ describe('StartShoppingSession API Integration', () => {
 
     it('最小限の情報（userIdのみ）でセッションを開始できる', async () => {
       // Given: userIdのみのリクエスト
-      const request: StartShoppingSessionRequest = { userId }
+      const request: StartShoppingSessionRequest = {}
 
       // When: APIハンドラーを通じてセッション開始
-      const result = await apiHandler.handle(request)
+      const result = await apiHandler.handle(request, userId)
 
       // Then: セッションが作成される
       expect(result).toMatchObject({
         sessionId: expect.any(String),
-        userId,
         status: 'ACTIVE',
         startedAt: expect.any(String), // APIレスポンスは文字列として返される
         completedAt: null,
@@ -153,39 +150,37 @@ describe('StartShoppingSession API Integration', () => {
         },
       })
 
-      const request: StartShoppingSessionRequest = { userId }
+      const request: StartShoppingSessionRequest = {}
 
       // When & Then: BusinessRuleExceptionがスローされる
-      await expect(apiHandler.handle(request)).rejects.toThrow(BusinessRuleException)
-      await expect(apiHandler.handle(request)).rejects.toThrow(
+      await expect(apiHandler.handle(request, userId)).rejects.toThrow(BusinessRuleException)
+      await expect(apiHandler.handle(request, userId)).rejects.toThrow(
         '同一ユーザーで同時にアクティブなセッションは1つのみです'
       )
     })
 
     it('userIdが空の場合はバリデーションエラーになる', async () => {
       // Given: 空のuserIdを持つリクエスト
-      const request: StartShoppingSessionRequest = { userId: '' }
+      const request: StartShoppingSessionRequest = {}
 
       // When & Then: ValidationExceptionがスローされる
-      await expect(apiHandler.handle(request)).rejects.toThrow(ValidationException)
-      await expect(apiHandler.handle(request)).rejects.toThrow('ユーザーIDは必須です')
+      await expect(apiHandler.handle(request, '')).rejects.toThrow(ValidationException)
+      await expect(apiHandler.handle(request, '')).rejects.toThrow('ユーザーIDは必須です')
     })
 
     it('無効なdeviceTypeの場合はバリデーションエラーになる', async () => {
       // Given: 無効なdeviceType
       const request = {
-        userId,
         deviceType: 'INVALID_TYPE',
       } as any
 
       // When & Then: ValidationExceptionがスローされる
-      await expect(apiHandler.handle(request)).rejects.toThrow(ValidationException)
+      await expect(apiHandler.handle(request, userId)).rejects.toThrow(ValidationException)
     })
 
     it('無効な位置情報形式の場合はバリデーションエラーになる', async () => {
       // Given: 無効な緯度
       const request = {
-        userId,
         location: {
           latitude: 'invalid', // 数値であるべき
           longitude: 139.6503,
@@ -193,19 +188,19 @@ describe('StartShoppingSession API Integration', () => {
       } as any
 
       // When & Then: ValidationExceptionがスローされる
-      await expect(apiHandler.handle(request)).rejects.toThrow(ValidationException)
+      await expect(apiHandler.handle(request, userId)).rejects.toThrow(ValidationException)
     })
   })
 
   describe('トランザクション処理', () => {
     it('複数の同時リクエストでも一つのアクティブセッションのみ作成される', async () => {
       // Given: 同じユーザーからの複数の同時リクエスト
-      const request: StartShoppingSessionRequest = { userId }
+      const request: StartShoppingSessionRequest = {}
 
       // When: 並行してセッション開始を試みる
       const promises = Array(5)
         .fill(null)
-        .map(() => apiHandler.handle(request))
+        .map(() => apiHandler.handle(request, userId))
 
       const results = await Promise.allSettled(promises)
 
@@ -251,13 +246,12 @@ describe('StartShoppingSession API Integration', () => {
         address: faker.location.streetAddress(true),
       }
       const request: StartShoppingSessionRequest = {
-        userId,
         deviceType: 'DESKTOP',
         location,
       }
 
       // When: セッション開始
-      const result = await apiHandler.handle(request)
+      const result = await apiHandler.handle(request, userId)
 
       // Then: 位置情報が正確に保存される
       const savedSession = await prisma.shoppingSession.findUnique({
@@ -282,7 +276,7 @@ describe('StartShoppingSession API Integration', () => {
           },
         })
 
-        const domainUser = await prisma.domainUser.create({
+        await prisma.domainUser.create({
           data: {
             id: faker.string.uuid(),
             displayName: faker.person.fullName(),
@@ -294,12 +288,11 @@ describe('StartShoppingSession API Integration', () => {
         })
 
         const request: StartShoppingSessionRequest = {
-          userId: domainUser.id,
           deviceType,
         }
 
         // When: セッション開始
-        const result = await apiHandler.handle(request)
+        const result = await apiHandler.handle(request, userId)
 
         // Then: デバイスタイプが正確に保存される
         const savedSession = await prisma.shoppingSession.findUnique({

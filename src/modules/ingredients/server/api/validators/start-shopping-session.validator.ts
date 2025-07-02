@@ -4,7 +4,6 @@ import { z } from 'zod'
  * 買い物セッション開始リクエストのバリデーションスキーマ
  */
 export const startShoppingSessionSchema = z.object({
-  userId: z.string().min(1, 'ユーザーIDは必須です'),
   deviceType: z.enum(['MOBILE', 'TABLET', 'DESKTOP']).optional(),
   location: z
     .object({

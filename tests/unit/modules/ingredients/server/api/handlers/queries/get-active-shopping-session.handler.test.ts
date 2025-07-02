@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GetActiveShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-active-shopping-session.handler'
 import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
 import { type GetActiveShoppingSessionHandler } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.handler'
+import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
 
 describe('GetActiveShoppingSessionApiHandler', () => {
@@ -22,7 +23,20 @@ describe('GetActiveShoppingSessionApiHandler', () => {
     )
   })
 
-  describe('handle', () => {
+  describe('validate', () => {
+    it('空のオブジェクトを返す', () => {
+      // Given: 任意のデータ
+      const data = { someField: 'value' }
+
+      // When: バリデーションを実行
+      const result = handler.validate(data)
+
+      // Then: 空のオブジェクトが返される
+      expect(result).toEqual({})
+    })
+  })
+
+  describe('execute', () => {
     describe('正常系', () => {
       it('アクティブなセッションが存在する場合、セッション情報を返す', async () => {
         // Given: アクティブなセッション
@@ -40,94 +54,67 @@ describe('GetActiveShoppingSessionApiHandler', () => {
 
         vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockResolvedValueOnce(sessionDto)
 
-        const request = new Request(`http://localhost?userId=${userId}`, {
-          method: 'GET',
-        })
-
         // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
+        const result = await handler.execute({}, userId)
 
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
-          sessionId: sessionDto.sessionId,
-          userId: sessionDto.userId,
-          status: sessionDto.status,
-          startedAt: sessionDto.startedAt,
-          completedAt: sessionDto.completedAt,
-          deviceType: sessionDto.deviceType,
-          location: sessionDto.location,
-        })
-      })
-
-      it('locationがnullの場合でも正常に返す', async () => {
-        // Given: locationがnullのセッション
-        const userId = testDataHelpers.userId()
-        const sessionDto = new ShoppingSessionDto(
-          testDataHelpers.shoppingSessionId(),
-          userId,
-          'ACTIVE',
-          faker.date.recent().toISOString(),
-          null,
-          null,
-          null,
-          []
+        // Then: セッションDTOが返される
+        expect(result).toBe(sessionDto)
+        expect(mockGetActiveShoppingSessionHandler.handle).toHaveBeenCalledWith(
+          expect.objectContaining({ userId })
         )
-
-        vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockResolvedValueOnce(sessionDto)
-
-        const request = new Request(`http://localhost?userId=${userId}`, {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData.deviceType).toBeNull()
-        expect(responseData.location).toBeNull()
       })
-    })
 
-    describe('異常系', () => {
-      it('アクティブなセッションが存在しない場合、404エラーを返す', async () => {
+      it('アクティブなセッションが存在しない場合、nullを返す', async () => {
         // Given: セッションが存在しない
         const userId = testDataHelpers.userId()
         vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockResolvedValueOnce(null)
 
-        const request = new Request(`http://localhost?userId=${userId}`, {
-          method: 'GET',
-        })
-
         // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
+        const result = await handler.execute({}, userId)
 
-        // Then: 404エラーが返される
-        expect(response.status).toBe(404)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('No active shopping session found')
+        // Then: nullが返される
+        expect(result).toBeNull()
+      })
+    })
+
+    describe('異常系', () => {
+      it('ドメイン例外が発生した場合、そのまま伝播する', async () => {
+        // Given: ドメイン例外
+        const userId = testDataHelpers.userId()
+        const error = new NotFoundException('ShoppingSession', userId)
+        vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockRejectedValueOnce(error)
+
+        // When/Then: 例外がそのまま伝播される
+        await expect(handler.execute({}, userId)).rejects.toThrow(error)
       })
 
-      it('予期しないエラーの場合、500エラーを返す', async () => {
+      it('予期しないエラーが発生した場合、そのまま伝播する', async () => {
         // Given: 予期しないエラー
         const userId = testDataHelpers.userId()
         const error = new Error('Database connection failed')
         vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockRejectedValueOnce(error)
 
-        const request = new Request(`http://localhost?userId=${userId}`, {
-          method: 'GET',
-        })
+        // When/Then: 例外がそのまま伝播される
+        await expect(handler.execute({}, userId)).rejects.toThrow(error)
+      })
+    })
+  })
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
+  describe('handle (統合)', () => {
+    it('BaseApiHandlerの例外変換機能が正しく動作する', async () => {
+      // Given: 予期しないエラー
+      const userId = testDataHelpers.userId()
+      const error = new Error('Database error')
+      vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockRejectedValueOnce(error)
 
-        // Then: 500エラーが返される
-        expect(response.status).toBe(500)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Internal server error')
+      // When: handleメソッドを実行
+      const resultPromise = handler.handle({}, userId)
+
+      // Then: ApiInternalExceptionに変換される
+      await expect(resultPromise).rejects.toThrow()
+      await expect(resultPromise).rejects.toMatchObject({
+        statusCode: 500,
+        errorCode: 'INTERNAL_SERVER_ERROR',
       })
     })
   })

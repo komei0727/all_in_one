@@ -1,7 +1,7 @@
-import { ZodError } from 'zod'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
 
 import { CreateIngredientCommand } from '../../../application/commands/create-ingredient.command'
-import { ValidationException } from '../../../domain/exceptions'
+import { type IngredientDto } from '../../../application/dtos/ingredient.dto'
 import { type StorageType } from '../../../domain/value-objects'
 import {
   type CreateIngredientRequest,
@@ -12,54 +12,52 @@ import type { CreateIngredientHandler } from '../../../application/commands/crea
 
 /**
  * 食材作成APIハンドラー
- * HTTPリクエストを受け取り、アプリケーション層のコマンドハンドラーを呼び出す
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
  */
-export class CreateIngredientApiHandler {
-  constructor(private readonly commandHandler: CreateIngredientHandler) {}
+export class CreateIngredientApiHandler extends BaseApiHandler<
+  CreateIngredientRequest,
+  IngredientDto
+> {
+  constructor(private readonly commandHandler: CreateIngredientHandler) {
+    super()
+  }
 
   /**
-   * 食材作成リクエストを処理
-   * @param request 食材作成リクエスト
-   * @param userId 認証されたユーザーのID
-   * @returns 作成された食材のDTO
-   * @throws {ValidationException} バリデーションエラー
+   * リクエストのバリデーション
+   * Zodスキーマを使用して食材作成リクエストを検証
    */
-  async handle(request: CreateIngredientRequest, userId: string) {
-    try {
-      // リクエストのバリデーション
-      const validatedRequest = createIngredientSchema.parse(request)
+  validate(data: unknown): CreateIngredientRequest {
+    return createIngredientSchema.parse(data)
+  }
 
-      // コマンドの作成
-      const command = new CreateIngredientCommand({
-        userId, // 認証されたユーザーのIDを使用
-        name: validatedRequest.name,
-        categoryId: validatedRequest.categoryId,
-        quantity: {
-          amount: validatedRequest.quantity.amount,
-          unitId: validatedRequest.quantity.unitId,
-        },
-        storageLocation: {
-          type: validatedRequest.storageLocation.type as StorageType,
-          detail: validatedRequest.storageLocation.detail,
-        },
-        threshold: validatedRequest.threshold,
-        expiryInfo: validatedRequest.expiryInfo,
-        purchaseDate: validatedRequest.purchaseDate,
-        price: validatedRequest.price,
-        memo: validatedRequest.memo,
-      })
+  /**
+   * ビジネスロジックの実行
+   * 食材を作成する処理
+   */
+  async execute(request: CreateIngredientRequest, userId: string): Promise<IngredientDto> {
+    // コマンドの作成
+    const command = new CreateIngredientCommand({
+      userId, // 認証されたユーザーのIDを使用
+      name: request.name,
+      categoryId: request.categoryId,
+      quantity: {
+        amount: request.quantity.amount,
+        unitId: request.quantity.unitId,
+      },
+      storageLocation: {
+        type: request.storageLocation.type as StorageType,
+        detail: request.storageLocation.detail,
+      },
+      threshold: request.threshold,
+      expiryInfo: request.expiryInfo,
+      purchaseDate: request.purchaseDate,
+      price: request.price,
+      memo: request.memo,
+    })
 
-      // コマンドハンドラーの実行（すでにDTOが返される）
-      const dto = await this.commandHandler.execute(command)
+    // コマンドハンドラーの実行（すでにDTOが返される）
+    const dto = await this.commandHandler.execute(command)
 
-      // レスポンスの返却
-      return dto.toJSON()
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const messages = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
-        throw new ValidationException(messages || 'リクエストが無効です')
-      }
-      throw error
-    }
+    return dto
   }
 }

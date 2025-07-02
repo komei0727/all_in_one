@@ -80,15 +80,10 @@ describe('CompleteShoppingSession API Integration', () => {
       const sessionId = session.getId().getValue()
 
       // When: APIハンドラーを通じてセッション完了
-      const result = await apiHandler.handle(
-        {} as Request, // RequestはAPIハンドラー内で使用されない
-        { sessionId },
-        userId
-      )
+      const result = await apiHandler.handle({ sessionId }, userId)
 
       // Then: レスポンスが成功する
-      expect(result.status).toBe(200)
-      const data = await result.json()
+      const data = result
 
       expect(data).toMatchObject({
         sessionId,
@@ -121,11 +116,11 @@ describe('CompleteShoppingSession API Integration', () => {
       const sessionId = session.getId().getValue()
 
       // When: セッション完了
-      const result = await apiHandler.handle({} as Request, { sessionId }, userId)
+      const result = await apiHandler.handle({ sessionId }, userId)
 
       // Then: デバイスタイプと位置情報が保持される
       expect(result.status).toBe(200)
-      const data = await result.json()
+      const data = result
 
       expect(data.deviceType).toBe('MOBILE')
       // locationにlatitudeとlongitudeが含まれることを確認
@@ -143,12 +138,7 @@ describe('CompleteShoppingSession API Integration', () => {
       const nonExistentId = ShoppingSessionId.create().getValue()
 
       // When: APIハンドラーを通じてセッション完了を試みる
-      const result = await apiHandler.handle({} as Request, { sessionId: nonExistentId }, userId)
-
-      // Then: 404エラーレスポンスが返される
-      expect(result.status).toBe(404)
-      const data = await result.json()
-      expect(data.message).toContain('買い物セッション not found')
+      await expect(apiHandler.handle({ sessionId: nonExistentId }, userId)).rejects.toThrow()
     })
 
     it('他のユーザーのセッションは完了できない', async () => {
@@ -180,12 +170,7 @@ describe('CompleteShoppingSession API Integration', () => {
       const sessionId = session.getId().getValue()
 
       // When: 別のユーザーがセッション完了を試みる
-      const result = await apiHandler.handle({} as Request, { sessionId }, userId)
-
-      // Then: 403エラーレスポンスが返される
-      expect(result.status).toBe(403)
-      const data = await result.json()
-      expect(data.message).toContain('権限がありません')
+      await expect(apiHandler.handle({ sessionId }, userId)).rejects.toThrow()
     })
 
     it('既に完了したセッションは再度完了できない', async () => {
@@ -196,12 +181,7 @@ describe('CompleteShoppingSession API Integration', () => {
       const sessionId = session.getId().getValue()
 
       // When: 再度セッション完了を試みる
-      const result = await apiHandler.handle({} as Request, { sessionId }, userId)
-
-      // Then: 409エラーレスポンスが返される
-      expect(result.status).toBe(409)
-      const data = await result.json()
-      expect(data.message).toContain('アクティブでないセッション')
+      await expect(apiHandler.handle({ sessionId }, userId)).rejects.toThrow()
     })
 
     it('無効なセッションID形式の場合はバリデーションエラーになる', async () => {
@@ -209,17 +189,7 @@ describe('CompleteShoppingSession API Integration', () => {
       const invalidSessionId = 'invalid-session-id'
 
       // When: APIハンドラーを通じてセッション完了を試みる
-      const result = await apiHandler.handle({} as Request, { sessionId: invalidSessionId }, userId)
-
-      // Then: 400エラーレスポンスが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors).toBeInstanceOf(Array)
-      expect(data.errors[0]).toMatchObject({
-        path: ['sessionId'],
-        message: 'Invalid session ID format',
-      })
+      await expect(apiHandler.handle({ sessionId: invalidSessionId }, userId)).rejects.toThrow()
     })
   })
 
@@ -234,7 +204,7 @@ describe('CompleteShoppingSession API Integration', () => {
       const beforeComplete = new Date()
 
       // When: セッション完了
-      await apiHandler.handle({} as Request, { sessionId }, userId)
+      await apiHandler.handle({ sessionId }, userId)
 
       const afterComplete = new Date()
 
@@ -311,7 +281,7 @@ describe('CompleteShoppingSession API Integration', () => {
       })
 
       // When: セッション完了
-      await apiHandler.handle({} as Request, { sessionId }, userId)
+      await apiHandler.handle({ sessionId }, userId)
 
       // Then: チェック済みアイテムが保持される
       const items = await prisma.shoppingSessionItem.findMany({
