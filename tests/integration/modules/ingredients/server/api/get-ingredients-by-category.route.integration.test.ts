@@ -67,7 +67,7 @@ describe('GetIngredientsByCategory API Integration', () => {
   })
 
   describe('正常系', () => {
-    it.only('カテゴリーに属する食材を取得できる', async () => {
+    it('カテゴリーに属する食材を取得できる', async () => {
       // Given: カテゴリーを作成
       const category = await prisma.category.create({
         data: {
@@ -353,6 +353,7 @@ describe('GetIngredientsByCategory API Integration', () => {
       expect(data.data.ingredients).toHaveLength(1)
 
       // クリーンアップ
+      await prisma.ingredient.deleteMany({ where: { userId: otherDomainUser.id } })
       await prisma.domainUser.delete({ where: { id: otherDomainUser.id } })
       await prisma.user.delete({ where: { id: otherUser.id } })
     })
