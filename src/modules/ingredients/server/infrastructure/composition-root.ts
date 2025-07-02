@@ -2,6 +2,11 @@ import type { PrismaClient } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma'
 import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
+import { GetProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/get-profile.handler'
+import { UpdateProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/update-profile.handler'
+import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
+import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
+import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
 import { PrismaIngredientQueryService } from './query-services/prisma-ingredient-query-service'
 import { PrismaShoppingQueryService } from './query-services/prisma-shopping-query-service'
@@ -76,6 +81,7 @@ export class CompositionRoot {
   private shoppingQueryService: ShoppingQueryService | null = null
   private transactionManager: TransactionManager | null = null
   private eventBus: EventBus | null = null
+  private userApplicationService: UserApplicationService | null = null
 
   constructor(private readonly prismaClient: PrismaClient) {}
 
@@ -481,5 +487,31 @@ export class CompositionRoot {
    */
   public getGetSessionHistoryApiHandler(): GetSessionHistoryApiHandler {
     return new GetSessionHistoryApiHandler(this.getGetSessionHistoryHandler())
+  }
+
+  /**
+   * Get UserApplicationService instance (singleton)
+   */
+  public getUserApplicationService(): UserApplicationService {
+    if (!this.userApplicationService) {
+      const userRepository = new PrismaUserRepository(this.prismaClient)
+      const userIntegrationService = new UserIntegrationService(userRepository)
+      this.userApplicationService = new UserApplicationService(userIntegrationService)
+    }
+    return this.userApplicationService
+  }
+
+  /**
+   * Get GetProfileApiHandler instance (new instance each time)
+   */
+  public getGetProfileApiHandler(): GetProfileApiHandler {
+    return new GetProfileApiHandler(this.getUserApplicationService())
+  }
+
+  /**
+   * Get UpdateProfileApiHandler instance (new instance each time)
+   */
+  public getUpdateProfileApiHandler(): UpdateProfileApiHandler {
+    return new UpdateProfileApiHandler(this.getUserApplicationService())
   }
 }

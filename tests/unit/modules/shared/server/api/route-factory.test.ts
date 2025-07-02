@@ -181,6 +181,10 @@ describe('UnifiedRouteFactory', () => {
         mockApiHandler.validate.mockReturnValueOnce({ id: '123', name: 'test' })
         mockApiHandler.execute.mockResolvedValueOnce({ success: true })
 
+        // handleメソッドをスパイに設定
+        const handleSpy = vi.spyOn(mockApiHandler, 'handle')
+        handleSpy.mockResolvedValueOnce({ success: true })
+
         const handler = UnifiedRouteFactory.createPutHandler(() => mockApiHandler)
         const request = new NextRequest('http://localhost/api/test/123', {
           method: 'PUT',
@@ -188,14 +192,18 @@ describe('UnifiedRouteFactory', () => {
         })
         const params = { id: '123' }
 
-        // When: ハンドラーを実行
-        await handler(request, params)
+        // When: ハンドラーを実行（新しいパラメータ構造）
+        await handler(request, { params })
 
-        // Then: paramsがマージされた状態でvalidateが呼ばれる
-        expect(mockApiHandler.validate).toHaveBeenCalledWith({
-          id: '123',
-          name: 'test',
-        })
+        // Then: paramsがマージされた状態でhandleが呼ばれる
+        expect(handleSpy).toHaveBeenCalledWith(
+          {
+            id: '123',
+            name: 'test',
+          },
+          'user123',
+          expect.any(Object)
+        )
       })
     })
 

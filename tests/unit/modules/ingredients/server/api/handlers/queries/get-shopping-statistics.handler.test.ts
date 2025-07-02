@@ -36,12 +36,14 @@ describe('GetShoppingStatisticsApiHandler', () => {
               ingredientName: '牛乳',
               checkCount: 10,
               checkRatePercentage: 23.8,
+              lastCheckedAt: testDataHelpers.pastDate().toISOString(),
             },
             {
               ingredientId: testDataHelpers.ingredientId(),
               ingredientName: '卵',
               checkCount: 8,
               checkRatePercentage: 19.0,
+              lastCheckedAt: testDataHelpers.pastDate().toISOString(),
             },
           ],
           monthlySessionCounts: [

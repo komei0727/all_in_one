@@ -24,12 +24,12 @@ interface GetSessionHistoryResponse {
     sessionId: string
     status: string
     startedAt: string
-    completedAt: string | null
+    completedAt?: string
     duration: number
     checkedItemsCount: number
     totalSpent?: number
-    deviceType: string | null
-    location: { latitude?: number; longitude?: number; placeName?: string } | null
+    deviceType?: string
+    location?: { latitude?: number; longitude?: number; name?: string }
   }>
   pagination: {
     page: number

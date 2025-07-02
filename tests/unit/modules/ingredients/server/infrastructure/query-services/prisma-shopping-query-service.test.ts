@@ -14,6 +14,7 @@ const mockPrismaClient = {
     findMany: vi.fn(),
     count: vi.fn(),
     groupBy: vi.fn(),
+    findFirst: vi.fn(),
   },
   ingredient: {
     findMany: vi.fn(),
@@ -178,6 +179,11 @@ describe('PrismaShoppingQueryService', () => {
         .mockResolvedValueOnce(mockSessionsForMonthly) // 月次集計用
         .mockResolvedValueOnce(mockSessionsForDuration) // セッション時間計算用
 
+      // 各頻繁チェック食材の最終チェック日時取得のモック
+      mockPrismaClient.shoppingSessionItem.findFirst
+        .mockResolvedValueOnce({ checkedAt: faker.date.recent() }) // 玉ねぎ
+        .mockResolvedValueOnce({ checkedAt: faker.date.recent() }) // にんじん
+
       const periodDays = 30
 
       // When: 買い物統計を取得
@@ -189,6 +195,10 @@ describe('PrismaShoppingQueryService', () => {
       expect(result.topCheckedIngredients).toHaveLength(2)
       expect(result.topCheckedIngredients[0].ingredientName).toBe('玉ねぎ')
       expect(result.topCheckedIngredients[0].checkCount).toBe(10)
+      expect(result.topCheckedIngredients[0].lastCheckedAt).toBeDefined()
+      expect(result.topCheckedIngredients[1].ingredientName).toBe('にんじん')
+      expect(result.topCheckedIngredients[1].checkCount).toBe(8)
+      expect(result.topCheckedIngredients[1].lastCheckedAt).toBeDefined()
       expect(result.monthlySessionCounts).toHaveLength(2)
       expect(result.monthlySessionCounts[0].yearMonth).toBe('2025-06')
       expect(result.monthlySessionCounts[0].sessionCount).toBe(2)

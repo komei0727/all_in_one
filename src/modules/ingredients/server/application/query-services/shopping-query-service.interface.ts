@@ -148,6 +148,8 @@ export interface TopCheckedIngredient {
   checkCount: number
   /** チェック率（全セッションに対する割合） */
   checkRatePercentage: number
+  /** 最終チェック日時 */
+  lastCheckedAt: string
 }
 
 /**

@@ -14,30 +14,24 @@ interface GetShoppingStatisticsRequest {
 
 /**
  * GetShoppingStatisticsレスポンスの型定義
+ * ShoppingStatisticsインターフェースに合わせて簡素化
  */
 interface GetShoppingStatisticsResponse {
   statistics: {
     totalSessions: number
-    totalTime: number
-    averageSessionDuration: number
-    totalItemsChecked: number
-    averageItemsPerSession: number
-    dailyBreakdown: Array<{
-      date: string
-      sessionCount: number
-      totalDuration: number
-      itemsChecked: number
+    totalCheckedIngredients: number
+    averageSessionDurationMinutes: number
+    topCheckedIngredients: Array<{
+      ingredientId: string
+      ingredientName: string
+      checkCount: number
+      checkRatePercentage: number
+      lastCheckedAt: string
     }>
-    weeklyComparison: {
-      thisWeek: number
-      lastWeek: number
-      changePercent: number
-    }
-    monthlyComparison: {
-      thisMonth: number
-      lastMonth: number
-      changePercent: number
-    }
+    monthlySessionCounts: Array<{
+      yearMonth: string
+      sessionCount: number
+    }>
   }
 }
 

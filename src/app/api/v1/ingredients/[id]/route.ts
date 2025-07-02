@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   )
 
   // paramsを渡してハンドラーを実行
-  return handler(request, resolvedParams)
+  return handler(request, { params: resolvedParams })
 }
 
 /**
@@ -36,7 +36,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   )
 
   // paramsを渡してハンドラーを実行
-  return handler(request, resolvedParams)
+  return handler(request, { params: resolvedParams })
 }
 
 /**
@@ -57,5 +57,5 @@ export async function DELETE(
   )
 
   // paramsを渡してハンドラーを実行
-  return handler(request, resolvedParams)
+  return handler(request, { params: resolvedParams })
 }

@@ -1,115 +1,52 @@
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+
 import { CheckIngredientCommand } from '../../../application/commands/check-ingredient.command'
-import { BusinessRuleException, NotFoundException } from '../../../domain/exceptions'
 import { checkIngredientSchema } from '../../validators/check-ingredient.validator'
 
 import type { CheckIngredientHandler } from '../../../application/commands/check-ingredient.handler'
+import type { z } from 'zod'
+
+// CheckIngredientRequestの型定義
+export type CheckIngredientRequest = z.infer<typeof checkIngredientSchema>
 
 /**
  * 食材確認APIハンドラー
- * HTTPリクエストを処理し、アプリケーション層のハンドラーに委譲する
+ * BaseApiHandlerを継承して統一的な例外変換とエラーハンドリングを提供
  */
-export class CheckIngredientApiHandler {
-  constructor(private readonly commandHandler: CheckIngredientHandler) {}
+export class CheckIngredientApiHandler extends BaseApiHandler<
+  CheckIngredientRequest,
+  { data: unknown }
+> {
+  constructor(private readonly commandHandler: CheckIngredientHandler) {
+    super()
+  }
 
   /**
-   * 食材確認APIを処理
-   * @param request HTTPリクエスト
-   * @param userId 認証済みユーザーID
-   * @param sessionId セッションID（URLパラメータ）
-   * @param ingredientId 食材ID（URLパラメータ）
-   * @returns HTTPレスポンス
+   * リクエストデータのバリデーション
+   * @param data バリデーション対象のデータ（URLパラメータ + ユーザーID）
+   * @returns バリデーション済みのリクエストデータ
    */
-  async handle(
-    request: Request,
-    userId: string,
-    sessionId: string,
-    ingredientId: string
-  ): Promise<Response> {
-    try {
-      // パラメータをバリデーション
-      const validationResult = checkIngredientSchema.safeParse({
-        sessionId,
-        ingredientId,
-        userId,
-      })
+  validate(data: unknown): CheckIngredientRequest {
+    return checkIngredientSchema.parse(data)
+  }
 
-      if (!validationResult.success) {
-        // バリデーションエラーをレスポンス形式に変換
-        const errors = validationResult.error.errors.map((error) => ({
-          field: error.path.join('.'),
-          message: error.message,
-        }))
+  /**
+   * 食材確認のビジネスロジックを実行
+   * @param request バリデーション済みのリクエストデータ
+   * @param userId 認証済みユーザーID（validateで検証済み）
+   * @returns 実行結果
+   */
+  async execute(request: CheckIngredientRequest, _userId: string): Promise<{ data: unknown }> {
+    // コマンドを作成してアプリケーション層のハンドラーに委譲
+    const command = new CheckIngredientCommand(
+      request.sessionId,
+      request.ingredientId,
+      request.userId
+    )
 
-        return new Response(
-          JSON.stringify({
-            message: 'Validation failed',
-            errors,
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
+    const result = await this.commandHandler.handle(command)
 
-      // コマンドを作成して実行
-      const command = new CheckIngredientCommand(
-        validationResult.data.sessionId,
-        validationResult.data.ingredientId,
-        validationResult.data.userId
-      )
-
-      const result = await this.commandHandler.handle(command)
-
-      // 成功レスポンスを返す（DTOの形式に合わせる）
-      return new Response(
-        JSON.stringify({
-          data: result,
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    } catch (error) {
-      // ドメイン例外のハンドリング
-      if (error instanceof NotFoundException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      if (error instanceof BusinessRuleException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      // エラーログを出力
-      console.error('Failed to check ingredient:', error)
-
-      // 内部エラーレスポンスを返す
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    // 一貫性のためにdataプロパティでラップして返却
+    return { data: result }
   }
 }

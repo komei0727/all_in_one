@@ -25,7 +25,7 @@ export class DeleteIngredientHandler {
     const ingredient = await this.ingredientRepository.findById(command.userId, ingredientId)
 
     if (!ingredient) {
-      throw new IngredientNotFoundException()
+      throw new IngredientNotFoundException(command.id)
     }
 
     // 論理削除を実行（エンティティのdeleteメソッドを使用）

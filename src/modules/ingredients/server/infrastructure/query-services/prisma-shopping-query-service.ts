@@ -106,7 +106,7 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         },
       }),
 
-      // 頻繁にチェックされた食材Top5
+      // 頻繁にチェックされた食材Top5の基本データ
       this.prisma.shoppingSessionItem.groupBy({
         by: ['ingredientId', 'ingredientName'],
         where: {
@@ -180,14 +180,36 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     // 平均セッション時間を計算
     const averageSessionDurationMinutes = this.calculateAverageSessionDuration(sessionDurations)
 
-    // 頻繁チェック食材を変換
-    const topCheckedIngredientsFormatted: TopCheckedIngredient[] = topCheckedIngredients.map(
-      (item) => ({
-        ingredientId: item.ingredientId,
-        ingredientName: item.ingredientName,
-        checkCount: item._count.id,
-        checkRatePercentage:
-          totalSessions > 0 ? Math.round((item._count.id / totalSessions) * 100) : 0,
+    // 各頻繁チェック食材の最終チェック日時を取得
+    const topCheckedIngredientsFormatted: TopCheckedIngredient[] = await Promise.all(
+      topCheckedIngredients.map(async (item) => {
+        // 該当食材の最新のチェック日時を取得
+        const lastCheckedItem = await this.prisma.shoppingSessionItem.findFirst({
+          where: {
+            ingredientId: item.ingredientId,
+            session: {
+              userId,
+              startedAt: {
+                gte: startDate,
+              },
+            },
+          },
+          orderBy: {
+            checkedAt: 'desc',
+          },
+          select: {
+            checkedAt: true,
+          },
+        })
+
+        return {
+          ingredientId: item.ingredientId,
+          ingredientName: item.ingredientName,
+          checkCount: item._count.id,
+          checkRatePercentage:
+            totalSessions > 0 ? Math.round((item._count.id / totalSessions) * 100) : 0,
+          lastCheckedAt: lastCheckedItem?.checkedAt.toISOString() ?? new Date().toISOString(),
+        }
       })
     )
 
