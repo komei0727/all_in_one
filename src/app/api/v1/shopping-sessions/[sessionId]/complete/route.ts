@@ -7,7 +7,10 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  * POST /api/v1/shopping-sessions/[sessionId]/complete
  * 買い物セッションを完了する
  */
-export async function POST(request: NextRequest, { params }: { params: { sessionId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ sessionId: string }> }
+) {
   try {
     // 認証チェック
     const session = await auth()
@@ -23,10 +26,13 @@ export async function POST(request: NextRequest, { params }: { params: { session
       )
     }
 
+    // パラメータを取得
+    const resolvedParams = await params
+
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
     const apiHandler = compositionRoot.getCompleteShoppingSessionApiHandler()
-    const response = await apiHandler.handle(request, params, session.user.domainUserId)
+    const response = await apiHandler.handle(request, resolvedParams, session.user.domainUserId)
 
     // レスポンスが成功の場合はそのまま返す
     if (response.status === 200) {

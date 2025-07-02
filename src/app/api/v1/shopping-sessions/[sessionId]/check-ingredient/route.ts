@@ -9,7 +9,7 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  */
 export async function POST(
   request: NextRequest,
-  context: { params: { sessionId: string } }
+  context: { params: Promise<{ sessionId: string }> }
 ): Promise<NextResponse> {
   try {
     // 認証チェック
@@ -26,16 +26,15 @@ export async function POST(
       )
     }
 
+    // パラメータを取得
+    const params = await context.params
+
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
     const apiHandler = compositionRoot.getCheckIngredientApiHandler()
 
     // Webアダプターパターンに対応したhandleメソッドの呼び出し
-    const response = await apiHandler.handle(
-      request,
-      session.user.domainUserId,
-      context.params.sessionId
-    )
+    const response = await apiHandler.handle(request, session.user.domainUserId, params.sessionId)
 
     // レスポンスが成功の場合はそのまま返す
     if (response.status === 200) {

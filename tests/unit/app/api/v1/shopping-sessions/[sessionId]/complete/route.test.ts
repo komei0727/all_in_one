@@ -111,7 +111,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       )
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId } })
+      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 401エラーが返される
       expect(response.status).toBe(401)
@@ -159,7 +159,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId } })
+      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 200レスポンスが返される
       expect(response.status).toBe(200)
@@ -209,7 +209,9 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId: invalidSessionId } })
+      const response = await POST(request, {
+        params: Promise.resolve({ sessionId: invalidSessionId }),
+      })
 
       // Then: 400エラーが返される
       expect(response.status).toBe(400)
@@ -243,7 +245,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId } })
+      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 404エラーが返される
       expect(response.status).toBe(404)
@@ -276,7 +278,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId } })
+      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 403エラーが返される
       expect(response.status).toBe(403)
@@ -304,7 +306,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockRejectedValue(new Error('データベースエラー'))
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: { sessionId } })
+      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 500エラーが返される
       expect(response.status).toBe(500)

@@ -97,7 +97,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 成功レスポンス
     expect(response.status).toBe(200)
@@ -136,7 +136,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 401エラー
     expect(response.status).toBe(401)
@@ -184,7 +184,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 400エラー
     expect(response.status).toBe(400)
@@ -222,7 +222,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 404エラー
     expect(response.status).toBe(404)
@@ -260,7 +260,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 404エラー
     expect(response.status).toBe(404)
@@ -298,7 +298,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 400エラー
     expect(response.status).toBe(400)
@@ -336,7 +336,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 400エラー
     expect(response.status).toBe(400)
@@ -364,7 +364,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     ) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: { sessionId } })
+    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
 
     // Then: 500エラー
     expect(response.status).toBe(500)
