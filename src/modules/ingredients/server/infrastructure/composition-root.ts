@@ -22,6 +22,7 @@ import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/
 import { GetIngredientsByCategoryApiHandler } from '../api/handlers/queries/get-ingredients-by-category.handler'
 import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsApiHandler } from '../api/handlers/queries/get-recent-sessions.handler'
+import { GetSessionHistoryApiHandler } from '../api/handlers/queries/get-session-history.handler'
 import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
 import { AbandonShoppingSessionHandler } from '../application/commands/abandon-shopping-session.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
@@ -38,6 +39,7 @@ import { GetIngredientsByCategoryHandler } from '../application/queries/get-ingr
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetQuickAccessIngredientsHandler } from '../application/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsHandler } from '../application/queries/get-recent-sessions.handler'
+import { GetSessionHistoryHandler } from '../application/queries/get-session-history.handler'
 import { GetShoppingStatisticsHandler } from '../application/queries/get-shopping-statistics.handler'
 import { GetUnitsQueryHandler } from '../application/queries/get-units.handler'
 import { ShoppingSessionFactory } from '../domain/factories/shopping-session.factory'
@@ -425,5 +427,19 @@ export class CompositionRoot {
    */
   public getIngredientsByCategoryApiHandler(): GetIngredientsByCategoryApiHandler {
     return new GetIngredientsByCategoryApiHandler(this.getGetIngredientsByCategoryHandler())
+  }
+
+  /**
+   * Get GetSessionHistoryHandler instance (new instance each time)
+   */
+  public getGetSessionHistoryHandler(): GetSessionHistoryHandler {
+    return new GetSessionHistoryHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetSessionHistoryApiHandler instance (new instance each time)
+   */
+  public getGetSessionHistoryApiHandler(): GetSessionHistoryApiHandler {
+    return new GetSessionHistoryApiHandler(this.getGetSessionHistoryHandler())
   }
 }

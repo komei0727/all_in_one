@@ -11,8 +11,8 @@ vi.mock('@/auth', () => ({
   auth: () => mockAuth(),
 }))
 
-// GetRecentSessionsApiHandlerのモック
-const mockGetRecentSessionsApiHandler = {
+// GetSessionHistoryApiHandlerのモック
+const mockGetSessionHistoryApiHandler = {
   handle: vi.fn(),
 }
 
@@ -20,7 +20,7 @@ const mockGetRecentSessionsApiHandler = {
 vi.mock('@/modules/ingredients/server/infrastructure/composition-root', () => ({
   CompositionRoot: {
     getInstance: vi.fn(() => ({
-      getGetRecentSessionsApiHandler: vi.fn(() => mockGetRecentSessionsApiHandler),
+      getGetSessionHistoryApiHandler: vi.fn(() => mockGetSessionHistoryApiHandler),
     })),
   },
 }))
@@ -38,30 +38,35 @@ describe('GET /api/v1/shopping-sessions/history', () => {
       // Given: 認証済みユーザーとAPIレスポンス
       const mockApiResponse = new Response(
         JSON.stringify({
-          sessions: [
+          data: [
             {
               sessionId: 'ses_test123',
-              userId,
               status: 'COMPLETED',
               startedAt: '2025-07-01T10:00:00.000Z',
               completedAt: '2025-07-01T10:30:00.000Z',
+              duration: 1800,
+              checkedItemsCount: 1,
+              totalSpent: undefined,
               deviceType: 'MOBILE',
               location: {
                 name: 'イオン',
-                address: '東京都',
-                storeType: 'SUPERMARKET',
+                latitude: 35.6762,
+                longitude: 139.6503,
               },
-              checkedItems: [
-                {
-                  ingredientId: 'ing_test456',
-                  ingredientName: 'トマト',
-                  stockStatus: 'IN_STOCK',
-                  expiryStatus: 'FRESH',
-                  checkedAt: '2025-07-01T10:15:00.000Z',
-                },
-              ],
             },
           ],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+          meta: {
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+          },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       )
@@ -76,7 +81,7 @@ describe('GET /api/v1/shopping-sessions/history', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
 
-      mockGetRecentSessionsApiHandler.handle.mockResolvedValue(mockApiResponse)
+      mockGetSessionHistoryApiHandler.handle.mockResolvedValue(mockApiResponse)
 
       const request = {
         url: 'http://localhost:3000/api/v1/shopping-sessions/history',
@@ -89,19 +94,38 @@ describe('GET /api/v1/shopping-sessions/history', () => {
       expect(response.status).toBe(200)
 
       const responseData = await response.json()
-      expect(responseData.sessions).toHaveLength(1)
-      expect(responseData.sessions[0].sessionId).toBe('ses_test123')
+      expect(responseData.data).toHaveLength(1)
+      expect(responseData.data[0].sessionId).toBe('ses_test123')
+      expect(responseData.pagination).toBeDefined()
+      expect(responseData.meta).toBeDefined()
 
       // APIハンドラーが正しく呼び出される
-      expect(mockGetRecentSessionsApiHandler.handle).toHaveBeenCalledWith(request, userId)
+      expect(mockGetSessionHistoryApiHandler.handle).toHaveBeenCalledWith(request, userId)
     })
 
     it('カスタム件数でセッション履歴を取得できる', async () => {
       // Given: 認証済みユーザーとカスタム件数
-      const mockApiResponse = new Response(JSON.stringify({ sessions: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const mockApiResponse = new Response(
+        JSON.stringify({
+          data: [],
+          pagination: {
+            page: 1,
+            limit: 5,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+          meta: {
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
 
       mockAuth.mockResolvedValue({
         user: {
@@ -113,7 +137,7 @@ describe('GET /api/v1/shopping-sessions/history', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
 
-      mockGetRecentSessionsApiHandler.handle.mockResolvedValue(mockApiResponse)
+      mockGetSessionHistoryApiHandler.handle.mockResolvedValue(mockApiResponse)
 
       const request = {
         url: `http://localhost:3000/api/v1/shopping-sessions/history?limit=5`,
@@ -126,15 +150,32 @@ describe('GET /api/v1/shopping-sessions/history', () => {
       expect(response.status).toBe(200)
 
       // APIハンドラーが正しく呼び出される
-      expect(mockGetRecentSessionsApiHandler.handle).toHaveBeenCalledWith(request, userId)
+      expect(mockGetSessionHistoryApiHandler.handle).toHaveBeenCalledWith(request, userId)
     })
 
     it('件数が0件の場合でも正常なレスポンスを返す', async () => {
       // Given: 認証済みユーザーと空の履歴
-      const mockApiResponse = new Response(JSON.stringify({ sessions: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const mockApiResponse = new Response(
+        JSON.stringify({
+          data: [],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+          meta: {
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
 
       mockAuth.mockResolvedValue({
         user: {
@@ -146,7 +187,7 @@ describe('GET /api/v1/shopping-sessions/history', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
 
-      mockGetRecentSessionsApiHandler.handle.mockResolvedValue(mockApiResponse)
+      mockGetSessionHistoryApiHandler.handle.mockResolvedValue(mockApiResponse)
 
       const request = {
         url: 'http://localhost:3000/api/v1/shopping-sessions/history',
@@ -159,7 +200,7 @@ describe('GET /api/v1/shopping-sessions/history', () => {
       expect(response.status).toBe(200)
 
       const responseData = await response.json()
-      expect(responseData.sessions).toEqual([])
+      expect(responseData.data).toEqual([])
     })
   })
 
@@ -203,7 +244,7 @@ describe('GET /api/v1/shopping-sessions/history', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
 
-      mockGetRecentSessionsApiHandler.handle.mockResolvedValue(mockApiResponse)
+      mockGetSessionHistoryApiHandler.handle.mockResolvedValue(mockApiResponse)
 
       const request = {
         url: 'http://localhost:3000/api/v1/shopping-sessions/history?limit=invalid',
@@ -232,7 +273,7 @@ describe('GET /api/v1/shopping-sessions/history', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
 
-      mockGetRecentSessionsApiHandler.handle.mockRejectedValue(
+      mockGetSessionHistoryApiHandler.handle.mockRejectedValue(
         new Error('Database connection failed')
       )
 

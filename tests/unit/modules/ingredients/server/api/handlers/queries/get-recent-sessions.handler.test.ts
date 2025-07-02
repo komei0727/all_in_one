@@ -62,38 +62,44 @@ describe('GetRecentSessionsApiHandler', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data).toEqual({
-        sessions: [
-          {
-            sessionId: 'ses_test123',
-            userId,
-            status: 'COMPLETED',
-            startedAt: '2025-07-01T10:00:00.000Z',
-            completedAt: '2025-07-01T10:30:00.000Z',
-            deviceType: 'MOBILE',
-            location: {
-              name: 'イオン',
-              address: '東京都',
-              storeType: 'SUPERMARKET',
-            },
-            checkedItems: [
-              {
-                ingredientId: 'ing_test456',
-                ingredientName: 'トマト',
-                stockStatus: 'IN_STOCK',
-                expiryStatus: 'FRESH',
-                checkedAt: '2025-07-01T10:15:00.000Z',
-              },
-            ],
-          },
-        ],
+      // API仕様書に準拠したレスポンスフォーマットの確認
+      expect(data.data).toHaveLength(1)
+      expect(data.data[0]).toEqual({
+        sessionId: 'ses_test123',
+        status: 'COMPLETED',
+        startedAt: '2025-07-01T10:00:00.000Z',
+        completedAt: '2025-07-01T10:30:00.000Z',
+        duration: 1800, // 30分 = 1800秒
+        checkedItemsCount: 1,
+        totalSpent: undefined,
+        deviceType: 'MOBILE',
+        location: {
+          name: 'イオン',
+          address: '東京都',
+          storeType: 'SUPERMARKET',
+        },
       })
+
+      // ページネーション情報の確認
+      expect(data.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      })
+
+      // メタ情報の確認
+      expect(data.meta).toHaveProperty('timestamp')
+      expect(data.meta.version).toBe('1.0.0')
 
       // ハンドラーがデフォルト件数で呼び出される
       expect(mockGetRecentSessionsHandler.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           userId,
           limit: 10,
+          page: 1,
         })
       )
     })
@@ -122,14 +128,61 @@ describe('GetRecentSessionsApiHandler', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toHaveLength(1)
-      expect(data.sessions[0].sessionId).toBe('ses_test789')
+      expect(data.data).toHaveLength(1)
+      expect(data.data[0].sessionId).toBe('ses_test789')
+      expect(data.pagination.limit).toBe(5)
 
       // ハンドラーがカスタム件数で呼び出される
       expect(mockGetRecentSessionsHandler.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           userId,
           limit: 5,
+          page: 1,
+        })
+      )
+    })
+
+    it('ページネーション付きで履歴セッションを取得できる', async () => {
+      // Given: 履歴セッションのモックデータ
+      const mockSessions = []
+      for (let i = 0; i < 5; i++) {
+        mockSessions.push({
+          sessionId: `ses_page2_${i}`,
+          userId,
+          status: 'COMPLETED',
+          startedAt: '2025-06-25T10:00:00.000Z',
+          completedAt: '2025-06-25T10:30:00.000Z',
+          deviceType: 'MOBILE',
+          location: null,
+          checkedItems: [],
+        })
+      }
+
+      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
+
+      // When: ページ2、limit5でリクエスト
+      const result = await handler.handle(new Request('http://localhost?page=2&limit=5'), userId)
+
+      // Then: 正常なレスポンスが返される
+      expect(result.status).toBe(200)
+      const data = await result.json()
+
+      expect(data.data).toHaveLength(5)
+      expect(data.pagination).toEqual({
+        page: 2,
+        limit: 5,
+        total: 5,
+        totalPages: 1, // 現在の実装では正確な総ページ数は計算できない
+        hasNext: false,
+        hasPrev: true,
+      })
+
+      // ハンドラーが正しいパラメータで呼び出される
+      expect(mockGetRecentSessionsHandler.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          limit: 5,
+          page: 2,
         })
       )
     })
@@ -145,7 +198,15 @@ describe('GetRecentSessionsApiHandler', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toEqual([])
+      expect(data.data).toEqual([])
+      expect(data.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      })
     })
   })
 
@@ -178,7 +239,7 @@ describe('GetRecentSessionsApiHandler', () => {
       expect(data.message).toBe('Validation failed')
       expect(data.errors[0]).toMatchObject({
         field: 'limit',
-        message: 'limit must be between 1 and 100',
+        message: 'limit must be between 1 and 50',
       })
     })
 
@@ -194,7 +255,39 @@ describe('GetRecentSessionsApiHandler', () => {
       expect(data.message).toBe('Validation failed')
       expect(data.errors[0]).toMatchObject({
         field: 'limit',
-        message: 'limit must be between 1 and 100',
+        message: 'limit must be between 1 and 50',
+      })
+    })
+
+    it('pageパラメータが数値でない場合、バリデーションエラーを返す', async () => {
+      // Given: 数値でないpage
+
+      // When: 文字列でリクエスト
+      const result = await handler.handle(new Request('http://localhost?page=abc'), userId)
+
+      // Then: 400エラーが返される
+      expect(result.status).toBe(400)
+      const data = await result.json()
+      expect(data.message).toBe('Validation failed')
+      expect(data.errors[0]).toMatchObject({
+        field: 'page',
+        message: 'page must be a valid integer',
+      })
+    })
+
+    it('pageパラメータが0以下の場合、バリデーションエラーを返す', async () => {
+      // Given: 0以下のpage
+
+      // When: 0でリクエスト
+      const result = await handler.handle(new Request('http://localhost?page=0'), userId)
+
+      // Then: 400エラーが返される
+      expect(result.status).toBe(400)
+      const data = await result.json()
+      expect(data.message).toBe('Validation failed')
+      expect(data.errors[0]).toMatchObject({
+        field: 'page',
+        message: 'page must be greater than or equal to 1',
       })
     })
 

@@ -15,6 +15,14 @@ export interface ShoppingQueryService {
   getRecentSessions(userId: string, limit?: number): Promise<ShoppingSessionDto[]>
 
   /**
+   * ユーザーの買い物セッション履歴を検索条件付きで取得
+   * @param userId ユーザーID
+   * @param criteria 検索条件
+   * @returns 買い物セッション履歴とページネーション情報
+   */
+  getSessionHistory(userId: string, criteria: SessionHistoryCriteria): Promise<SessionHistoryResult>
+
+  /**
    * ユーザーの買い物統計を取得
    * @param userId ユーザーID
    * @param periodDays 期間（日数、デフォルト: 30日）
@@ -40,6 +48,58 @@ export interface ShoppingQueryService {
     userId: string,
     ingredientId?: string
   ): Promise<IngredientCheckStatistics[]>
+}
+
+/**
+ * セッション履歴検索条件
+ */
+export interface SessionHistoryCriteria {
+  /** ページ番号（1から開始） */
+  page?: number
+  /** 1ページあたりの件数 */
+  limit?: number
+  /** 開始日時（ISO 8601形式） */
+  from?: string
+  /** 終了日時（ISO 8601形式） */
+  to?: string
+  /** ステータスフィルタ */
+  status?: 'COMPLETED' | 'ABANDONED'
+}
+
+/**
+ * セッション履歴取得結果
+ */
+export interface SessionHistoryResult {
+  /** セッション履歴データ */
+  data: SessionHistoryItem[]
+  /** ページネーション情報 */
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+/**
+ * セッション履歴アイテム
+ */
+export interface SessionHistoryItem {
+  sessionId: string
+  status: 'COMPLETED' | 'ABANDONED'
+  startedAt: string
+  completedAt?: string
+  duration: number // 秒単位
+  checkedItemsCount: number
+  totalSpent?: number
+  deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
+  location?: {
+    name?: string
+    latitude: number
+    longitude: number
+  }
 }
 
 /**

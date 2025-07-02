@@ -4,8 +4,8 @@ import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
- * 買い物セッション履歴取得API
- * GET /api/v1/shopping-sessions/history
+ * 最近の買い物セッション取得API
+ * GET /api/v1/shopping-sessions/recent
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const apiHandler = compositionRoot.getGetSessionHistoryApiHandler()
+    const apiHandler = compositionRoot.getGetRecentSessionsApiHandler()
     const response = await apiHandler.handle(request, session.user.domainUserId)
 
     // レスポンスが成功の場合はそのまま返す

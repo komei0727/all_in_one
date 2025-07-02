@@ -10,6 +10,8 @@ import type {
   IngredientCheckStatistics,
   TopCheckedIngredient,
   MonthlyCheckCount,
+  SessionHistoryCriteria,
+  SessionHistoryResult,
 } from '../../application/query-services/shopping-query-service.interface'
 
 /**
@@ -404,6 +406,97 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
 
     // チェック回数の多い順にソート
     return result.sort((a, b) => b.totalCheckCount - a.totalCheckCount)
+  }
+
+  /**
+   * ユーザーの買い物セッション履歴を検索条件付きで取得
+   */
+  async getSessionHistory(
+    userId: string,
+    criteria: SessionHistoryCriteria
+  ): Promise<SessionHistoryResult> {
+    const { page = 1, limit = 20, from, to, status } = criteria
+
+    // WHERE条件の構築
+    const where: {
+      userId: string
+      startedAt?: { gte?: Date; lte?: Date }
+      status?: 'COMPLETED' | 'ABANDONED'
+    } = { userId }
+
+    // 日付範囲フィルタ
+    if (from || to) {
+      where.startedAt = {}
+      if (from) {
+        where.startedAt.gte = new Date(from)
+      }
+      if (to) {
+        where.startedAt.lte = new Date(to)
+      }
+    }
+
+    // ステータスフィルタ
+    if (status) {
+      where.status = status as 'COMPLETED' | 'ABANDONED'
+    }
+
+    // 総件数を取得
+    const total = await this.prisma.shoppingSession.count({ where })
+
+    // ページネーション計算
+    const skip = (page - 1) * limit
+    const totalPages = Math.ceil(total / limit)
+    const hasNext = page < totalPages
+    const hasPrev = page > 1
+
+    // セッションデータを取得
+    const sessions = await this.prisma.shoppingSession.findMany({
+      where,
+      include: {
+        sessionItems: true,
+      },
+      orderBy: { startedAt: 'desc' },
+      skip,
+      take: limit,
+    })
+
+    // レスポンスデータの構築
+    const data = sessions.map((session) => {
+      const duration = session.completedAt
+        ? Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / 1000)
+        : 0
+
+      return {
+        sessionId: session.id,
+        status: session.status as 'COMPLETED' | 'ABANDONED',
+        startedAt: session.startedAt.toISOString(),
+        completedAt: session.completedAt?.toISOString(),
+        duration,
+        checkedItemsCount: session.sessionItems.length,
+        totalSpent: undefined, // TODO: 将来の実装で追加
+        deviceType: session.deviceType as 'MOBILE' | 'TABLET' | 'DESKTOP' | undefined,
+        location:
+          session.locationLat && session.locationLng
+            ? {
+                name: session.locationName ?? undefined,
+                latitude: Number(session.locationLat),
+                longitude: Number(session.locationLng),
+              }
+            : undefined,
+      }
+    })
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    }
   }
 
   /**

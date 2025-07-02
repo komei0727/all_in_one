@@ -4,6 +4,7 @@
 export class GetRecentSessionsQuery {
   constructor(
     public readonly userId: string,
-    public readonly limit?: number
+    public readonly limit?: number,
+    public readonly page?: number
   ) {}
 }

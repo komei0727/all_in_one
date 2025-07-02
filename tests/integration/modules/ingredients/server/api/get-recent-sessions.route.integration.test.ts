@@ -84,7 +84,9 @@ describe('GetRecentSessions API Integration', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toEqual([])
+      expect(data.data).toEqual([])
+      expect(data.pagination).toBeDefined()
+      expect(data.meta).toBeDefined()
     })
 
     it('複数のセッションがある場合、新しい順に返される', async () => {
@@ -119,11 +121,11 @@ describe('GetRecentSessions API Integration', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toHaveLength(3)
+      expect(data.data).toHaveLength(3)
       // 最新のセッションが最初に来る
-      expect(data.sessions[0].sessionId).toBe(session3.getId().getValue())
-      expect(data.sessions[1].sessionId).toBe(session1.getId().getValue())
-      expect(data.sessions[2].sessionId).toBe(session2.getId().getValue())
+      expect(data.data[0].sessionId).toBe(session3.getId().getValue())
+      expect(data.data[1].sessionId).toBe(session1.getId().getValue())
+      expect(data.data[2].sessionId).toBe(session2.getId().getValue())
     })
 
     it('limitパラメータで取得件数を制限できる', async () => {
@@ -147,7 +149,7 @@ describe('GetRecentSessions API Integration', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toHaveLength(3)
+      expect(data.data).toHaveLength(3)
     })
 
     it('セッションの詳細情報が正しく返される', async () => {
@@ -168,12 +170,11 @@ describe('GetRecentSessions API Integration', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toHaveLength(1)
-      const sessionData = data.sessions[0]
+      expect(data.data).toHaveLength(1)
+      const sessionData = data.data[0]
 
       expect(sessionData).toMatchObject({
         sessionId: session.getId().getValue(),
-        userId: session.getUserId(),
         status: session.getStatus().getValue(),
         startedAt: session.getStartedAt().toISOString(),
         completedAt: session.getCompletedAt()?.toISOString(),
@@ -207,10 +208,10 @@ describe('GetRecentSessions API Integration', () => {
     })
 
     it('limitが範囲外の場合、バリデーションエラーを返す', async () => {
-      // Given: 範囲外のlimit（101は上限100を超える）
+      // Given: 範囲外のlimit（51は上限50を超える）
 
       // When: APIハンドラーを通じてセッション履歴取得
-      const result = await apiHandler.handle(new Request('http://localhost?limit=101'), userId)
+      const result = await apiHandler.handle(new Request('http://localhost?limit=51'), userId)
 
       // Then: 400エラーレスポンスが返される
       expect(result.status).toBe(400)
@@ -218,7 +219,7 @@ describe('GetRecentSessions API Integration', () => {
       expect(data.message).toBe('Validation failed')
       expect(data.errors[0]).toMatchObject({
         field: 'limit',
-        message: 'limit must be between 1 and 100',
+        message: 'limit must be between 1 and 50',
       })
     })
 
@@ -234,7 +235,7 @@ describe('GetRecentSessions API Integration', () => {
       expect(data.message).toBe('Validation failed')
       expect(data.errors[0]).toMatchObject({
         field: 'limit',
-        message: 'limit must be between 1 and 100',
+        message: 'limit must be between 1 and 50',
       })
     })
   })
@@ -280,9 +281,8 @@ describe('GetRecentSessions API Integration', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toHaveLength(1)
-      expect(data.sessions[0].sessionId).toBe(mySession.getId().getValue())
-      expect(data.sessions[0].userId).toBe(userId)
+      expect(data.data).toHaveLength(1)
+      expect(data.data[0].sessionId).toBe(mySession.getId().getValue())
     })
 
     it('limitデフォルト値（10件）が正しく動作する', async () => {
@@ -306,7 +306,7 @@ describe('GetRecentSessions API Integration', () => {
       expect(result.status).toBe(200)
       const data = await result.json()
 
-      expect(data.sessions).toHaveLength(10)
+      expect(data.data).toHaveLength(10)
     })
   })
 })
