@@ -4,13 +4,10 @@ import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
- * 食材確認API - POST /api/v1/shopping-sessions/{sessionId}/check-ingredient
- * 買い物セッション中に食材をチェック
+ * 食材チェック統計取得API
+ * GET /api/v1/shopping-sessions/ingredient-check-statistics
  */
-export async function POST(
-  request: NextRequest,
-  context: { params: { sessionId: string } }
-): Promise<NextResponse> {
+export async function GET(request: NextRequest) {
   try {
     // 認証チェック
     const session = await auth()
@@ -28,18 +25,12 @@ export async function POST(
 
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const apiHandler = compositionRoot.getCheckIngredientApiHandler()
-
-    // Webアダプターパターンに対応したhandleメソッドの呼び出し
-    const response = await apiHandler.handle(
-      request,
-      session.user.domainUserId,
-      context.params.sessionId
-    )
+    const apiHandler = compositionRoot.getGetIngredientCheckStatisticsApiHandler()
+    const response = await apiHandler.handle(request, session.user.domainUserId)
 
     // レスポンスが成功の場合はそのまま返す
     if (response.status === 200) {
-      const data = (await response.json()) as unknown
+      const data = (await response.json()) as Record<string, unknown>
       return NextResponse.json(data)
     }
 
@@ -61,7 +52,7 @@ export async function POST(
     return NextResponse.json(errorResponse, { status: response.status })
   } catch (error) {
     // 予期しないエラー
-    console.error('Failed to check ingredient:', error)
+    console.error('Failed to get ingredient check statistics:', error)
     return NextResponse.json(
       {
         code: 'INTERNAL_SERVER_ERROR',

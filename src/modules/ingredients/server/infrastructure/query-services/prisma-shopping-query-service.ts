@@ -10,7 +10,6 @@ import type {
   IngredientCheckStatistics,
   TopCheckedIngredient,
   MonthlyCheckCount,
-  StockStatusBreakdown,
 } from '../../application/query-services/shopping-query-service.interface'
 
 /**
@@ -56,7 +55,13 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         session.startedAt.toISOString(),
         session.completedAt?.toISOString() ?? null,
         session.deviceType,
-        session.locationName ? { placeName: session.locationName } : null,
+        session.locationLat && session.locationLng
+          ? {
+              latitude: Number(session.locationLat),
+              longitude: Number(session.locationLng),
+              placeName: session.locationName ?? undefined,
+            }
+          : null,
         checkedItems
       )
     })
@@ -197,57 +202,109 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
    * よくチェックする食材のクイックアクセスリストを取得
    */
   async getQuickAccessIngredients(userId: string, limit = 10): Promise<QuickAccessIngredient[]> {
-    // 複雑なクエリのため生SQLを使用
-    const result = await this.prisma.$queryRaw<
-      Array<{
-        ingredientId: string
-        ingredientName: string
-        checkCount: number
-        lastCheckedAt: Date
-        currentStockStatus: string
-        currentExpiryStatus: string
-      }>
-    >`
-      SELECT 
-        i.id as ingredientId,
-        i.name as ingredientName,
-        COUNT(si.id) as checkCount,
-        MAX(si.checked_at) as lastCheckedAt,
-        CASE 
-          WHEN i.quantity <= 0 THEN 'OUT_OF_STOCK'
-          WHEN i.threshold IS NOT NULL AND i.quantity <= i.threshold THEN 'LOW_STOCK'
-          ELSE 'IN_STOCK'
-        END as currentStockStatus,
-        CASE 
-          WHEN i.use_by_date IS NOT NULL AND i.use_by_date < NOW() THEN 'EXPIRED'
-          WHEN i.use_by_date IS NOT NULL AND DATEDIFF(i.use_by_date, NOW()) <= 1 THEN 'CRITICAL'
-          WHEN i.use_by_date IS NOT NULL AND DATEDIFF(i.use_by_date, NOW()) <= 3 THEN 'EXPIRING_SOON'
-          WHEN i.use_by_date IS NOT NULL AND DATEDIFF(i.use_by_date, NOW()) <= 7 THEN 'NEAR_EXPIRY'
-          ELSE 'FRESH'
-        END as currentExpiryStatus
-      FROM ingredients i
-      INNER JOIN shopping_session_items si ON i.id = si.ingredient_id
-      INNER JOIN shopping_sessions s ON si.session_id = s.id
-      WHERE s.user_id = ${userId}
-        AND i.deleted_at IS NULL
-      GROUP BY i.id, i.name, i.quantity, i.threshold, i.use_by_date
-      ORDER BY checkCount DESC, lastCheckedAt DESC
-      LIMIT ${limit}
-    `
+    // Prisma ORMを使用してクエリを構築（SQLiteとPostgreSQL両方で動作）
+    const sessionItems = await this.prisma.shoppingSessionItem.findMany({
+      where: {
+        session: {
+          userId,
+        },
+        ingredient: {
+          deletedAt: null,
+        },
+      },
+      include: {
+        ingredient: true,
+      },
+    })
 
-    return result.map((item) => ({
-      ingredientId: item.ingredientId,
-      ingredientName: item.ingredientName,
-      checkCount: Number(item.checkCount),
-      lastCheckedAt: item.lastCheckedAt.toISOString(),
-      currentStockStatus: item.currentStockStatus as 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK',
-      currentExpiryStatus: item.currentExpiryStatus as
-        | 'FRESH'
-        | 'NEAR_EXPIRY'
-        | 'EXPIRING_SOON'
-        | 'CRITICAL'
-        | 'EXPIRED',
-    }))
+    // グループ化して集計
+    interface GroupedIngredient {
+      ingredientId: string
+      ingredientName: string
+      checkCount: number
+      lastCheckedAt: Date
+      ingredient: {
+        quantity: number
+        threshold: number | null
+        bestBeforeDate: Date | null
+      }
+    }
+
+    const groupedData = sessionItems.reduce(
+      (acc, item) => {
+        const key = item.ingredientId
+        if (!acc[key]) {
+          acc[key] = {
+            ingredientId: item.ingredientId,
+            ingredientName: item.ingredientName,
+            checkCount: 0,
+            lastCheckedAt: item.checkedAt,
+            ingredient: item.ingredient,
+          }
+        }
+        acc[key].checkCount++
+        if (item.checkedAt > acc[key].lastCheckedAt) {
+          acc[key].lastCheckedAt = item.checkedAt
+        }
+        return acc
+      },
+      {} as Record<string, GroupedIngredient>
+    )
+
+    // 配列に変換してソート
+    const sorted = Object.values(groupedData)
+      .sort((a, b) => {
+        if (b.checkCount !== a.checkCount) {
+          return b.checkCount - a.checkCount
+        }
+        return b.lastCheckedAt.getTime() - a.lastCheckedAt.getTime()
+      })
+      .slice(0, limit)
+
+    // 現在の日付を取得
+    const now = new Date()
+
+    return sorted.map((item) => {
+      // 在庫状態を計算
+      let currentStockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+      if (item.ingredient.quantity <= 0) {
+        currentStockStatus = 'OUT_OF_STOCK'
+      } else if (
+        item.ingredient.threshold &&
+        item.ingredient.quantity <= item.ingredient.threshold
+      ) {
+        currentStockStatus = 'LOW_STOCK'
+      } else {
+        currentStockStatus = 'IN_STOCK'
+      }
+
+      // 期限状態を計算
+      let currentExpiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED' =
+        'FRESH'
+      if (item.ingredient.bestBeforeDate) {
+        const diffDays = Math.ceil(
+          (item.ingredient.bestBeforeDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        )
+        if (diffDays < 0) {
+          currentExpiryStatus = 'EXPIRED'
+        } else if (diffDays <= 1) {
+          currentExpiryStatus = 'CRITICAL'
+        } else if (diffDays <= 3) {
+          currentExpiryStatus = 'EXPIRING_SOON'
+        } else if (diffDays <= 7) {
+          currentExpiryStatus = 'NEAR_EXPIRY'
+        }
+      }
+
+      return {
+        ingredientId: item.ingredientId,
+        ingredientName: item.ingredientName,
+        checkCount: item.checkCount,
+        lastCheckedAt: item.lastCheckedAt.toISOString(),
+        currentStockStatus,
+        currentExpiryStatus,
+      }
+    })
   }
 
   /**
@@ -257,82 +314,96 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     userId: string,
     ingredientId?: string
   ): Promise<IngredientCheckStatistics[]> {
-    let result: Array<{
-      ingredientId: string
-      ingredientName: string
-      totalCheckCount: number
-      firstCheckedAt: Date
-      lastCheckedAt: Date
-      monthlyCheckCounts: MonthlyCheckCount[]
-      stockStatusBreakdown: StockStatusBreakdown
-    }>
-
-    if (ingredientId) {
-      result = await this.prisma.$queryRaw`
-        SELECT 
-          i.id as ingredientId,
-          i.name as ingredientName,
-          COUNT(si.id) as totalCheckCount,
-          MIN(si.checked_at) as firstCheckedAt,
-          MAX(si.checked_at) as lastCheckedAt,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'yearMonth', DATE_FORMAT(si.checked_at, '%Y-%m'),
-              'checkCount', COUNT(si.id)
-            )
-          ) as monthlyCheckCounts,
-          JSON_OBJECT(
-            'inStockChecks', SUM(CASE WHEN si.stock_status = 'IN_STOCK' THEN 1 ELSE 0 END),
-            'lowStockChecks', SUM(CASE WHEN si.stock_status = 'LOW_STOCK' THEN 1 ELSE 0 END),
-            'outOfStockChecks', SUM(CASE WHEN si.stock_status = 'OUT_OF_STOCK' THEN 1 ELSE 0 END)
-          ) as stockStatusBreakdown
-        FROM ingredients i
-        INNER JOIN shopping_session_items si ON i.id = si.ingredient_id
-        INNER JOIN shopping_sessions s ON si.session_id = s.id
-        WHERE s.user_id = ${userId}
-          AND i.deleted_at IS NULL
-          AND i.id = ${ingredientId}
-        GROUP BY i.id, i.name
-        ORDER BY totalCheckCount DESC
-      `
-    } else {
-      result = await this.prisma.$queryRaw`
-        SELECT 
-          i.id as ingredientId,
-          i.name as ingredientName,
-          COUNT(si.id) as totalCheckCount,
-          MIN(si.checked_at) as firstCheckedAt,
-          MAX(si.checked_at) as lastCheckedAt,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'yearMonth', DATE_FORMAT(si.checked_at, '%Y-%m'),
-              'checkCount', COUNT(si.id)
-            )
-          ) as monthlyCheckCounts,
-          JSON_OBJECT(
-            'inStockChecks', SUM(CASE WHEN si.stock_status = 'IN_STOCK' THEN 1 ELSE 0 END),
-            'lowStockChecks', SUM(CASE WHEN si.stock_status = 'LOW_STOCK' THEN 1 ELSE 0 END),
-            'outOfStockChecks', SUM(CASE WHEN si.stock_status = 'OUT_OF_STOCK' THEN 1 ELSE 0 END)
-          ) as stockStatusBreakdown
-        FROM ingredients i
-        INNER JOIN shopping_session_items si ON i.id = si.ingredient_id
-        INNER JOIN shopping_sessions s ON si.session_id = s.id
-        WHERE s.user_id = ${userId}
-          AND i.deleted_at IS NULL
-        GROUP BY i.id, i.name
-        ORDER BY totalCheckCount DESC
-      `
+    // Prisma ORMを使用してクエリを構築（SQLiteとPostgreSQL両方で動作）
+    const whereClause = {
+      session: {
+        userId,
+      },
+      ingredient: {
+        deletedAt: null,
+      },
+      ...(ingredientId && { ingredientId }),
     }
 
-    return result.map((item) => ({
-      ingredientId: item.ingredientId,
-      ingredientName: item.ingredientName,
-      totalCheckCount: Number(item.totalCheckCount),
-      firstCheckedAt: item.firstCheckedAt.toISOString(),
-      lastCheckedAt: item.lastCheckedAt.toISOString(),
-      monthlyCheckCounts: Array.isArray(item.monthlyCheckCounts) ? item.monthlyCheckCounts : [],
-      stockStatusBreakdown: item.stockStatusBreakdown,
-    }))
+    const sessionItems = await this.prisma.shoppingSessionItem.findMany({
+      where: whereClause,
+      include: {
+        ingredient: true,
+      },
+      orderBy: {
+        checkedAt: 'desc',
+      },
+    })
+
+    // グループ化して集計
+    interface GroupedStatistics {
+      ingredientId: string
+      ingredientName: string
+      checks: Array<{
+        checkedAt: Date
+        stockStatus: string
+      }>
+    }
+
+    const groupedData = sessionItems.reduce(
+      (acc, item) => {
+        const key = item.ingredientId
+        if (!acc[key]) {
+          acc[key] = {
+            ingredientId: item.ingredientId,
+            ingredientName: item.ingredientName,
+            checks: [],
+          }
+        }
+        acc[key].checks.push({
+          checkedAt: item.checkedAt,
+          stockStatus: item.stockStatus,
+        })
+        return acc
+      },
+      {} as Record<string, GroupedStatistics>
+    )
+
+    // 各食材の統計を計算
+    const result = Object.values(groupedData).map((item) => {
+      const checks = item.checks
+      const firstCheckedAt = checks[checks.length - 1].checkedAt
+      const lastCheckedAt = checks[0].checkedAt
+
+      // 月別のチェック回数を計算
+      const monthlyChecks = checks.reduce((acc: Record<string, number>, check) => {
+        const yearMonth = `${check.checkedAt.getFullYear()}-${String(check.checkedAt.getMonth() + 1).padStart(2, '0')}`
+        acc[yearMonth] = (acc[yearMonth] || 0) + 1
+        return acc
+      }, {})
+
+      const monthlyCheckCounts: MonthlyCheckCount[] = Object.entries(monthlyChecks).map(
+        ([yearMonth, checkCount]) => ({
+          yearMonth,
+          checkCount: checkCount as number,
+        })
+      )
+
+      // 在庫状態の内訳を計算
+      const stockStatusBreakdown = {
+        inStockChecks: checks.filter((c) => c.stockStatus === 'IN_STOCK').length,
+        lowStockChecks: checks.filter((c) => c.stockStatus === 'LOW_STOCK').length,
+        outOfStockChecks: checks.filter((c) => c.stockStatus === 'OUT_OF_STOCK').length,
+      }
+
+      return {
+        ingredientId: item.ingredientId,
+        ingredientName: item.ingredientName,
+        totalCheckCount: checks.length,
+        firstCheckedAt: firstCheckedAt.toISOString(),
+        lastCheckedAt: lastCheckedAt.toISOString(),
+        monthlyCheckCounts,
+        stockStatusBreakdown,
+      }
+    })
+
+    // チェック回数の多い順にソート
+    return result.sort((a, b) => b.totalCheckCount - a.totalCheckCount)
   }
 
   /**

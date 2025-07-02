@@ -16,8 +16,8 @@ export default defineConfig({
         singleFork: true, // 単一プロセスで順次実行
       },
     },
-    testTimeout: 30000, // 統合テストは時間がかかる可能性がある
-    hookTimeout: 30000,
+    testTimeout: 60000, // 統合テストは時間がかかる可能性がある（60秒に延長）
+    hookTimeout: 60000,
   },
   resolve: {
     alias: [

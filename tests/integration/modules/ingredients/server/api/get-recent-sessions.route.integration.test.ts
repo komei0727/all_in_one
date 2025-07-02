@@ -121,9 +121,9 @@ describe('GetRecentSessions API Integration', () => {
 
       expect(data.sessions).toHaveLength(3)
       // 最新のセッションが最初に来る
-      expect(data.sessions[0].sessionId).toBe(session3.sessionId.getValue())
-      expect(data.sessions[1].sessionId).toBe(session1.sessionId.getValue())
-      expect(data.sessions[2].sessionId).toBe(session2.sessionId.getValue())
+      expect(data.sessions[0].sessionId).toBe(session3.getId().getValue())
+      expect(data.sessions[1].sessionId).toBe(session1.getId().getValue())
+      expect(data.sessions[2].sessionId).toBe(session2.getId().getValue())
     })
 
     it('limitパラメータで取得件数を制限できる', async () => {
@@ -155,8 +155,8 @@ describe('GetRecentSessions API Integration', () => {
       const session = shoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
-        .withDeviceType('mobile')
-        .withLocation('スーパーマーケット')
+        .withDeviceType('MOBILE')
+        .withLocation(35.6762, 139.6503) // 東京の座標
         .build()
 
       await repository.save(session)
@@ -172,13 +172,19 @@ describe('GetRecentSessions API Integration', () => {
       const sessionData = data.sessions[0]
 
       expect(sessionData).toMatchObject({
-        sessionId: session.sessionId.getValue(),
-        userId: session.userId.getValue(),
-        status: session.status.getValue(),
-        startedAt: session.startedAt.toISOString(),
-        completedAt: session.completedAt?.toISOString(),
-        deviceType: session.deviceType,
-        location: session.location,
+        sessionId: session.getId().getValue(),
+        userId: session.getUserId(),
+        status: session.getStatus().getValue(),
+        startedAt: session.getStartedAt().toISOString(),
+        completedAt: session.getCompletedAt()?.toISOString(),
+        deviceType: session.getDeviceType()?.getValue() || null,
+        location: session.getLocation()
+          ? {
+              latitude: session.getLocation()!.getLatitude(),
+              longitude: session.getLocation()!.getLongitude(),
+              // placeNameがundefinedの場合、JSONシリアライズで省略される
+            }
+          : null,
       })
     })
   })
@@ -272,7 +278,7 @@ describe('GetRecentSessions API Integration', () => {
       const data = await result.json()
 
       expect(data.sessions).toHaveLength(1)
-      expect(data.sessions[0].sessionId).toBe(mySession.sessionId.getValue())
+      expect(data.sessions[0].sessionId).toBe(mySession.getId().getValue())
       expect(data.sessions[0].userId).toBe(userId)
     })
 

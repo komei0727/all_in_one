@@ -13,6 +13,8 @@ export class ShoppingSessionDto {
     public readonly completedAt: string | null,
     public readonly deviceType: string | null,
     public readonly location: {
+      latitude?: number
+      longitude?: number
       placeName?: string
     } | null,
     public readonly checkedItems?: CheckedItemDto[]

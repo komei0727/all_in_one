@@ -100,12 +100,6 @@
 1. [ ] `tests/unit/modules/shared/server/api/handlers/error.handler.test.ts` を作成
 2. [ ] 共通エラーハンドラーを実装
 
-### Phase 6: E2Eテストの実装
-
-1. [ ] `tests/e2e/shopping-session-flow.test.ts` を作成
-   - セッション開始 → 食材チェック → セッション完了の一連のフロー
-2. [ ] パフォーマンステストを含める
-
 ## 実装時の注意点
 
 ### TDD実践のポイント

@@ -17,6 +17,8 @@ import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingr
 import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
+import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/get-ingredient-check-statistics.handler'
+import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsApiHandler } from '../api/handlers/queries/get-recent-sessions.handler'
 import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
@@ -363,10 +365,24 @@ export class CompositionRoot {
   }
 
   /**
+   * Get GetQuickAccessIngredientsApiHandler instance (new instance each time)
+   */
+  public getGetQuickAccessIngredientsApiHandler(): GetQuickAccessIngredientsApiHandler {
+    return new GetQuickAccessIngredientsApiHandler(this.getGetQuickAccessIngredientsHandler())
+  }
+
+  /**
    * Get GetQuickAccessIngredientsHandler instance (new instance each time)
    */
   public getGetQuickAccessIngredientsHandler(): GetQuickAccessIngredientsHandler {
     return new GetQuickAccessIngredientsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetIngredientCheckStatisticsApiHandler instance (new instance each time)
+   */
+  public getGetIngredientCheckStatisticsApiHandler(): GetIngredientCheckStatisticsApiHandler {
+    return new GetIngredientCheckStatisticsApiHandler(this.getGetIngredientCheckStatisticsHandler())
   }
 
   /**

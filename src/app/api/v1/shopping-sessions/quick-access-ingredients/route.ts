@@ -1,6 +1,6 @@
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
-import { GetQuickAccessIngredientsQuery } from '@/modules/ingredients/server/application/queries/get-quick-access-ingredients.query'
+import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
@@ -9,80 +9,78 @@ import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/com
  */
 export async function GET(request: NextRequest) {
   try {
-    // ユーザーIDを取得
-    const userId = request.headers.get('x-user-id')
-    if (!userId) {
-      return Response.json(
+    // 認証チェック
+    const session = await auth()
+    if (!session?.user?.domainUserId) {
+      return NextResponse.json(
         {
-          success: false,
-          error: {
-            code: 'AUTHENTICATION_REQUIRED',
-            message: 'ユーザー認証が必要です',
-          },
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required',
+          timestamp: new Date().toISOString(),
+          path: request.url,
         },
         { status: 401 }
       )
     }
 
-    // クエリパラメータを取得・バリデーション
-    const { searchParams } = new URL(request.url)
-    const limitParam = searchParams.get('limit')
-
-    let limit = 10 // デフォルト値
-    if (limitParam) {
-      const parsedLimit = parseInt(limitParam, 10)
-      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
-        return Response.json(
-          {
-            success: false,
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'limitは1以上100以下の整数である必要があります',
-            },
-          },
-          { status: 400 }
-        )
-      }
-      limit = parsedLimit
-    }
-
-    // クエリとハンドラーを使用
+    // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const handler = compositionRoot.getGetQuickAccessIngredientsHandler()
+    const apiHandler = compositionRoot.getGetQuickAccessIngredientsApiHandler()
+    const response = await apiHandler.handle(request, session.user.domainUserId)
 
-    // クエリを作成してハンドラーを実行
-    const query = new GetQuickAccessIngredientsQuery(userId, limit)
-    const ingredients = await handler.handle(query)
-
-    // レスポンスを構築
-    const responseData = {
-      success: true,
-      data: {
-        ingredients: ingredients.map((ingredient) => ({
-          ingredientId: ingredient.ingredientId,
-          ingredientName: ingredient.ingredientName,
-          checkCount: ingredient.checkCount,
-          lastCheckedAt: ingredient.lastCheckedAt,
-          currentStockStatus: ingredient.currentStockStatus,
-          currentExpiryStatus: ingredient.currentExpiryStatus,
-        })),
-      },
+    // レスポンスが成功の場合はそのまま返す
+    if (response.status === 200) {
+      const data = (await response.json()) as Record<string, unknown>
+      return NextResponse.json(data)
     }
 
-    return Response.json(responseData, { status: 200 })
-  } catch (error) {
-    // エラーログを出力（本来はロガーを使用）
-    console.error('Quick access ingredients API error:', error)
+    // エラーレスポンスの場合は、標準フォーマットに変換
+    const errorData = (await response.json()) as { message?: string; errors?: unknown }
+    const errorCode = getErrorCode(response.status)
 
-    return Response.json(
+    const errorResponse: Record<string, unknown> = {
+      code: errorCode,
+      message: errorData.message || 'An error occurred',
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    }
+
+    if (errorData.errors) {
+      errorResponse.errors = errorData.errors
+    }
+
+    return NextResponse.json(errorResponse, { status: response.status })
+  } catch (error) {
+    // 予期しないエラー
+    console.error('Failed to get quick access ingredients:', error)
+    return NextResponse.json(
       {
-        success: false,
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'サーバー内部エラーが発生しました',
-        },
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An unexpected error occurred',
+        timestamp: new Date().toISOString(),
+        path: request.url,
       },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * HTTPステータスコードからエラーコードを取得
+ */
+function getErrorCode(status: number): string {
+  switch (status) {
+    case 400:
+      return 'VALIDATION_ERROR'
+    case 401:
+      return 'UNAUTHORIZED'
+    case 403:
+      return 'FORBIDDEN'
+    case 404:
+      return 'RESOURCE_NOT_FOUND'
+    case 409:
+      return 'CONFLICT'
+    default:
+      return 'INTERNAL_SERVER_ERROR'
   }
 }

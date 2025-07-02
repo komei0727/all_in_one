@@ -219,7 +219,7 @@ describe('StartShoppingSessionHandler Integration Tests', () => {
       // Then: DTOにlocationが含まれ、deviceTypeはnull
       expect(result.deviceType).toBeNull()
       expect(result.location).toEqual({
-        placeName: null,
+        placeName: undefined,
       })
 
       // データベースに保存されている
