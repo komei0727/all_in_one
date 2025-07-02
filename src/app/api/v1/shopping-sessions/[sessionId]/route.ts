@@ -4,10 +4,10 @@ import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
- * PUT /api/v1/shopping-sessions/[sessionId]/complete
- * 買い物セッションを完了する
+ * DELETE /api/v1/shopping-sessions/[sessionId]
+ * 買い物セッションを中断する
  */
-export async function PUT(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
@@ -31,7 +31,7 @@ export async function PUT(
 
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const apiHandler = compositionRoot.getCompleteShoppingSessionApiHandler()
+    const apiHandler = compositionRoot.getAbandonShoppingSessionApiHandler()
     const response = await apiHandler.handle(request, resolvedParams, session.user.domainUserId)
 
     // レスポンスが成功の場合はそのまま返す
@@ -58,7 +58,7 @@ export async function PUT(
     return NextResponse.json(errorResponse, { status: response.status })
   } catch (error) {
     // 予期しないエラー
-    console.error('Failed to complete shopping session:', error)
+    console.error('Failed to abandon shopping session:', error)
     return NextResponse.json(
       {
         code: 'INTERNAL_SERVER_ERROR',
@@ -85,7 +85,7 @@ function getErrorCode(status: number): string {
     case 404:
       return 'RESOURCE_NOT_FOUND'
     case 409:
-      return 'CONFLICT'
+      return 'SESSION_ALREADY_COMPLETED'
     default:
       return 'INTERNAL_SERVER_ERROR'
   }

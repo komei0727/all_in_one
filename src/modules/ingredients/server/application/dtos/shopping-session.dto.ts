@@ -1,4 +1,5 @@
 import type { CheckedItemDto } from './checked-item.dto'
+import type { ShoppingSession } from '../../domain/entities/shopping-session.entity'
 
 /**
  * 買い物セッションDTOクラス
@@ -37,5 +38,29 @@ export class ShoppingSessionDto {
         checkedItems: this.checkedItems?.map((item) => item.toJSON().data) || null,
       },
     }
+  }
+
+  /**
+   * エンティティからDTOを作成
+   * @param entity 買い物セッションエンティティ
+   * @returns 買い物セッションDTO
+   */
+  static fromEntity(entity: ShoppingSession): ShoppingSessionDto {
+    return new ShoppingSessionDto(
+      entity.getId().getValue(),
+      entity.getUserId(),
+      entity.getStatus().getValue(),
+      entity.getStartedAt().toISOString(),
+      entity.getCompletedAt()?.toISOString() ?? null,
+      entity.getDeviceType()?.getValue() ?? null,
+      entity.getLocation()
+        ? {
+            latitude: entity.getLocation()!.getLatitude(),
+            longitude: entity.getLocation()!.getLongitude(),
+            placeName: entity.getLocation()!.getName() ?? undefined,
+          }
+        : null,
+      undefined // checkedItemsは必要に応じて追加
+    )
   }
 }

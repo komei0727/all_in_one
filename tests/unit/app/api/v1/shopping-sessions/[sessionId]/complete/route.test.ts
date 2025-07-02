@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
-import { POST } from '@/app/api/v1/shopping-sessions/[sessionId]/complete/route'
+import { PUT } from '@/app/api/v1/shopping-sessions/[sessionId]/complete/route'
 import { auth } from '@/auth'
 import { type CompleteShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/complete-shopping-session.handler'
 import { ShoppingSessionId } from '@/modules/ingredients/server/domain/value-objects/shopping-session-id.vo'
@@ -64,7 +64,7 @@ class MockNextRequest {
 
 const NextRequest = MockNextRequest as any
 
-describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
+describe('PUT /api/v1/shopping-sessions/[sessionId]/complete', () => {
   let mockAuth: Mock
   let mockApiHandler: CompleteShoppingSessionApiHandler
   let sessionId: string
@@ -102,7 +102,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -111,7 +111,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       )
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+      const response = await PUT(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 401エラーが返される
       expect(response.status).toBe(401)
@@ -133,7 +133,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -159,7 +159,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+      const response = await PUT(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 200レスポンスが返される
       expect(response.status).toBe(200)
@@ -189,7 +189,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${invalidSessionId}/complete`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -209,7 +209,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, {
+      const response = await PUT(request, {
         params: Promise.resolve({ sessionId: invalidSessionId }),
       })
 
@@ -228,7 +228,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -245,7 +245,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+      const response = await PUT(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 404エラーが返される
       expect(response.status).toBe(404)
@@ -261,7 +261,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -278,7 +278,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockResolvedValue(mockResponse)
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+      const response = await PUT(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 403エラーが返される
       expect(response.status).toBe(403)
@@ -294,7 +294,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       const request = new NextRequest(
         `http://localhost:3000/api/v1/shopping-sessions/${sessionId}/complete`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -306,7 +306,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/complete', () => {
       ;(mockApiHandler.handle as Mock).mockRejectedValue(new Error('データベースエラー'))
 
       // When: APIを呼び出す
-      const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+      const response = await PUT(request, { params: Promise.resolve({ sessionId }) })
 
       // Then: 500エラーが返される
       expect(response.status).toBe(500)

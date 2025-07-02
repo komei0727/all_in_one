@@ -6,8 +6,8 @@ import { GetRecentSessionsApiHandler } from '@/modules/ingredients/server/api/ha
 import { GetRecentSessionsHandler } from '@/modules/ingredients/server/application/queries/get-recent-sessions.handler'
 import { PrismaShoppingQueryService } from '@/modules/ingredients/server/infrastructure/query-services/prisma-shopping-query-service'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
+import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders/entities/shopping-session.builder'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
-import { shoppingSessionBuilder } from '@tests/__fixtures__/builders/shopping-session.builder'
 
 /**
  * GetRecentSessions API + Application層統合テスト
@@ -90,19 +90,19 @@ describe('GetRecentSessions API Integration', () => {
     it('複数のセッションがある場合、新しい順に返される', async () => {
       // Given: 複数のセッション（異なる開始時刻）
       const now = new Date()
-      const session1 = shoppingSessionBuilder()
+      const session1 = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(new Date(now.getTime() - 3600000)) // 1時間前
         .build()
 
-      const session2 = shoppingSessionBuilder()
+      const session2 = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(new Date(now.getTime() - 7200000)) // 2時間前
         .build()
 
-      const session3 = shoppingSessionBuilder()
+      const session3 = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(new Date(now.getTime() - 1800000)) // 30分前（最新）
@@ -129,7 +129,7 @@ describe('GetRecentSessions API Integration', () => {
     it('limitパラメータで取得件数を制限できる', async () => {
       // Given: 5つのセッション
       const sessions = Array.from({ length: 5 }, (_, i) =>
-        shoppingSessionBuilder()
+        new ShoppingSessionBuilder()
           .withUserId(userId)
           .withCompletedStatus()
           .withStartedAt(new Date(Date.now() - i * 3600000)) // i時間前
@@ -152,9 +152,9 @@ describe('GetRecentSessions API Integration', () => {
 
     it('セッションの詳細情報が正しく返される', async () => {
       // Given: セッション
-      const session = shoppingSessionBuilder()
+      const session = new ShoppingSessionBuilder()
         .withUserId(userId)
-        .withCompletedStatus()
+        .asCompleted() // 完了ステータスと完了日時を同時に設定
         .withDeviceType('MOBILE')
         .withLocation(35.6762, 139.6503) // 東京の座標
         .build()
@@ -260,12 +260,15 @@ describe('GetRecentSessions API Integration', () => {
         },
       })
 
-      const otherUserSession = shoppingSessionBuilder()
+      const otherUserSession = new ShoppingSessionBuilder()
         .withUserId(otherDomainUser.id)
         .withCompletedStatus()
         .build()
 
-      const mySession = shoppingSessionBuilder().withUserId(userId).withCompletedStatus().build()
+      const mySession = new ShoppingSessionBuilder()
+        .withUserId(userId)
+        .withCompletedStatus()
+        .build()
 
       await repository.save(otherUserSession)
       await repository.save(mySession)
@@ -285,7 +288,7 @@ describe('GetRecentSessions API Integration', () => {
     it('limitデフォルト値（10件）が正しく動作する', async () => {
       // Given: 15件のセッション
       const sessions = Array.from({ length: 15 }, (_, i) =>
-        shoppingSessionBuilder()
+        new ShoppingSessionBuilder()
           .withUserId(userId)
           .withCompletedStatus()
           .withStartedAt(new Date(Date.now() - i * 3600000)) // i時間前

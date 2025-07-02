@@ -1,9 +1,9 @@
 import { faker } from '@faker-js/faker'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { POST } from '@/app/api/v1/shopping-sessions/[sessionId]/check-ingredient/route'
+import { POST } from '@/app/api/v1/shopping-sessions/[sessionId]/check/[ingredientId]/route'
 import { auth } from '@/auth'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
+import { CheckedItemDto } from '@/modules/ingredients/server/application/dtos/checked-item.dto'
 
 // auth関数のモック
 vi.mock('@/auth', () => ({
@@ -45,7 +45,7 @@ class MockNextRequest {
   }
 }
 
-describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
+describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId]', () => {
   let userId: string
   let sessionId: string
   let ingredientId: string
@@ -65,15 +65,12 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
       },
     } as any)
 
-    const expectedDto = new ShoppingSessionDto(
-      sessionId,
-      userId,
-      'ACTIVE',
-      new Date().toISOString(),
-      null,
-      null,
-      null,
-      []
+    const expectedDto = new CheckedItemDto(
+      ingredientId,
+      'トマト',
+      'IN_STOCK',
+      'FRESH',
+      new Date().toISOString()
     )
 
     const mockResponse = new Response(
@@ -88,16 +85,13 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
 
     mockApiHandler.handle.mockResolvedValue(mockResponse)
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 成功レスポンス
     expect(response.status).toBe(200)
@@ -107,36 +101,30 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
     expect(responseData).toEqual({
       data: {
         data: {
-          sessionId: expectedDto.sessionId,
-          userId: expectedDto.userId,
-          status: expectedDto.status,
-          startedAt: expectedDto.startedAt,
-          completedAt: expectedDto.completedAt,
-          deviceType: expectedDto.deviceType,
-          location: expectedDto.location,
-          checkedItems: expectedDto.checkedItems,
+          ingredientId: expectedDto.ingredientId,
+          ingredientName: expectedDto.ingredientName,
+          stockStatus: expectedDto.stockStatus,
+          expiryStatus: expectedDto.expiryStatus,
+          checkedAt: expectedDto.checkedAt,
         },
       },
     })
 
     // APIハンドラーが正しい引数で呼ばれる
-    expect(mockApiHandler.handle).toHaveBeenCalledWith(request, userId, sessionId)
+    expect(mockApiHandler.handle).toHaveBeenCalledWith(request, userId, sessionId, ingredientId)
   })
 
   it('認証されていない場合は401エラーを返す', async () => {
     // Given: 認証されていないユーザー
     vi.mocked(auth).mockResolvedValue(null as any)
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 401エラー
     expect(response.status).toBe(401)
@@ -147,50 +135,6 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
       timestamp: expect.any(String),
       path: request.url,
     })
-  })
-
-  it('ingredientIdが未指定の場合は400エラー', async () => {
-    // Given: 認証済みユーザーとingredientIdなしのリクエスト
-    vi.mocked(auth).mockResolvedValue({
-      user: {
-        domainUserId: userId,
-      },
-    } as any)
-
-    const mockResponse = new Response(
-      JSON.stringify({
-        message: 'Validation failed',
-        errors: [
-          {
-            field: 'ingredientId',
-            message: '食材IDは必須です',
-          },
-        ],
-      }),
-      {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
-
-    mockApiHandler.handle.mockResolvedValue(mockResponse)
-
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({}),
-      }
-    ) as any
-
-    // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
-
-    // Then: 400エラー
-    expect(response.status).toBe(400)
-    const responseData = await response.json()
-    expect(responseData.code).toBe('VALIDATION_ERROR')
-    expect(responseData.errors).toBeDefined()
   })
 
   it('セッションが見つからない場合は404エラー', async () => {
@@ -213,16 +157,13 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
 
     mockApiHandler.handle.mockResolvedValue(mockResponse)
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 404エラー
     expect(response.status).toBe(404)
@@ -251,16 +192,13 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
 
     mockApiHandler.handle.mockResolvedValue(mockResponse)
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 404エラー
     expect(response.status).toBe(404)
@@ -289,16 +227,13 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
 
     mockApiHandler.handle.mockResolvedValue(mockResponse)
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 400エラー
     expect(response.status).toBe(400)
@@ -327,16 +262,13 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
 
     mockApiHandler.handle.mockResolvedValue(mockResponse)
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 400エラー
     expect(response.status).toBe(400)
@@ -355,16 +287,13 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check-ingredient', () => {
 
     mockApiHandler.handle.mockRejectedValue(new Error('Unexpected error'))
 
-    const request = new MockNextRequest(
-      'http://localhost/api/v1/shopping-sessions/123/check-ingredient',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ingredientId }),
-      }
-    ) as any
+    const request = new MockNextRequest('http://localhost/api/v1/shopping-sessions/123/check/456', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }) as any
 
     // When: APIを呼び出し
-    const response = await POST(request, { params: Promise.resolve({ sessionId }) })
+    const response = await POST(request, { params: Promise.resolve({ sessionId, ingredientId }) })
 
     // Then: 500エラー
     expect(response.status).toBe(500)

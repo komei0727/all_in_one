@@ -6,8 +6,8 @@ import { CompleteShoppingSessionApiHandler } from '@/modules/ingredients/server/
 import { CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
 import { ShoppingSessionId } from '@/modules/ingredients/server/domain/value-objects'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
+import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders/entities/shopping-session.builder'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
-import { shoppingSessionBuilder } from '@tests/__fixtures__/builders/shopping-session.builder'
 
 /**
  * CompleteShoppingSession API + Application層統合テスト
@@ -74,7 +74,7 @@ describe('CompleteShoppingSession API Integration', () => {
   describe('正常系', () => {
     it('アクティブなセッションを完了できる', async () => {
       // Given: アクティブなセッション
-      const session = shoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
+      const session = new ShoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
 
       await repository.save(session)
       const sessionId = session.getId().getValue()
@@ -110,7 +110,7 @@ describe('CompleteShoppingSession API Integration', () => {
 
     it('デバイスタイプと位置情報が保持される', async () => {
       // Given: デバイスタイプと位置情報を持つアクティブなセッション
-      const session = shoppingSessionBuilder()
+      const session = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withActiveStatus()
         .withDeviceType('MOBILE')
@@ -167,7 +167,7 @@ describe('CompleteShoppingSession API Integration', () => {
         },
       })
 
-      const session = shoppingSessionBuilder()
+      const session = new ShoppingSessionBuilder()
         .withUserId(otherDomainUser.id)
         .withActiveStatus()
         .build()
@@ -186,7 +186,7 @@ describe('CompleteShoppingSession API Integration', () => {
 
     it('既に完了したセッションは再度完了できない', async () => {
       // Given: 完了済みのセッション
-      const session = shoppingSessionBuilder().withUserId(userId).withCompletedStatus().build()
+      const session = new ShoppingSessionBuilder().withUserId(userId).withCompletedStatus().build()
 
       await repository.save(session)
       const sessionId = session.getId().getValue()
@@ -222,7 +222,7 @@ describe('CompleteShoppingSession API Integration', () => {
   describe('トランザクション処理', () => {
     it('セッション完了時にcompletedAtが正しく設定される', async () => {
       // Given: アクティブなセッション
-      const session = shoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
+      const session = new ShoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
 
       await repository.save(session)
       const sessionId = session.getId().getValue()

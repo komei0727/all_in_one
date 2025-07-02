@@ -4,13 +4,10 @@ import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
- * 食材確認API - POST /api/v1/shopping-sessions/{sessionId}/check-ingredient
- * 買い物セッション中に食材をチェック
+ * GET /api/v1/shopping/categories/[id]/ingredients
+ * カテゴリー別食材取得（買い物用）
  */
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ sessionId: string }> }
-): Promise<NextResponse> {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // 認証チェック
     const session = await auth()
@@ -27,18 +24,24 @@ export async function POST(
     }
 
     // パラメータを取得
-    const params = await context.params
+    const resolvedParams = await params
+
+    // クエリパラメータを取得
+    const searchParams = request.nextUrl.searchParams
+    const sortBy = searchParams.get('sortBy') || 'stockStatus'
 
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const apiHandler = compositionRoot.getCheckIngredientApiHandler()
-
-    // Webアダプターパターンに対応したhandleメソッドの呼び出し
-    const response = await apiHandler.handle(request, session.user.domainUserId, params.sessionId)
+    const apiHandler = compositionRoot.getIngredientsByCategoryApiHandler()
+    const response = await apiHandler.handle(
+      request,
+      { categoryId: resolvedParams.id, sortBy },
+      session.user.domainUserId
+    )
 
     // レスポンスが成功の場合はそのまま返す
     if (response.status === 200) {
-      const data = (await response.json()) as unknown
+      const data = (await response.json()) as Record<string, unknown>
       return NextResponse.json(data)
     }
 
@@ -60,7 +63,7 @@ export async function POST(
     return NextResponse.json(errorResponse, { status: response.status })
   } catch (error) {
     // 予期しないエラー
-    console.error('Failed to check ingredient:', error)
+    console.error('Failed to get ingredients by category:', error)
     return NextResponse.json(
       {
         code: 'INTERNAL_SERVER_ERROR',
@@ -86,8 +89,6 @@ function getErrorCode(status: number): string {
       return 'FORBIDDEN'
     case 404:
       return 'RESOURCE_NOT_FOUND'
-    case 409:
-      return 'CONFLICT'
     default:
       return 'INTERNAL_SERVER_ERROR'
   }

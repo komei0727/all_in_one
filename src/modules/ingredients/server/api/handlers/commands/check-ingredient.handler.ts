@@ -16,17 +16,20 @@ export class CheckIngredientApiHandler {
    * @param request HTTPリクエスト
    * @param userId 認証済みユーザーID
    * @param sessionId セッションID（URLパラメータ）
+   * @param ingredientId 食材ID（URLパラメータ）
    * @returns HTTPレスポンス
    */
-  async handle(request: Request, userId: string, sessionId: string): Promise<Response> {
+  async handle(
+    request: Request,
+    userId: string,
+    sessionId: string,
+    ingredientId: string
+  ): Promise<Response> {
     try {
-      // リクエストボディを取得
-      const body = (await request.json()) as Record<string, unknown>
-
       // パラメータをバリデーション
       const validationResult = checkIngredientSchema.safeParse({
         sessionId,
-        ingredientId: body.ingredientId,
+        ingredientId,
         userId,
       })
 

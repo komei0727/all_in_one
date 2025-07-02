@@ -9,7 +9,7 @@ import {
 } from '@/modules/ingredients/server/domain/exceptions'
 import { ShoppingSessionId } from '@/modules/ingredients/server/domain/value-objects/shopping-session-id.vo'
 
-import { shoppingSessionBuilder } from '../../../../../../../__fixtures__/builders/shopping-session.builder'
+import { ShoppingSessionBuilder } from '../../../../../../../__fixtures__/builders/entities/shopping-session.builder'
 
 describe('CompleteShoppingSessionApiHandler', () => {
   let handler: CompleteShoppingSessionApiHandler
@@ -34,8 +34,8 @@ describe('CompleteShoppingSessionApiHandler', () => {
           body: JSON.stringify({}),
         })
 
-        const completedSession = shoppingSessionBuilder()
-          .withSessionId(sessionId)
+        const completedSession = new ShoppingSessionBuilder()
+          .withId(sessionId)
           .withUserId(userId)
           .withCompletedStatus()
           .build()

@@ -6,8 +6,8 @@ import { GetShoppingStatisticsApiHandler } from '@/modules/ingredients/server/ap
 import { GetShoppingStatisticsHandler } from '@/modules/ingredients/server/application/queries/get-shopping-statistics.handler'
 import { PrismaShoppingQueryService } from '@/modules/ingredients/server/infrastructure/query-services/prisma-shopping-query-service'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
+import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders/entities/shopping-session.builder'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
-import { shoppingSessionBuilder } from '@tests/__fixtures__/builders/shopping-session.builder'
 
 /**
  * GetShoppingStatistics API + Application層統合テスト
@@ -100,20 +100,20 @@ describe('GetShoppingStatistics API Integration', () => {
       const fiftyDaysAgo = new Date(now.getTime() - 50 * 24 * 60 * 60 * 1000)
 
       // 30日以内のセッション
-      const recentSession1 = shoppingSessionBuilder()
+      const recentSession1 = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(new Date(thirtyDaysAgo.getTime() + 5 * 24 * 60 * 60 * 1000))
         .build()
 
-      const recentSession2 = shoppingSessionBuilder()
+      const recentSession2 = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(new Date(thirtyDaysAgo.getTime() + 10 * 24 * 60 * 60 * 1000))
         .build()
 
       // 30日より前のセッション（カウントされない）
-      const oldSession = shoppingSessionBuilder()
+      const oldSession = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(fiftyDaysAgo)
@@ -140,7 +140,7 @@ describe('GetShoppingStatistics API Integration', () => {
     it('カスタム期間を指定できる', async () => {
       // Given: 90日前のセッション
       const ninetyDaysAgo = new Date(new Date().getTime() - 90 * 24 * 60 * 60 * 1000)
-      const session = shoppingSessionBuilder()
+      const session = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .withStartedAt(new Date(ninetyDaysAgo.getTime() + 10 * 24 * 60 * 60 * 1000))
@@ -217,12 +217,15 @@ describe('GetShoppingStatistics API Integration', () => {
         },
       })
 
-      const otherUserSession = shoppingSessionBuilder()
+      const otherUserSession = new ShoppingSessionBuilder()
         .withUserId(otherDomainUser.id)
         .withCompletedStatus()
         .build()
 
-      const mySession = shoppingSessionBuilder().withUserId(userId).withCompletedStatus().build()
+      const mySession = new ShoppingSessionBuilder()
+        .withUserId(userId)
+        .withCompletedStatus()
+        .build()
 
       await repository.save(otherUserSession)
       await repository.save(mySession)

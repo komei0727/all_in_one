@@ -5,8 +5,8 @@ import { PrismaClient } from '@/generated/prisma-test'
 import { GetActiveShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-active-shopping-session.handler'
 import { GetActiveShoppingSessionHandler } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.handler'
 import { PrismaShoppingSessionRepository } from '@/modules/ingredients/server/infrastructure/repositories/prisma-shopping-session-repository'
+import { ShoppingSessionBuilder } from '@tests/__fixtures__/builders/entities/shopping-session.builder'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
-import { shoppingSessionBuilder } from '@tests/__fixtures__/builders/shopping-session.builder'
 
 /**
  * GetActiveShoppingSession API + Application層統合テスト
@@ -73,7 +73,7 @@ describe('GetActiveShoppingSession API Integration', () => {
   describe('正常系', () => {
     it('アクティブなセッションが存在する場合、セッション情報を返す', async () => {
       // Given: アクティブなセッション
-      const session = shoppingSessionBuilder()
+      const session = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withActiveStatus()
         .withDeviceType('MOBILE')
@@ -102,12 +102,15 @@ describe('GetActiveShoppingSession API Integration', () => {
 
     it('複数のセッションがある場合、最新のアクティブセッションを返す', async () => {
       // Given: 複数のセッション（1つアクティブ、1つ完了済み）
-      const completedSession = shoppingSessionBuilder()
+      const completedSession = new ShoppingSessionBuilder()
         .withUserId(userId)
         .withCompletedStatus()
         .build()
 
-      const activeSession = shoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
+      const activeSession = new ShoppingSessionBuilder()
+        .withUserId(userId)
+        .withActiveStatus()
+        .build()
 
       await repository.save(completedSession)
       await repository.save(activeSession)
@@ -156,7 +159,7 @@ describe('GetActiveShoppingSession API Integration', () => {
         },
       })
 
-      const session = shoppingSessionBuilder()
+      const session = new ShoppingSessionBuilder()
         .withUserId(otherDomainUser.id)
         .withActiveStatus()
         .build()
@@ -176,7 +179,7 @@ describe('GetActiveShoppingSession API Integration', () => {
   describe('データ整合性', () => {
     it('チェック済みアイテムは返されない（Query APIなので）', async () => {
       // Given: チェック済みアイテムを持つセッション
-      const session = shoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
+      const session = new ShoppingSessionBuilder().withUserId(userId).withActiveStatus().build()
 
       await repository.save(session)
 

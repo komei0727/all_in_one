@@ -47,11 +47,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 200レスポンスが返される
         expect(response.status).toBe(200)
@@ -83,15 +83,16 @@ describe('CheckIngredientApiHandler', () => {
     })
 
     describe('異常系', () => {
-      it('ingredientIdが未指定の場合は400エラー', async () => {
-        // Given: ingredientIdなしのリクエスト
+      it('ingredientIdが無効な場合は400エラー', async () => {
+        // Given: 無効なingredientId
+        const invalidIngredientId = 'invalid-id'
         const request = new Request('http://localhost', {
           method: 'POST',
           body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, invalidIngredientId)
 
         // Then: 400エラーが返される
         expect(response.status).toBe(400)
@@ -108,11 +109,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 404エラーが返される
         expect(response.status).toBe(404)
@@ -128,11 +129,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 404エラーが返される
         expect(response.status).toBe(404)
@@ -148,11 +149,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 400エラーが返される
         expect(response.status).toBe(400)
@@ -168,11 +169,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 400エラーが返される
         expect(response.status).toBe(400)
@@ -190,11 +191,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 400エラーが返される
         expect(response.status).toBe(400)
@@ -208,11 +209,11 @@ describe('CheckIngredientApiHandler', () => {
 
         const request = new Request('http://localhost', {
           method: 'POST',
-          body: JSON.stringify({ ingredientId }),
+          body: JSON.stringify({}),
         })
 
         // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId)
+        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
 
         // Then: 500エラーが返される
         expect(response.status).toBe(500)

@@ -11,6 +11,7 @@ import { PrismaRepositoryFactory } from './repositories/prisma-repository-factor
 import { PrismaShoppingSessionRepository } from './repositories/prisma-shopping-session-repository'
 import { PrismaUnitRepository } from './repositories/prisma-unit-repository'
 import { PrismaTransactionManager } from './services/prisma-transaction-manager'
+import { AbandonShoppingSessionApiHandler } from '../api/handlers/commands/abandon-shopping-session.handler'
 import { CheckIngredientApiHandler } from '../api/handlers/commands/check-ingredient.handler'
 import { CompleteShoppingSessionApiHandler } from '../api/handlers/commands/complete-shopping-session.handler'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
@@ -18,9 +19,11 @@ import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-s
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
 import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/get-ingredient-check-statistics.handler'
+import { GetIngredientsByCategoryApiHandler } from '../api/handlers/queries/get-ingredients-by-category.handler'
 import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsApiHandler } from '../api/handlers/queries/get-recent-sessions.handler'
 import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
+import { AbandonShoppingSessionHandler } from '../application/commands/abandon-shopping-session.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
 import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
 import { CreateIngredientHandler } from '../application/commands/create-ingredient.handler'
@@ -31,6 +34,7 @@ import { GetActiveShoppingSessionHandler } from '../application/queries/get-acti
 import { GetCategoriesQueryHandler } from '../application/queries/get-categories.handler'
 import { GetIngredientByIdHandler } from '../application/queries/get-ingredient-by-id.handler'
 import { GetIngredientCheckStatisticsHandler } from '../application/queries/get-ingredient-check-statistics.handler'
+import { GetIngredientsByCategoryHandler } from '../application/queries/get-ingredients-by-category.handler'
 import { GetIngredientsHandler } from '../application/queries/get-ingredients.handler'
 import { GetQuickAccessIngredientsHandler } from '../application/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsHandler } from '../application/queries/get-recent-sessions.handler'
@@ -310,6 +314,20 @@ export class CompositionRoot {
   }
 
   /**
+   * Get AbandonShoppingSessionHandler instance (new instance each time)
+   */
+  public getAbandonShoppingSessionHandler(): AbandonShoppingSessionHandler {
+    return new AbandonShoppingSessionHandler(this.getShoppingSessionRepository())
+  }
+
+  /**
+   * Get AbandonShoppingSessionApiHandler instance (new instance each time)
+   */
+  public getAbandonShoppingSessionApiHandler(): AbandonShoppingSessionApiHandler {
+    return new AbandonShoppingSessionApiHandler(this.getAbandonShoppingSessionHandler())
+  }
+
+  /**
    * Get CheckIngredientHandler instance (new instance each time)
    */
   public getCheckIngredientHandler(): CheckIngredientHandler {
@@ -390,5 +408,22 @@ export class CompositionRoot {
    */
   public getGetIngredientCheckStatisticsHandler(): GetIngredientCheckStatisticsHandler {
     return new GetIngredientCheckStatisticsHandler(this.getShoppingQueryService())
+  }
+
+  /**
+   * Get GetIngredientsByCategoryHandler instance (new instance each time)
+   */
+  public getGetIngredientsByCategoryHandler(): GetIngredientsByCategoryHandler {
+    return new GetIngredientsByCategoryHandler(
+      this.getCategoryRepository(),
+      this.getIngredientRepository()
+    )
+  }
+
+  /**
+   * Get GetIngredientsByCategoryApiHandler instance (new instance each time)
+   */
+  public getIngredientsByCategoryApiHandler(): GetIngredientsByCategoryApiHandler {
+    return new GetIngredientsByCategoryApiHandler(this.getGetIngredientsByCategoryHandler())
   }
 }

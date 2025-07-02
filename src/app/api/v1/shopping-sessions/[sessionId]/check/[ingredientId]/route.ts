@@ -4,13 +4,13 @@ import { auth } from '@/auth'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
 
 /**
- * PUT /api/v1/shopping-sessions/[sessionId]/complete
- * 買い物セッションを完了する
+ * 食材確認API - POST /api/v1/shopping-sessions/{sessionId}/check/{ingredientId}
+ * 買い物セッション中に食材をチェック
  */
-export async function PUT(
+export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+  context: { params: Promise<{ sessionId: string; ingredientId: string }> }
+): Promise<NextResponse> {
   try {
     // 認証チェック
     const session = await auth()
@@ -27,16 +27,23 @@ export async function PUT(
     }
 
     // パラメータを取得
-    const resolvedParams = await params
+    const params = await context.params
 
     // APIハンドラーを取得して実行
     const compositionRoot = CompositionRoot.getInstance()
-    const apiHandler = compositionRoot.getCompleteShoppingSessionApiHandler()
-    const response = await apiHandler.handle(request, resolvedParams, session.user.domainUserId)
+    const apiHandler = compositionRoot.getCheckIngredientApiHandler()
+
+    // Webアダプターパターンに対応したhandleメソッドの呼び出し
+    const response = await apiHandler.handle(
+      request,
+      session.user.domainUserId,
+      params.sessionId,
+      params.ingredientId
+    )
 
     // レスポンスが成功の場合はそのまま返す
     if (response.status === 200) {
-      const data = (await response.json()) as Record<string, unknown>
+      const data = (await response.json()) as unknown
       return NextResponse.json(data)
     }
 
@@ -58,7 +65,7 @@ export async function PUT(
     return NextResponse.json(errorResponse, { status: response.status })
   } catch (error) {
     // 予期しないエラー
-    console.error('Failed to complete shopping session:', error)
+    console.error('Failed to check ingredient:', error)
     return NextResponse.json(
       {
         code: 'INTERNAL_SERVER_ERROR',
