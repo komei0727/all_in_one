@@ -10,7 +10,7 @@ import {
   ValidationException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
-import { anIngredientDto } from '@tests/__fixtures__/builders/dtos/ingredient.dto.builder'
+import { anIngredientDto } from '@tests/__fixtures__/builders'
 import { faker } from '@tests/__fixtures__/builders/faker.config'
 import { NextAuthUserBuilder } from '@tests/__fixtures__/builders/next-auth/next-auth-user.builder'
 
