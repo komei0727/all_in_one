@@ -1,149 +1,209 @@
-import { type GetSessionHistoryHandler } from '@/modules/ingredients/server/application/queries/get-session-history.handler'
-import { GetSessionHistoryQuery } from '@/modules/ingredients/server/application/queries/get-session-history.query'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
+
+import { GetSessionHistoryQuery } from '../../../application/queries/get-session-history.query'
+
+import type { GetSessionHistoryHandler } from '../../../application/queries/get-session-history.handler'
+
+/**
+ * GetSessionHistoryリクエストの型定義
+ */
+interface GetSessionHistoryRequest {
+  page?: number
+  limit?: number
+  from?: string
+  to?: string
+  status?: 'COMPLETED' | 'ABANDONED'
+}
+
+/**
+ * GetSessionHistoryレスポンスの型定義
+ */
+interface GetSessionHistoryResponse {
+  data: Array<{
+    sessionId: string
+    status: string
+    startedAt: string
+    completedAt: string | null
+    duration: number
+    checkedItemsCount: number
+    totalSpent?: number
+    deviceType: string | null
+    location: { latitude?: number; longitude?: number; placeName?: string } | null
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
 
 /**
  * 買い物セッション履歴取得APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
  */
-export class GetSessionHistoryApiHandler {
-  constructor(private readonly getSessionHistoryHandler: GetSessionHistoryHandler) {}
+export class GetSessionHistoryApiHandler extends BaseApiHandler<
+  GetSessionHistoryRequest,
+  GetSessionHistoryResponse
+> {
+  constructor(private readonly getSessionHistoryHandler: GetSessionHistoryHandler) {
+    super()
+  }
 
-  async handle(request: Request, userId: string): Promise<Response> {
-    try {
-      // URLからクエリパラメータを取得
-      const url = new URL(request.url, 'http://localhost')
-      const pageParam = url.searchParams.get('page')
-      const limitParam = url.searchParams.get('limit')
-      const fromParam = url.searchParams.get('from')
-      const toParam = url.searchParams.get('to')
-      const statusParam = url.searchParams.get('status')
+  /**
+   * リクエストのバリデーション
+   * クエリパラメータの妥当性を検証
+   */
+  validate(data: unknown): GetSessionHistoryRequest {
+    // 空のリクエストも許可（デフォルト値を使用）
+    if (!data) {
+      return {}
+    }
 
-      let page = 1 // デフォルト値
-      let limit = 20 // デフォルト値
+    // dataが適切な型であることを確認
+    if (typeof data !== 'object') {
+      throw new ValidationException('リクエストデータが不正です')
+    }
 
-      const errors: Array<{ field: string; message: string }> = []
+    const request = data as Record<string, unknown>
+    const result: GetSessionHistoryRequest = {}
 
-      // pageのバリデーション
-      if (pageParam) {
-        const parsedPage = parseInt(pageParam, 10)
+    // pageパラメータのバリデーション
+    if (request.page !== undefined) {
+      const pageValue = request.page
+
+      // 文字列の場合は数値に変換
+      let parsedPage: number
+      if (typeof pageValue === 'string') {
+        parsedPage = parseInt(pageValue, 10)
         if (isNaN(parsedPage)) {
-          errors.push({
-            field: 'page',
-            message: 'page must be a valid integer',
-          })
-        } else if (parsedPage < 1) {
-          errors.push({
-            field: 'page',
-            message: 'page must be greater than or equal to 1',
-          })
-        } else {
-          page = parsedPage
+          throw new ValidationException('pageは有効な整数である必要があります')
         }
+      } else if (typeof pageValue === 'number') {
+        parsedPage = pageValue
+      } else {
+        throw new ValidationException('pageは数値である必要があります')
       }
 
-      // limitのバリデーション
-      if (limitParam) {
-        const parsedLimit = parseInt(limitParam, 10)
+      // 範囲チェック（1以上）
+      if (parsedPage < 1) {
+        throw new ValidationException('pageは1以上である必要があります')
+      }
+
+      result.page = parsedPage
+    }
+
+    // limitパラメータのバリデーション
+    if (request.limit !== undefined) {
+      const limitValue = request.limit
+
+      // 文字列の場合は数値に変換
+      let parsedLimit: number
+      if (typeof limitValue === 'string') {
+        parsedLimit = parseInt(limitValue, 10)
         if (isNaN(parsedLimit)) {
-          errors.push({
-            field: 'limit',
-            message: 'limit must be a valid integer',
-          })
-        } else if (parsedLimit < 1 || parsedLimit > 100) {
-          errors.push({
-            field: 'limit',
-            message: 'limit must be between 1 and 100',
-          })
-        } else {
-          limit = parsedLimit
+          throw new ValidationException('limitは有効な整数である必要があります')
         }
+      } else if (typeof limitValue === 'number') {
+        parsedLimit = limitValue
+      } else {
+        throw new ValidationException('limitは数値である必要があります')
       }
 
-      // fromのバリデーション（ISO 8601形式）
-      if (fromParam) {
-        const fromDate = new Date(fromParam)
-        if (isNaN(fromDate.getTime())) {
-          errors.push({
-            field: 'from',
-            message: 'from must be a valid ISO 8601 date',
-          })
-        }
+      // 範囲チェック（1-100）
+      if (parsedLimit < 1 || parsedLimit > 100) {
+        throw new ValidationException('limitは1以上100以下である必要があります')
       }
 
-      // toのバリデーション（ISO 8601形式）
-      if (toParam) {
-        const toDate = new Date(toParam)
-        if (isNaN(toDate.getTime())) {
-          errors.push({
-            field: 'to',
-            message: 'to must be a valid ISO 8601 date',
-          })
-        }
+      result.limit = parsedLimit
+    }
+
+    // fromパラメータのバリデーション（ISO 8601形式）
+    if (request.from !== undefined) {
+      if (typeof request.from !== 'string') {
+        throw new ValidationException('fromは文字列である必要があります')
       }
 
-      // statusのバリデーション
-      let status: 'COMPLETED' | 'ABANDONED' | undefined
-      if (statusParam) {
-        if (statusParam !== 'COMPLETED' && statusParam !== 'ABANDONED') {
-          errors.push({
-            field: 'status',
-            message: 'status must be either COMPLETED or ABANDONED',
-          })
-        } else {
-          status = statusParam
-        }
+      const fromDate = new Date(request.from)
+      if (isNaN(fromDate.getTime())) {
+        throw new ValidationException('fromは有効なISO 8601形式の日付である必要があります')
       }
 
-      // バリデーションエラーがある場合
-      if (errors.length > 0) {
-        return new Response(
-          JSON.stringify({
-            message: 'Validation failed',
-            errors,
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+      result.from = request.from
+    }
+
+    // toパラメータのバリデーション（ISO 8601形式）
+    if (request.to !== undefined) {
+      if (typeof request.to !== 'string') {
+        throw new ValidationException('toは文字列である必要があります')
+      }
+
+      const toDate = new Date(request.to)
+      if (isNaN(toDate.getTime())) {
+        throw new ValidationException('toは有効なISO 8601形式の日付である必要があります')
+      }
+
+      result.to = request.to
+    }
+
+    // statusパラメータのバリデーション
+    if (request.status !== undefined) {
+      if (typeof request.status !== 'string') {
+        throw new ValidationException('statusは文字列である必要があります')
+      }
+
+      if (request.status !== 'COMPLETED' && request.status !== 'ABANDONED') {
+        throw new ValidationException(
+          'statusはCOMPLETEDまたはABANDONEDのいずれかである必要があります'
         )
       }
 
-      // クエリを作成して実行
-      const query = new GetSessionHistoryQuery(
-        userId,
-        page,
-        limit,
-        fromParam || undefined,
-        toParam || undefined,
-        status
-      )
-      const result = await this.getSessionHistoryHandler.handle(query)
+      result.status = request.status as 'COMPLETED' | 'ABANDONED'
+    }
 
-      // API仕様書に準拠したレスポンスフォーマット
-      const response = {
-        data: result.data,
-        pagination: result.pagination,
-        meta: {
-          timestamp: new Date().toISOString(),
-          version: '1.0.0',
-        },
-      }
+    return result
+  }
 
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // 予期しないエラー
-      console.error('Unexpected error in GetSessionHistoryApiHandler:', error)
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
+  /**
+   * ビジネスロジックの実行
+   * セッション履歴を取得する処理
+   */
+  async execute(
+    request: GetSessionHistoryRequest,
+    userId: string
+  ): Promise<GetSessionHistoryResponse> {
+    // デフォルト値の設定
+    const page = request.page || 1
+    const limit = request.limit || 20
+
+    // クエリオブジェクトを作成
+    const query = new GetSessionHistoryQuery(
+      userId,
+      page,
+      limit,
+      request.from || undefined,
+      request.to || undefined,
+      request.status
+    )
+
+    // クエリを実行
+    const result = await this.getSessionHistoryHandler.handle(query)
+
+    // API仕様書に準拠したレスポンスフォーマット
+    return {
+      data: result.data,
+      pagination: result.pagination,
+      meta: {
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+      },
     }
   }
 }

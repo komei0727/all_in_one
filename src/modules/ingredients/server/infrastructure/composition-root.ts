@@ -19,13 +19,16 @@ import { DeleteIngredientApiHandler } from '../api/handlers/commands/delete-ingr
 import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
+import { GetCategoriesApiHandler } from '../api/handlers/queries/get-categories.handler'
 import { GetIngredientByIdApiHandler } from '../api/handlers/queries/get-ingredient-by-id.handler'
 import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/get-ingredient-check-statistics.handler'
 import { GetIngredientsByCategoryApiHandler } from '../api/handlers/queries/get-ingredients-by-category.handler'
+import { GetIngredientsApiHandler } from '../api/handlers/queries/get-ingredients.handler'
 import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsApiHandler } from '../api/handlers/queries/get-recent-sessions.handler'
 import { GetSessionHistoryApiHandler } from '../api/handlers/queries/get-session-history.handler'
 import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
+import { GetUnitsApiHandler } from '../api/handlers/queries/get-units.handler'
 import { AbandonShoppingSessionHandler } from '../application/commands/abandon-shopping-session.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
 import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
@@ -123,10 +126,24 @@ export class CompositionRoot {
   }
 
   /**
+   * Get GetCategoriesApiHandler instance (new instance each time)
+   */
+  public getGetCategoriesApiHandler(): GetCategoriesApiHandler {
+    return new GetCategoriesApiHandler(this.getGetCategoriesQueryHandler())
+  }
+
+  /**
    * Get GetUnitsQueryHandler instance (new instance each time)
    */
   public getGetUnitsQueryHandler(): GetUnitsQueryHandler {
     return new GetUnitsQueryHandler(this.getUnitRepository())
+  }
+
+  /**
+   * Get GetUnitsApiHandler instance (new instance each time)
+   */
+  public getGetUnitsApiHandler(): GetUnitsApiHandler {
+    return new GetUnitsApiHandler(this.getGetUnitsQueryHandler())
   }
 
   /**
@@ -204,6 +221,13 @@ export class CompositionRoot {
       this.getCategoryRepository(),
       this.getUnitRepository()
     )
+  }
+
+  /**
+   * Get GetIngredientsApiHandler instance (new instance each time)
+   */
+  public getGetIngredientsApiHandler(): GetIngredientsApiHandler {
+    return new GetIngredientsApiHandler(this.getGetIngredientsHandler())
   }
 
   /**

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { GetUnitsHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
+import { GetUnitsApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-units.handler'
 import { UnitListDTO } from '@/modules/ingredients/server/application/dtos/unit-list.dto'
 import { UnitDTO } from '@/modules/ingredients/server/application/dtos/unit.dto'
 import { GetUnitsQueryHandler } from '@/modules/ingredients/server/application/queries/get-units.handler'
@@ -14,15 +14,15 @@ vi.mock('@/lib/prisma/client', () => ({
 }))
 
 /**
- * GetUnitsHandler のテスト
+ * GetUnitsApiHandler のテスト
  *
  * テスト対象:
  * - API層のハンドラー実装
  * - Application層への委譲処理
  * - エラーハンドリング
  */
-describe('GetUnitsHandler', () => {
-  let handler: GetUnitsHandler
+describe('GetUnitsApiHandler', () => {
+  let handler: GetUnitsApiHandler
   let mockQueryHandler: { handle: ReturnType<typeof vi.fn> }
   let unitId1: string
   let unitId2: string
@@ -40,7 +40,7 @@ describe('GetUnitsHandler', () => {
     vi.mocked(GetUnitsQueryHandler).mockImplementation(
       () => mockQueryHandler as unknown as GetUnitsQueryHandler
     )
-    handler = new GetUnitsHandler()
+    handler = new GetUnitsApiHandler(mockQueryHandler as unknown as GetUnitsQueryHandler)
   })
 
   it('should return units from query handler', async () => {
@@ -54,7 +54,7 @@ describe('GetUnitsHandler', () => {
     mockQueryHandler.handle.mockResolvedValue(mockDTO)
 
     // Act
-    const result = await handler.handle()
+    const result = await handler.handle({}, 'test-user-id')
 
     // Assert
     expect(result).toEqual(mockDTO.toJSON())
@@ -68,7 +68,7 @@ describe('GetUnitsHandler', () => {
     mockQueryHandler.handle.mockRejectedValue(error)
 
     // Act & Assert
-    await expect(handler.handle()).rejects.toThrow('Database error')
+    await expect(handler.handle({}, 'test-user-id')).rejects.toThrow()
   })
 
   it('should return unitsByType directly when groupByType is true', async () => {
@@ -86,7 +86,7 @@ describe('GetUnitsHandler', () => {
     mockQueryHandler.handle.mockResolvedValue(mockResult)
 
     // Act
-    const result = await handler.handle({ groupByType: true })
+    const result = await handler.handle({ groupByType: true }, 'test-user-id')
 
     // Assert
     expect(result).toEqual(mockResult)

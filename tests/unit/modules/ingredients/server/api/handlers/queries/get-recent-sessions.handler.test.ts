@@ -56,12 +56,9 @@ describe('GetRecentSessionsApiHandler', () => {
       mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
 
       // When: デフォルト件数でリクエスト
-      const result = await handler.handle(new Request('http://localhost'), userId)
+      const data = await handler.handle({}, userId)
 
       // Then: 正常なレスポンスが返される
-      expect(result.status).toBe(200)
-      const data = await result.json()
-
       // API仕様書に準拠したレスポンスフォーマットの確認
       expect(data.data).toHaveLength(1)
       expect(data.data[0]).toEqual({
@@ -122,11 +119,9 @@ describe('GetRecentSessionsApiHandler', () => {
       mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
 
       // When: カスタム件数でリクエスト
-      const result = await handler.handle(new Request('http://localhost?limit=5'), userId)
+      const data = await handler.handle({ limit: 5 }, userId)
 
       // Then: 正常なレスポンスが返される
-      expect(result.status).toBe(200)
-      const data = await result.json()
 
       expect(data.data).toHaveLength(1)
       expect(data.data[0].sessionId).toBe('ses_test789')
@@ -161,11 +156,9 @@ describe('GetRecentSessionsApiHandler', () => {
       mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
 
       // When: ページ2、limit5でリクエスト
-      const result = await handler.handle(new Request('http://localhost?page=2&limit=5'), userId)
+      const data = await handler.handle({ page: 2, limit: 5 }, userId)
 
       // Then: 正常なレスポンスが返される
-      expect(result.status).toBe(200)
-      const data = await result.json()
 
       expect(data.data).toHaveLength(5)
       expect(data.pagination).toEqual({
@@ -192,11 +185,9 @@ describe('GetRecentSessionsApiHandler', () => {
       mockGetRecentSessionsHandler.handle.mockResolvedValue([])
 
       // When: リクエスト
-      const result = await handler.handle(new Request('http://localhost'), userId)
+      const data = await handler.handle({}, userId)
 
       // Then: 空配列で正常レスポンス
-      expect(result.status).toBe(200)
-      const data = await result.json()
 
       expect(data.data).toEqual([])
       expect(data.pagination).toEqual({
@@ -214,94 +205,54 @@ describe('GetRecentSessionsApiHandler', () => {
     it('limitパラメータが無効な値の場合、バリデーションエラーを返す', async () => {
       // Given: 無効なlimit
 
-      // When: 無効なlimitでリクエスト
-      const result = await handler.handle(new Request('http://localhost?limit=invalid'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors[0]).toMatchObject({
-        field: 'limit',
-        message: 'limit must be a valid integer',
-      })
+      // When & Then: 無効なlimitでリクエストするとバリデーションエラーが発生
+      await expect(handler.handle({ limit: 'invalid' }, userId)).rejects.toThrow(
+        'limitは有効な整数である必要があります'
+      )
     })
 
     it('limitパラメータが範囲外の場合、バリデーションエラーを返す', async () => {
       // Given: 範囲外のlimit
 
-      // When: 範囲外のlimitでリクエスト
-      const result = await handler.handle(new Request('http://localhost?limit=150'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors[0]).toMatchObject({
-        field: 'limit',
-        message: 'limit must be between 1 and 50',
-      })
+      // When & Then: 範囲外のlimitでリクエストするとバリデーションエラーが発生
+      await expect(handler.handle({ limit: 150 }, userId)).rejects.toThrow(
+        'limitは1以上50以下である必要があります'
+      )
     })
 
     it('limitパラメータが下限を下回る場合、バリデーションエラーを返す', async () => {
       // Given: 下限未満のlimit
 
-      // When: 0でリクエスト
-      const result = await handler.handle(new Request('http://localhost?limit=0'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors[0]).toMatchObject({
-        field: 'limit',
-        message: 'limit must be between 1 and 50',
-      })
+      // When & Then: 0でリクエストするとバリデーションエラーが発生
+      await expect(handler.handle({ limit: 0 }, userId)).rejects.toThrow(
+        'limitは1以上50以下である必要があります'
+      )
     })
 
     it('pageパラメータが数値でない場合、バリデーションエラーを返す', async () => {
       // Given: 数値でないpage
 
-      // When: 文字列でリクエスト
-      const result = await handler.handle(new Request('http://localhost?page=abc'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors[0]).toMatchObject({
-        field: 'page',
-        message: 'page must be a valid integer',
-      })
+      // When & Then: 文字列でリクエストするとバリデーションエラーが発生
+      await expect(handler.handle({ page: 'abc' }, userId)).rejects.toThrow(
+        'pageは有効な整数である必要があります'
+      )
     })
 
     it('pageパラメータが0以下の場合、バリデーションエラーを返す', async () => {
       // Given: 0以下のpage
 
-      // When: 0でリクエスト
-      const result = await handler.handle(new Request('http://localhost?page=0'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors[0]).toMatchObject({
-        field: 'page',
-        message: 'page must be greater than or equal to 1',
-      })
+      // When & Then: 0でリクエストするとバリデーションエラーが発生
+      await expect(handler.handle({ page: 0 }, userId)).rejects.toThrow(
+        'pageは1以上である必要があります'
+      )
     })
 
     it('予期しないエラーが発生した場合、500エラーを返す', async () => {
       // Given: ハンドラーでエラーが発生
       mockGetRecentSessionsHandler.handle.mockRejectedValue(new Error('Database error'))
 
-      // When: リクエスト
-      const result = await handler.handle(new Request('http://localhost'), userId)
-
-      // Then: 500エラーが返される
-      expect(result.status).toBe(500)
-      const data = await result.json()
-      expect(data.message).toBe('Internal server error')
+      // When & Then: リクエストでデータベースエラーが発生
+      await expect(handler.handle({}, userId)).rejects.toThrow('An unexpected error occurred')
     })
   })
 })

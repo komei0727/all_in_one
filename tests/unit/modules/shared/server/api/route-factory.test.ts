@@ -26,6 +26,7 @@ vi.mock('next/server', async () => {
         status: init?.status || 200,
         headers: init?.headers || new Headers(),
         body,
+        json: async () => body,
       })),
     },
   }

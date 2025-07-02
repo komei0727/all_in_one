@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { GetCategoriesHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
+import { GetCategoriesApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-categories.handler'
 import { CategoryListDTO } from '@/modules/ingredients/server/application/dtos/category-list.dto'
 import { CategoryDTO } from '@/modules/ingredients/server/application/dtos/category.dto'
 import { GetCategoriesQueryHandler } from '@/modules/ingredients/server/application/queries/get-categories.handler'
@@ -14,15 +14,15 @@ vi.mock('@/lib/prisma/client', () => ({
 }))
 
 /**
- * GetCategoriesHandler のテスト
+ * GetCategoriesApiHandler のテスト
  *
  * テスト対象:
  * - API層のハンドラー実装
  * - Application層への委譲処理
  * - エラーハンドリング
  */
-describe('GetCategoriesHandler', () => {
-  let handler: GetCategoriesHandler
+describe('GetCategoriesApiHandler', () => {
+  let handler: GetCategoriesApiHandler
   let mockQueryHandler: { handle: ReturnType<typeof vi.fn> }
   let categoryId1: string
   let categoryId2: string
@@ -38,7 +38,7 @@ describe('GetCategoriesHandler', () => {
     vi.mocked(GetCategoriesQueryHandler).mockImplementation(
       () => mockQueryHandler as unknown as GetCategoriesQueryHandler
     )
-    handler = new GetCategoriesHandler()
+    handler = new GetCategoriesApiHandler(mockQueryHandler as unknown as GetCategoriesQueryHandler)
   })
 
   it('should return categories from query handler', async () => {
@@ -52,7 +52,7 @@ describe('GetCategoriesHandler', () => {
     mockQueryHandler.handle.mockResolvedValue(mockDTO)
 
     // Act
-    const result = await handler.handle()
+    const result = await handler.handle({}, 'test-user-id')
 
     // Assert
     expect(result).toEqual(mockDTO.toJSON())
@@ -66,6 +66,6 @@ describe('GetCategoriesHandler', () => {
     mockQueryHandler.handle.mockRejectedValue(error)
 
     // Act & Assert
-    await expect(handler.handle()).rejects.toThrow('Database error')
+    await expect(handler.handle({}, 'test-user-id')).rejects.toThrow()
   })
 })

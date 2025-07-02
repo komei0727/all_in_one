@@ -1,114 +1,198 @@
-import { AppError } from '@/modules/shared/server/errors/app.error'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
 
 import { GetIngredientsQuery } from '../../../application/queries/get-ingredients.query'
-import { ValidationException } from '../../../domain/exceptions'
 
 import type { IngredientDto } from '../../../application/dtos/ingredient.dto'
 import type { GetIngredientsHandler } from '../../../application/queries/get-ingredients.handler'
 
 /**
- * 食材一覧取得APIハンドラー
+ * GetIngredientsリクエストの型定義
  */
-export class GetIngredientsApiHandler {
-  constructor(private readonly getIngredientsHandler: GetIngredientsHandler) {}
+interface GetIngredientsRequest {
+  page?: string
+  limit?: string
+  search?: string
+  categoryId?: string
+  expiryStatus?: string
+  sortBy?: string
+  sortOrder?: string
+}
+
+/**
+ * GetIngredientsレスポンスの型定義
+ */
+interface GetIngredientsResponse {
+  ingredients: ReturnType<IngredientDto['toJSON']>['ingredient'][]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+/**
+ * 食材一覧取得APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
+ */
+export class GetIngredientsApiHandler extends BaseApiHandler<
+  GetIngredientsRequest,
+  GetIngredientsResponse
+> {
+  constructor(private readonly getIngredientsHandler: GetIngredientsHandler) {
+    super()
+  }
 
   /**
-   * HTTPリクエストを処理して食材一覧を返す
+   * リクエストのバリデーション
+   * クエリパラメータの妥当性を検証
    */
-  async handle(
-    searchParams: URLSearchParams,
-    userId: string
-  ): Promise<{
-    ingredients: ReturnType<IngredientDto['toJSON']>['ingredient'][]
-    pagination: {
-      total: number
-      page: number
-      limit: number
-      totalPages: number
+  validate(data: unknown): GetIngredientsRequest {
+    // 空のリクエストも許可（デフォルト値を使用）
+    if (!data) {
+      return {}
     }
-  }> {
-    try {
-      // クエリパラメータを解析
-      const pageParam = searchParams.get('page')
-      const limitParam = searchParams.get('limit')
 
-      // ページ番号のバリデーション
-      if (pageParam !== null) {
-        const pageNum = parseInt(pageParam, 10)
-        if (isNaN(pageNum) || pageNum < 1) {
-          throw new ValidationException('Invalid page number')
-        }
-      }
+    // dataが適切な型であることを確認
+    if (typeof data !== 'object') {
+      throw new ValidationException('リクエストデータが不正です')
+    }
 
-      // リミットのバリデーション
-      if (limitParam !== null) {
-        const limitNum = parseInt(limitParam, 10)
-        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-          throw new ValidationException('Invalid limit value')
-        }
-      }
+    const request = data as Record<string, unknown>
+    const result: GetIngredientsRequest = {}
 
-      const page = pageParam ? parseInt(pageParam, 10) : 1
-      const limit = limitParam ? parseInt(limitParam, 10) : 20
-      const search = searchParams.get('search') || undefined
-      const categoryId = searchParams.get('categoryId') || undefined
-      const expiryStatus = searchParams.get('expiryStatus') as
-        | 'all'
-        | 'expired'
-        | 'expiring'
-        | 'fresh'
-        | undefined
-      const sortBy = searchParams.get('sortBy') as
-        | 'name'
-        | 'purchaseDate'
-        | 'expiryDate'
-        | 'createdAt'
-        | undefined
-      const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' | undefined
+    // ページ番号のバリデーション
+    if (request.page !== undefined) {
+      if (typeof request.page !== 'string') {
+        throw new ValidationException('pageは文字列である必要があります')
+      }
+      const pageNum = parseInt(request.page, 10)
+      if (isNaN(pageNum) || pageNum < 1) {
+        throw new ValidationException('無効なページ番号です')
+      }
+      result.page = request.page
+    }
 
-      // バリデーション
-      if (expiryStatus && !['all', 'expired', 'expiring', 'fresh'].includes(expiryStatus)) {
-        throw new ValidationException('Invalid expiry status')
+    // リミットのバリデーション
+    if (request.limit !== undefined) {
+      if (typeof request.limit !== 'string') {
+        throw new ValidationException('limitは文字列である必要があります')
       }
-      if (sortBy && !['name', 'purchaseDate', 'expiryDate', 'createdAt'].includes(sortBy)) {
-        throw new ValidationException('Invalid sortBy field')
+      const limitNum = parseInt(request.limit, 10)
+      if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+        throw new ValidationException('無効なリミット値です（1-100の範囲で指定してください）')
       }
-      if (sortOrder && !['asc', 'desc'].includes(sortOrder)) {
-        throw new ValidationException('Invalid sort order')
-      }
+      result.limit = request.limit
+    }
 
-      // クエリを実行
-      const query = new GetIngredientsQuery(
-        userId,
-        page,
-        limit,
-        search,
-        categoryId,
-        expiryStatus,
-        sortBy,
-        sortOrder
-      )
+    // 検索文字列
+    if (request.search !== undefined) {
+      if (typeof request.search !== 'string') {
+        throw new ValidationException('searchは文字列である必要があります')
+      }
+      result.search = request.search
+    }
 
-      const result = await this.getIngredientsHandler.execute(query)
+    // カテゴリーID
+    if (request.categoryId !== undefined) {
+      if (typeof request.categoryId !== 'string') {
+        throw new ValidationException('categoryIdは文字列である必要があります')
+      }
+      result.categoryId = request.categoryId
+    }
 
-      return {
-        ingredients: result.items.map((item) => item.toJSON().ingredient),
-        pagination: {
-          total: result.total,
-          page: result.page,
-          limit: result.limit,
-          totalPages: result.totalPages,
-        },
+    // 賞味期限ステータス
+    if (request.expiryStatus !== undefined) {
+      if (typeof request.expiryStatus !== 'string') {
+        throw new ValidationException('expiryStatusは文字列である必要があります')
       }
-    } catch (error) {
-      // ValidationExceptionはそのまま再スロー
-      if (error instanceof ValidationException) {
-        throw error
+      const validStatuses = ['all', 'expired', 'expiring', 'fresh']
+      if (!validStatuses.includes(request.expiryStatus)) {
+        throw new ValidationException(
+          `expiryStatusは${validStatuses.join(', ')}のいずれかである必要があります`
+        )
       }
-      if (error instanceof AppError) {
-        throw error
+      result.expiryStatus = request.expiryStatus
+    }
+
+    // ソートフィールド
+    if (request.sortBy !== undefined) {
+      if (typeof request.sortBy !== 'string') {
+        throw new ValidationException('sortByは文字列である必要があります')
       }
-      throw new AppError('Failed to fetch ingredients', 500)
+      const validSortBy = ['name', 'purchaseDate', 'expiryDate', 'createdAt']
+      if (!validSortBy.includes(request.sortBy)) {
+        throw new ValidationException(
+          `sortByは${validSortBy.join(', ')}のいずれかである必要があります`
+        )
+      }
+      result.sortBy = request.sortBy
+    }
+
+    // ソート順
+    if (request.sortOrder !== undefined) {
+      if (typeof request.sortOrder !== 'string') {
+        throw new ValidationException('sortOrderは文字列である必要があります')
+      }
+      const validSortOrder = ['asc', 'desc']
+      if (!validSortOrder.includes(request.sortOrder)) {
+        throw new ValidationException(
+          `sortOrderは${validSortOrder.join(', ')}のいずれかである必要があります`
+        )
+      }
+      result.sortOrder = request.sortOrder
+    }
+
+    return result
+  }
+
+  /**
+   * ビジネスロジックの実行
+   * 食材一覧を取得する処理
+   */
+  async execute(request: GetIngredientsRequest, userId: string): Promise<GetIngredientsResponse> {
+    // デフォルト値の設定
+    const page = request.page ? parseInt(request.page, 10) : 1
+    const limit = request.limit ? parseInt(request.limit, 10) : 20
+    const search = request.search
+    const categoryId = request.categoryId
+    const expiryStatus = request.expiryStatus as
+      | 'all'
+      | 'expired'
+      | 'expiring'
+      | 'fresh'
+      | undefined
+    const sortBy = request.sortBy as
+      | 'name'
+      | 'purchaseDate'
+      | 'expiryDate'
+      | 'createdAt'
+      | undefined
+    const sortOrder = request.sortOrder as 'asc' | 'desc' | undefined
+
+    // クエリを実行
+    const query = new GetIngredientsQuery(
+      userId,
+      page,
+      limit,
+      search,
+      categoryId,
+      expiryStatus,
+      sortBy,
+      sortOrder
+    )
+
+    const result = await this.getIngredientsHandler.execute(query)
+
+    return {
+      ingredients: result.items.map((item) => item.toJSON().ingredient),
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
     }
   }
 }

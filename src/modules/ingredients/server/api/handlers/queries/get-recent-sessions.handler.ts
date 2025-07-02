@@ -1,172 +1,186 @@
-import { type GetRecentSessionsHandler } from '@/modules/ingredients/server/application/queries/get-recent-sessions.handler'
-import { GetRecentSessionsQuery } from '@/modules/ingredients/server/application/queries/get-recent-sessions.query'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
+
+import { GetRecentSessionsQuery } from '../../../application/queries/get-recent-sessions.query'
+
+import type { GetRecentSessionsHandler } from '../../../application/queries/get-recent-sessions.handler'
+
+/**
+ * GetRecentSessionsリクエストの型定義
+ */
+interface GetRecentSessionsRequest {
+  limit?: number
+  page?: number
+}
+
+/**
+ * GetRecentSessionsレスポンスの型定義
+ */
+interface GetRecentSessionsResponse {
+  data: Array<{
+    sessionId: string
+    status: string
+    startedAt: string
+    completedAt: string | null
+    duration: number
+    checkedItemsCount: number
+    totalSpent?: number
+    deviceType: string | null
+    location: { latitude?: number; longitude?: number; placeName?: string } | null
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
 
 /**
  * 直近のショッピングセッション履歴取得APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
  */
-export class GetRecentSessionsApiHandler {
-  constructor(private readonly getRecentSessionsHandler: GetRecentSessionsHandler) {}
+export class GetRecentSessionsApiHandler extends BaseApiHandler<
+  GetRecentSessionsRequest,
+  GetRecentSessionsResponse
+> {
+  constructor(private readonly getRecentSessionsHandler: GetRecentSessionsHandler) {
+    super()
+  }
 
-  async handle(request: Request, userId: string): Promise<Response> {
-    try {
-      // URLからクエリパラメータを取得
-      const url = new URL(request.url, 'http://localhost')
-      const limitParam = url.searchParams.get('limit')
-      const pageParam = url.searchParams.get('page')
+  /**
+   * リクエストのバリデーション
+   * クエリパラメータの妥当性を検証
+   */
+  validate(data: unknown): GetRecentSessionsRequest {
+    // 空のリクエストも許可（デフォルト値を使用）
+    if (!data) {
+      return {}
+    }
 
-      let limit = 10 // デフォルト値
-      let page = 1 // デフォルト値
+    // dataが適切な型であることを確認
+    if (typeof data !== 'object') {
+      throw new ValidationException('リクエストデータが不正です')
+    }
 
-      // limitのバリデーション
-      if (limitParam) {
-        const parsedLimit = parseInt(limitParam, 10)
+    const request = data as Record<string, unknown>
+    const result: GetRecentSessionsRequest = {}
 
-        // 数値でない場合
+    // limitパラメータのバリデーション
+    if (request.limit !== undefined) {
+      const limitValue = request.limit
+
+      // 文字列の場合は数値に変換
+      let parsedLimit: number
+      if (typeof limitValue === 'string') {
+        parsedLimit = parseInt(limitValue, 10)
         if (isNaN(parsedLimit)) {
-          return new Response(
-            JSON.stringify({
-              message: 'Validation failed',
-              errors: [
-                {
-                  field: 'limit',
-                  message: 'limit must be a valid integer',
-                },
-              ],
-            }),
-            {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
+          throw new ValidationException('limitは有効な整数である必要があります')
         }
-
-        // 範囲チェック（1-50）- API仕様書に合わせて修正
-        if (parsedLimit < 1 || parsedLimit > 50) {
-          return new Response(
-            JSON.stringify({
-              message: 'Validation failed',
-              errors: [
-                {
-                  field: 'limit',
-                  message: 'limit must be between 1 and 50',
-                },
-              ],
-            }),
-            {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        limit = parsedLimit
+      } else if (typeof limitValue === 'number') {
+        parsedLimit = limitValue
+      } else {
+        throw new ValidationException('limitは数値である必要があります')
       }
 
-      // pageのバリデーション
-      if (pageParam) {
-        const parsedPage = parseInt(pageParam, 10)
+      // 範囲チェック（1-50）
+      if (parsedLimit < 1 || parsedLimit > 50) {
+        throw new ValidationException('limitは1以上50以下である必要があります')
+      }
 
-        // 数値でない場合
+      result.limit = parsedLimit
+    }
+
+    // pageパラメータのバリデーション
+    if (request.page !== undefined) {
+      const pageValue = request.page
+
+      // 文字列の場合は数値に変換
+      let parsedPage: number
+      if (typeof pageValue === 'string') {
+        parsedPage = parseInt(pageValue, 10)
         if (isNaN(parsedPage)) {
-          return new Response(
-            JSON.stringify({
-              message: 'Validation failed',
-              errors: [
-                {
-                  field: 'page',
-                  message: 'page must be a valid integer',
-                },
-              ],
-            }),
-            {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
+          throw new ValidationException('pageは有効な整数である必要があります')
         }
-
-        // 範囲チェック（1以上）
-        if (parsedPage < 1) {
-          return new Response(
-            JSON.stringify({
-              message: 'Validation failed',
-              errors: [
-                {
-                  field: 'page',
-                  message: 'page must be greater than or equal to 1',
-                },
-              ],
-            }),
-            {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        page = parsedPage
+      } else if (typeof pageValue === 'number') {
+        parsedPage = pageValue
+      } else {
+        throw new ValidationException('pageは数値である必要があります')
       }
 
-      // クエリを作成して実行
-      const query = new GetRecentSessionsQuery(userId, limit, page)
-      const sessions = await this.getRecentSessionsHandler.handle(query)
-
-      // ページネーション情報の計算
-      // TODO: 現在の実装では総件数が取得できないため、仮の実装
-      // 将来的にはShoppingQueryServiceでページネーション対応が必要
-      const totalSessions = sessions.length
-      const totalPages = Math.ceil(totalSessions / limit)
-      const hasNext = page < totalPages
-      const hasPrev = page > 1
-
-      // API仕様書に準拠したレスポンスフォーマット
-      const response = {
-        data: sessions.map((session) => ({
-          sessionId: session.sessionId,
-          status: session.status,
-          startedAt: session.startedAt,
-          completedAt: session.completedAt,
-          duration: session.completedAt
-            ? Math.floor(
-                (new Date(session.completedAt).getTime() - new Date(session.startedAt).getTime()) /
-                  1000
-              )
-            : 0, // 秒単位
-          checkedItemsCount: session.checkedItems?.length || 0,
-          totalSpent: undefined, // TODO: 将来の実装で追加
-          deviceType: session.deviceType,
-          location: session.location,
-        })),
-        pagination: {
-          page,
-          limit,
-          total: totalSessions,
-          totalPages,
-          hasNext,
-          hasPrev,
-        },
-        meta: {
-          timestamp: new Date().toISOString(),
-          version: '1.0.0',
-        },
+      // 範囲チェック（1以上）
+      if (parsedPage < 1) {
+        throw new ValidationException('pageは1以上である必要があります')
       }
 
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // 予期しないエラー
-      console.error('Unexpected error in GetRecentSessionsApiHandler:', error)
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
+      result.page = parsedPage
+    }
+
+    return result
+  }
+
+  /**
+   * ビジネスロジックの実行
+   * 直近のセッション履歴を取得する処理
+   */
+  async execute(
+    request: GetRecentSessionsRequest,
+    userId: string
+  ): Promise<GetRecentSessionsResponse> {
+    // デフォルト値の設定
+    const limit = request.limit || 10
+    const page = request.page || 1
+
+    // クエリオブジェクトを作成
+    const query = new GetRecentSessionsQuery(userId, limit, page)
+
+    // クエリを実行
+    const sessions = await this.getRecentSessionsHandler.handle(query)
+
+    // ページネーション情報の計算
+    // TODO: 現在の実装では総件数が取得できないため、仮の実装
+    // 将来的にはShoppingQueryServiceでページネーション対応が必要
+    const totalSessions = sessions.length
+    const totalPages = Math.ceil(totalSessions / limit)
+    const hasNext = page < totalPages
+    const hasPrev = page > 1
+
+    // API仕様書に準拠したレスポンスフォーマット
+    return {
+      data: sessions.map((session) => ({
+        sessionId: session.sessionId,
+        status: session.status,
+        startedAt: session.startedAt,
+        completedAt: session.completedAt,
+        duration: session.completedAt
+          ? Math.floor(
+              (new Date(session.completedAt).getTime() - new Date(session.startedAt).getTime()) /
+                1000
+            )
+          : 0, // 秒単位
+        checkedItemsCount: session.checkedItems?.length || 0,
+        totalSpent: undefined, // TODO: 将来の実装で追加
+        deviceType: session.deviceType,
+        location: session.location,
+      })),
+      pagination: {
+        page,
+        limit,
+        total: totalSessions,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+      meta: {
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+      },
     }
   }
 }

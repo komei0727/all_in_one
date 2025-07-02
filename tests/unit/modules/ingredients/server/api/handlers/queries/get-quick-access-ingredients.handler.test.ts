@@ -57,17 +57,11 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
           mockIngredients
         )
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（デフォルトリミット）
+        const response = await handler.handle({}, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
+        // Then: クイックアクセス食材データが返される
+        expect(response).toEqual({
           ingredients: mockIngredients,
         })
 
@@ -103,17 +97,11 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
           mockIngredients
         )
 
-        const request = new Request(`http://localhost?limit=${limit}`, {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（カスタムリミット）
+        const response = await handler.handle({ limit }, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData.ingredients).toHaveLength(limit)
+        // Then: 指定した件数のクイックアクセス食材データが返される
+        expect(response.ingredients).toHaveLength(limit)
 
         // 指定リミットで呼ばれている
         expect(mockGetQuickAccessIngredientsHandler.handle).toHaveBeenCalledWith(
@@ -129,17 +117,11 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
         const userId = testDataHelpers.userId()
         vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce([])
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（空のデータ）
+        const response = await handler.handle({}, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
+        // Then: 空のクイックアクセス食材データが返される
+        expect(response).toEqual({
           ingredients: [],
         })
       })
@@ -149,66 +131,27 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
       it('limitが不正な形式の場合、バリデーションエラーを返す', async () => {
         // Given: 不正なリミットパラメータ
         const userId = testDataHelpers.userId()
-        const request = new Request('http://localhost?limit=invalid', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'limit',
-            message: 'limit must be a valid integer',
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ limit: 'invalid' }, userId)).rejects.toThrow(
+          'limitは有効な整数である必要があります'
         )
       })
 
       it('limitが範囲外（0以下）の場合、バリデーションエラーを返す', async () => {
         // Given: 範囲外のリミットパラメータ
         const userId = testDataHelpers.userId()
-        const request = new Request('http://localhost?limit=0', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'limit',
-            message: 'limit must be between 1 and 100',
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ limit: 0 }, userId)).rejects.toThrow(
+          'limitは1以上100以下である必要があります'
         )
       })
 
       it('limitが範囲外（100超）の場合、バリデーションエラーを返す', async () => {
         // Given: 範囲外のリミットパラメータ
         const userId = testDataHelpers.userId()
-        const request = new Request('http://localhost?limit=101', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'limit',
-            message: 'limit must be between 1 and 100',
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ limit: 101 }, userId)).rejects.toThrow(
+          'limitは1以上100以下である必要があります'
         )
       })
 
@@ -218,17 +161,8 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
         const error = new Error('Database connection failed')
         vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockRejectedValueOnce(error)
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 500エラーが返される
-        expect(response.status).toBe(500)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Internal server error')
+        // When & Then: APIエラーが発生する
+        await expect(handler.handle({}, userId)).rejects.toThrow('An unexpected error occurred')
       })
     })
   })
