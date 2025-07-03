@@ -279,7 +279,12 @@ export class UnifiedRouteFactory {
     // DTOがtoJSON()メソッドを持っている場合は呼び出す
     let processedData = data
     if (data && typeof data === 'object' && 'toJSON' in data) {
-      processedData = (data as { toJSON: () => unknown }).toJSON() as T
+      // ActiveShoppingSessionDtoの場合は特別なメソッドを呼び出す
+      if ('toActiveSessionJSON' in data && typeof data.toActiveSessionJSON === 'function') {
+        processedData = (data as { toActiveSessionJSON: () => unknown }).toActiveSessionJSON() as T
+      } else {
+        processedData = (data as { toJSON: () => unknown }).toJSON() as T
+      }
     }
 
     // 204 No Contentの場合は空のレスポンスを返す

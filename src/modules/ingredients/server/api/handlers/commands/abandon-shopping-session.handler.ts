@@ -43,6 +43,6 @@ export class AbandonShoppingSessionApiHandler extends BaseApiHandler<
     const result = await this.commandHandler.handle(command)
 
     // DTOとして返却（BaseApiHandlerが統一的にHTTPレスポンスに変換）
-    return result.toJSON().data as ShoppingSessionDto
+    return result
   }
 }

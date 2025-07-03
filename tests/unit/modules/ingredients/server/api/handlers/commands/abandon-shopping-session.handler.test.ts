@@ -47,7 +47,7 @@ describe('AbandonShoppingSessionApiHandler', () => {
       const result = await apiHandler.handle(requestData, userId)
 
       // レスポンスの検証
-      expect(result).toEqual(mockDto.toJSON().data)
+      expect(result).toEqual(mockDto)
 
       // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
@@ -80,7 +80,7 @@ describe('AbandonShoppingSessionApiHandler', () => {
       const result = await apiHandler.handle(requestData, userId)
 
       // レスポンスの検証
-      expect(result).toEqual(mockDto.toJSON().data)
+      expect(result).toEqual(mockDto)
 
       // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
@@ -112,7 +112,7 @@ describe('AbandonShoppingSessionApiHandler', () => {
       const result = await apiHandler.handle(requestData, userId)
 
       // レスポンスの検証
-      expect(result).toEqual(mockDto.toJSON().data)
+      expect(result).toEqual(mockDto)
 
       // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(

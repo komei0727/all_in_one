@@ -118,7 +118,10 @@ describe('GET /api/v1/shopping-sessions/active Integration Tests', () => {
         expect(data.userId).toBe(testUserId)
         expect(data.status).toBe('ACTIVE')
         expect(data.startedAt).toBeDefined()
-        expect(data.completedAt).toBeNull()
+        // アクティブセッションAPIは特別なレスポンス形式を使用
+        expect(data.duration).toBeDefined()
+        expect(data.checkedItemsCount).toBeDefined()
+        expect(data.lastActivityAt).toBeDefined()
 
         // 継続時間の計算確認（概算）
         const startTime = new Date(data.startedAt)

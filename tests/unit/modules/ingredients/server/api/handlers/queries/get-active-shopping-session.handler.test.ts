@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { GetActiveShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/queries/get-active-shopping-session.handler'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
+import { ActiveShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/active-shopping-session.dto'
 import { type GetActiveShoppingSessionHandler } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.handler'
 import { NotFoundException } from '@/modules/ingredients/server/domain/exceptions'
 import { testDataHelpers } from '@tests/__fixtures__/builders/faker.config'
@@ -41,15 +41,17 @@ describe('GetActiveShoppingSessionApiHandler', () => {
       it('アクティブなセッションが存在する場合、セッション情報を返す', async () => {
         // Given: アクティブなセッション
         const userId = testDataHelpers.userId()
-        const sessionDto = new ShoppingSessionDto(
+        const sessionDto = new ActiveShoppingSessionDto(
           testDataHelpers.shoppingSessionId(),
           userId,
           'ACTIVE',
           faker.date.recent().toISOString(),
-          null,
           'MOBILE',
-          { placeName: 'スーパーマーケット' },
-          []
+          { name: 'スーパーマーケット' },
+          [],
+          300, // duration
+          5, // checkedItemsCount
+          faker.date.recent().toISOString() // lastActivityAt
         )
 
         vi.mocked(mockGetActiveShoppingSessionHandler.handle).mockResolvedValueOnce(sessionDto)

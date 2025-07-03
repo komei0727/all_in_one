@@ -47,7 +47,7 @@ export class StartShoppingSessionApiHandler extends BaseApiHandler<
       location = ShoppingLocation.create({
         latitude: request.location.latitude,
         longitude: request.location.longitude,
-        name: request.location.address,
+        name: request.location.name,
       })
     }
 

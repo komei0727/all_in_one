@@ -81,10 +81,17 @@ export class UniversalExceptionConverter {
     }
 
     if (error instanceof BusinessRuleException) {
-      return new ApiBusinessRuleException(error.message, {
-        ...error.details,
-        ...context,
-      })
+      // エラーコードがある場合はそれを使用、なければデフォルトの422
+      const statusCode = error.code === 'ACTIVE_SESSION_EXISTS' ? 409 : 422
+      return new ApiBusinessRuleException(
+        error.message,
+        {
+          ...error.details,
+          ...context,
+        },
+        statusCode,
+        error.code
+      )
     }
 
     // その他のドメイン例外は内部エラーとして扱う

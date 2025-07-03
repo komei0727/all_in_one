@@ -61,7 +61,7 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
           ? {
               latitude: Number(session.locationLat),
               longitude: Number(session.locationLng),
-              placeName: session.locationName ?? undefined,
+              name: session.locationName ?? undefined,
             }
           : null,
         checkedItems

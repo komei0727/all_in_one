@@ -6,9 +6,11 @@ import { DomainException } from './domain.exception'
 export class BusinessRuleException extends DomainException {
   readonly httpStatusCode = 422
   readonly errorCode = 'BUSINESS_RULE_VIOLATION'
+  readonly code?: string
 
-  constructor(message: string, details?: Record<string, unknown>) {
+  constructor(message: string, details?: Record<string, unknown>, code?: string) {
     super(message, details)
+    this.code = code
   }
 }
 

@@ -140,8 +140,11 @@ describe('GetIngredientsByCategoryApiHandler', () => {
       // When: 名前でソートを指定
       const result = await apiHandler.handle({ categoryId, sortBy: 'name' }, userId)
 
-      // Then: 名前でソートされた結果が返される
-      expect(result).toEqual(mockResponseDto.toJSON())
+      // Then: 名前でソートされた結果が返される（タイムスタンプは動的なので除外して比較）
+      const expected = mockResponseDto.toJSON()
+      expect(result.data).toEqual(expected.data)
+      expect(result.meta.version).toEqual(expected.meta.version)
+      expect(result.meta.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
       expect(mockQueryHandler.handle).toHaveBeenCalledWith({
         categoryId,
         userId,

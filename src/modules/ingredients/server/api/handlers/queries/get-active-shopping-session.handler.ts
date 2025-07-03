@@ -1,4 +1,4 @@
-import { type ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
+import { type ActiveShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/active-shopping-session.dto'
 import { type GetActiveShoppingSessionHandler } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.handler'
 import { GetActiveShoppingSessionQuery } from '@/modules/ingredients/server/application/queries/get-active-shopping-session.query'
 import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
@@ -17,7 +17,7 @@ interface GetActiveShoppingSessionRequest {
  */
 export class GetActiveShoppingSessionApiHandler extends BaseApiHandler<
   GetActiveShoppingSessionRequest,
-  ShoppingSessionDto | null
+  ActiveShoppingSessionDto | null
 > {
   constructor(private readonly getActiveShoppingSessionHandler: GetActiveShoppingSessionHandler) {
     super()
@@ -38,7 +38,7 @@ export class GetActiveShoppingSessionApiHandler extends BaseApiHandler<
   async execute(
     request: GetActiveShoppingSessionRequest,
     userId: string
-  ): Promise<ShoppingSessionDto | null> {
+  ): Promise<ActiveShoppingSessionDto | null> {
     // クエリを作成して実行
     const query = new GetActiveShoppingSessionQuery(userId)
     const sessionDto = await this.getActiveShoppingSessionHandler.handle(query)

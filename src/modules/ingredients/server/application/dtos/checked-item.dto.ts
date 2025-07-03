@@ -17,13 +17,11 @@ export class CheckedItemDto {
    */
   toJSON() {
     return {
-      data: {
-        ingredientId: this.ingredientId,
-        ingredientName: this.ingredientName,
-        stockStatus: this.stockStatus,
-        expiryStatus: this.expiryStatus,
-        checkedAt: this.checkedAt,
-      },
+      ingredientId: this.ingredientId,
+      ingredientName: this.ingredientName,
+      stockStatus: this.stockStatus,
+      expiryStatus: this.expiryStatus,
+      checkedAt: this.checkedAt,
     }
   }
 }

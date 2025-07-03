@@ -23,7 +23,7 @@ describe('ShoppingSessionDto', () => {
         startedAt,
         completedAt,
         deviceType,
-        { placeName: locationName }
+        { name: locationName }
       )
 
       // Assert
@@ -33,7 +33,7 @@ describe('ShoppingSessionDto', () => {
       expect(dto.startedAt).toBe(startedAt)
       expect(dto.completedAt).toBe(completedAt)
       expect(dto.deviceType).toBe(deviceType)
-      expect(dto.location).toEqual({ placeName: locationName })
+      expect(dto.location).toEqual({ name: locationName })
     })
 
     it('オプショナルなプロパティをnullで設定できる', () => {
@@ -66,7 +66,7 @@ describe('ShoppingSessionDto', () => {
       const startedAt = faker.date.recent().toISOString()
       const completedAt = null
       const deviceType = 'MOBILE'
-      const location = { placeName: faker.company.name() }
+      const location = { name: faker.company.name() }
 
       const dto = new ShoppingSessionDto(
         sessionId,
@@ -83,16 +83,14 @@ describe('ShoppingSessionDto', () => {
 
       // Assert
       expect(json).toEqual({
-        data: {
-          sessionId,
-          userId,
-          status,
-          startedAt,
-          completedAt,
-          deviceType,
-          location,
-          checkedItems: null,
-        },
+        sessionId,
+        userId,
+        status,
+        startedAt,
+        completedAt,
+        deviceType,
+        location,
+        checkedItems: null,
       })
     })
 
@@ -118,8 +116,8 @@ describe('ShoppingSessionDto', () => {
       const json = dto.toJSON()
 
       // Assert
-      expect(json.data.status).toBe('COMPLETED')
-      expect(json.data.completedAt).toBe(completedAt)
+      expect(json.status).toBe('COMPLETED')
+      expect(json.completedAt).toBe(completedAt)
     })
   })
 

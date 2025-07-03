@@ -63,7 +63,7 @@ export class CompleteShoppingSessionHandler {
         ? {
             latitude: updatedSession.getLocation()!.getLatitude(),
             longitude: updatedSession.getLocation()!.getLongitude(),
-            placeName: updatedSession.getLocationName() ?? undefined,
+            name: updatedSession.getLocationName() ?? undefined,
           }
         : null,
       checkedItemDtos

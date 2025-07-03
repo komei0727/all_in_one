@@ -38,7 +38,7 @@ describe('StartShoppingSessionApiHandler', () => {
     location: faker.helpers.maybe(() => ({
       latitude: faker.location.latitude(),
       longitude: faker.location.longitude(),
-      address: faker.location.streetAddress(),
+      name: faker.location.streetAddress(),
     })),
   })
 
@@ -54,7 +54,7 @@ describe('StartShoppingSessionApiHandler', () => {
       session.getDeviceType()?.getValue() || null,
       session.getLocation()
         ? {
-            placeName: session.getLocationName() || undefined,
+            name: session.getLocationName() || undefined,
           }
         : null,
       []
@@ -162,7 +162,7 @@ describe('StartShoppingSessionApiHandler', () => {
           location: {
             latitude: faker.location.latitude(),
             longitude: faker.location.longitude(),
-            address: faker.location.streetAddress(),
+            name: faker.location.streetAddress(),
           },
         }
         const userId = testDataHelpers.userId()
@@ -179,7 +179,7 @@ describe('StartShoppingSessionApiHandler', () => {
         expect(actualCommand.deviceType?.getValue()).toBe(request.deviceType)
         expect(actualCommand.location?.getLatitude()).toBe(request.location?.latitude)
         expect(actualCommand.location?.getLongitude()).toBe(request.location?.longitude)
-        expect(actualCommand.location?.getName()).toBe(request.location?.address)
+        expect(actualCommand.location?.getName()).toBe(request.location?.name)
       })
     })
 

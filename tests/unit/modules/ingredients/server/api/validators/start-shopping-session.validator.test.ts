@@ -12,7 +12,7 @@ describe('startShoppingSessionSchema', () => {
         location: {
           latitude: faker.location.latitude(),
           longitude: faker.location.longitude(),
-          address: faker.location.streetAddress(),
+          name: faker.location.streetAddress(),
         },
       }
 

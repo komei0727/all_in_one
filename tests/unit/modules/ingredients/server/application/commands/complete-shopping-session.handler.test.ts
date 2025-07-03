@@ -187,7 +187,7 @@ describe('CompleteShoppingSessionHandler', () => {
       expect(result.location).toEqual({
         latitude: 35.6762,
         longitude: 139.6503,
-        placeName: 'コンビニ',
+        name: 'コンビニ',
       })
     })
 

@@ -1,5 +1,5 @@
 import { ShoppingSession } from '../entities/shopping-session.entity'
-import { BusinessRuleException } from '../exceptions'
+import { ActiveShoppingSessionExistsException } from '../exceptions'
 import {
   ShoppingSessionId,
   SessionStatus,
@@ -21,7 +21,7 @@ export class ShoppingSessionFactory {
    * @param userId ユーザーID
    * @param options オプション（deviceType、location）
    * @returns 作成されたセッション
-   * @throws {BusinessRuleException} アクティブなセッションが既に存在する場合
+   * @throws {ActiveShoppingSessionExistsException} アクティブなセッションが既に存在する場合
    */
   async create(
     userId: string,
@@ -33,7 +33,7 @@ export class ShoppingSessionFactory {
     // アクティブなセッションの重複チェック
     const activeSession = await this.repository.findActiveByUserId(userId)
     if (activeSession) {
-      throw new BusinessRuleException('同一ユーザーで同時にアクティブなセッションは1つのみです')
+      throw new ActiveShoppingSessionExistsException()
     }
 
     // 新しいセッションを作成

@@ -1548,8 +1548,6 @@ interface EventsResponse {
 
 買い物モードを開始し、新しい買い物セッションを作成します。同時にアクティブなセッションは1つまでです。
 
-**注意**: 現在の実装では、`deviceType`と`location`はリクエストで受け取りますが、まだ永続化されません（DTOではnullで返されます）。
-
 ### エンドポイント情報
 
 - **メソッド**: `POST`
@@ -1563,7 +1561,6 @@ interface EventsResponse {
 
 ```typescript
 interface StartShoppingSessionRequest {
-  userId: string // ユーザーID（必須）
   deviceType?: 'MOBILE' | 'DESKTOP' | 'TABLET' // デバイスタイプ
   location?: {
     name?: string // 場所の名前（最大100文字）
@@ -1585,9 +1582,8 @@ interface StartShoppingSessionResponse {
     status: 'ACTIVE'
     startedAt: string
     completedAt: null
-    deviceType: string | null // 現在の実装ではnull
+    deviceType: string | null
     location: {
-      // 現在の実装ではnull
       name?: string
       latitude: number
       longitude: number
@@ -1645,6 +1641,13 @@ interface ActiveShoppingSessionResponse {
       latitude: number
       longitude: number
     }
+    checkedItems?: Array<{
+      ingredientId: string
+      ingredientName: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      checkedAt: string
+    }> | null // チェックした食材の履歴（最大50件）
   } | null // アクティブセッションがない場合はnull
   meta: {
     timestamp: string
@@ -2368,7 +2371,8 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 | 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
 | 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加              | @komei0727 |
 | 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化             | Claude     |
-| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加（現在は実装未完了の注記付き） | Claude     |
+| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加                               | Claude     |
+| 2025-07-03 | deviceTypeとlocationの実装完了により注記を削除                                    | Claude     |
 
 ## 関連ドキュメント
 

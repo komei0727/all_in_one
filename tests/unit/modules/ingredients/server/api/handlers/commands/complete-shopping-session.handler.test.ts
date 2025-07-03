@@ -93,7 +93,7 @@ describe('CompleteShoppingSessionApiHandler', () => {
           completedSession.getDeviceType()?.getValue() || null,
           completedSession.getLocation()
             ? {
-                placeName: completedSession.getLocationName() || undefined,
+                name: completedSession.getLocationName() || undefined,
               }
             : null,
           []
