@@ -11,7 +11,6 @@ import {
 import { ApiBusinessRuleException } from '@/modules/shared/server/api/exceptions/api-business-rule.exception'
 import { ApiInternalException } from '@/modules/shared/server/api/exceptions/api-internal.exception'
 import { ApiNotFoundException } from '@/modules/shared/server/api/exceptions/api-not-found.exception'
-import { shoppingSessionDtoBuilder } from '@tests/__fixtures__/builders/dtos/shopping-session-dto.builder'
 
 describe('AbandonShoppingSessionApiHandler', () => {
   let mockCommandHandler: AbandonShoppingSessionHandler
@@ -34,27 +33,21 @@ describe('AbandonShoppingSessionApiHandler', () => {
       // テストデータの準備
       const sessionId = createValidSessionId()
       const userId = createUserId()
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
 
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
+      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(undefined)
 
       // BaseApiHandlerのhandleメソッドの新しいシグネチャで実行
       const requestData = { sessionId }
       const result = await apiHandler.handle(requestData, userId)
 
-      // レスポンスの検証
-      expect(result).toEqual(mockDto)
+      // レスポンスの検証（void）
+      expect(result).toBeUndefined()
 
       // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId,
           userId,
-          reason: undefined,
         })
       )
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
@@ -62,64 +55,25 @@ describe('AbandonShoppingSessionApiHandler', () => {
       )
     })
 
-    it('理由を指定して買い物セッションを中断できる', async () => {
+    it('正しいコマンドオブジェクトが作成される', async () => {
       // テストデータの準備
       const sessionId = createValidSessionId()
       const userId = createUserId()
-      const reason = '予定変更のため'
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
 
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
+      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(undefined)
 
-      // BaseApiHandlerのhandleメソッドの新しいシグネチャで実行
-      const requestData = { sessionId, reason }
-      const result = await apiHandler.handle(requestData, userId)
-
-      // レスポンスの検証
-      expect(result).toEqual(mockDto)
-
-      // コマンドハンドラーが正しく呼び出されたことを確認
-      expect(mockCommandHandler.handle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sessionId,
-          userId,
-          reason,
-        })
-      )
-      expect(mockCommandHandler.handle).toHaveBeenCalledWith(
-        expect.any(AbandonShoppingSessionCommand)
-      )
-    })
-
-    it('理由なしのデータでも処理できる', async () => {
-      // テストデータの準備
-      const sessionId = createValidSessionId()
-      const userId = createUserId()
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
-
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
-
-      // reasonなしのデータで実行
+      // APIハンドラーを実行
       const requestData = { sessionId }
       const result = await apiHandler.handle(requestData, userId)
 
-      // レスポンスの検証
-      expect(result).toEqual(mockDto)
+      // レスポンスの検証（void）
+      expect(result).toBeUndefined()
 
       // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId,
           userId,
-          reason: undefined,
         })
       )
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(

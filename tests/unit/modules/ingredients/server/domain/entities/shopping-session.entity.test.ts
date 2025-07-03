@@ -189,7 +189,7 @@ describe('ShoppingSession', () => {
 
       // 再度完了を試みる
       expect(() => session.complete()).toThrow(SessionAlreadyCompletedException)
-      expect(() => session.complete()).toThrow('is already completed')
+      expect(() => session.complete()).toThrow('既に完了しています')
     })
   })
 
@@ -213,7 +213,7 @@ describe('ShoppingSession', () => {
 
       // 中断を試みる
       expect(() => session.abandon()).toThrow(BusinessRuleException)
-      expect(() => session.abandon()).toThrow('アクティブでないセッションは中断できません')
+      expect(() => session.abandon()).toThrow('既に完了しています')
     })
   })
 

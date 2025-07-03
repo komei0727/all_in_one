@@ -7,7 +7,7 @@ import { BusinessRuleException } from '@/modules/shared/server/domain/exceptions
 export class SessionAlreadyCompletedException extends BusinessRuleException {
   constructor(sessionId: string) {
     super(
-      `Shopping session ${sessionId} is already completed`,
+      `買い物セッション ${sessionId} は既に完了しています`,
       undefined, // details
       'SESSION_ALREADY_COMPLETED' // code
     )

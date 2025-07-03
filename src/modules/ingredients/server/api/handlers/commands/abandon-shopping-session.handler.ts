@@ -4,7 +4,6 @@ import { AbandonShoppingSessionCommand } from '../../../application/commands/aba
 import { abandonShoppingSessionValidator } from '../../validators/abandon-shopping-session.validator'
 
 import type { AbandonShoppingSessionHandler } from '../../../application/commands/abandon-shopping-session.handler'
-import type { ShoppingSessionDto } from '../../../application/dtos/shopping-session.dto'
 import type { AbandonShoppingSessionRequest } from '../../validators/abandon-shopping-session.validator'
 
 /**
@@ -13,7 +12,7 @@ import type { AbandonShoppingSessionRequest } from '../../validators/abandon-sho
  */
 export class AbandonShoppingSessionApiHandler extends BaseApiHandler<
   AbandonShoppingSessionRequest,
-  ShoppingSessionDto
+  void
 > {
   constructor(private readonly commandHandler: AbandonShoppingSessionHandler) {
     super()
@@ -32,17 +31,10 @@ export class AbandonShoppingSessionApiHandler extends BaseApiHandler<
    * セッション中断のビジネスロジックを実行
    * @param request バリデーション済みのリクエストデータ
    * @param userId 認証済みユーザーID
-   * @returns セッションDTO
    */
-  async execute(
-    request: AbandonShoppingSessionRequest,
-    userId: string
-  ): Promise<ShoppingSessionDto> {
+  async execute(request: AbandonShoppingSessionRequest, userId: string): Promise<void> {
     // コマンドを作成してアプリケーション層のハンドラーに委譲
-    const command = new AbandonShoppingSessionCommand(request.sessionId, userId, request.reason)
-    const result = await this.commandHandler.handle(command)
-
-    // DTOとして返却（BaseApiHandlerが統一的にHTTPレスポンスに変換）
-    return result
+    const command = new AbandonShoppingSessionCommand(request.sessionId, userId)
+    await this.commandHandler.handle(command)
   }
 }

@@ -102,13 +102,12 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
         )
 
         const response = await DELETE(request, { params: Promise.resolve({ sessionId }) })
-        const responseData = await response.json()
 
-        // レスポンスの検証
-        expect(response.status).toBe(200)
-        expect(responseData.data).toBeDefined()
-        expect(responseData.data.sessionId).toBe(sessionId)
-        expect(responseData.data.status).toBe('ABANDONED')
+        // レスポンスの検証（204 No Content）
+        expect(response.status).toBe(204)
+        // 204 No Contentの場合、レスポンスボディは空
+        const responseText = await response.text()
+        expect(responseText).toBe('')
 
         // データベースの状態を確認
         const dbSession = await prisma.shoppingSession.findUnique({
@@ -176,13 +175,11 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
         )
 
         const response = await DELETE(request, { params: Promise.resolve({ sessionId }) })
-        const responseData = await response.json()
 
-        expect(response.status).toBe(200)
-        expect(responseData.data).toBeDefined()
-        expect(responseData.data.sessionId).toBe(sessionId)
-        expect(responseData.data.status).toBe('ABANDONED')
-        // checkedItemsCountはAPIレスポンスに含まれない可能性がある
+        expect(response.status).toBe(204)
+        // 204 No Contentの場合、レスポンスボディは空
+        const responseText = await response.text()
+        expect(responseText).toBe('')
 
         // チェック履歴が保持されていることを確認
         const sessionItems = await prisma.shoppingSessionItem.findMany({
@@ -221,18 +218,19 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
         )
 
         const response = await DELETE(request, { params: Promise.resolve({ sessionId }) })
-        const responseData = await response.json()
 
-        expect(response.status).toBe(200)
-        expect(responseData.data).toBeDefined()
-        expect(responseData.data.sessionId).toBe(sessionId)
-        expect(responseData.data.status).toBe('ABANDONED')
-        expect(responseData.data.deviceType).toBe('MOBILE')
-        expect(responseData.data.location).toBeDefined()
-        // locationNameフィールドとして保存される可能性
-        expect(responseData.data.location.placeName || responseData.data.location.name).toBe(
-          'スーパーマーケット'
-        )
+        expect(response.status).toBe(204)
+        // 204 No Contentの場合、レスポンスボディは空
+        const responseText = await response.text()
+        expect(responseText).toBe('')
+
+        // データベースの状態を確認
+        const dbSession = await prisma.shoppingSession.findUnique({
+          where: { id: sessionId },
+        })
+        expect(dbSession?.status).toBe('ABANDONED')
+        expect(dbSession?.deviceType).toBe('MOBILE')
+        expect(dbSession?.locationName).toBe('スーパーマーケット')
       })
     })
   })
@@ -299,7 +297,7 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
     })
 
     describe('ビジネスルール違反', () => {
-      it('TC201: 既に完了したセッション（422エラー）', async () => {
+      it('TC201: 既に完了したセッション（409エラー）', async () => {
         // 認証ユーザーをモック
         const userId = mockAuthUser()
 
@@ -325,9 +323,9 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
         const response = await DELETE(request, { params: Promise.resolve({ sessionId }) })
         const responseData = await response.json()
 
-        expect(response.status).toBe(422)
+        expect(response.status).toBe(409)
         expect(responseData.error).toBeDefined()
-        expect(responseData.error.code).toBe('BUSINESS_RULE_VIOLATION')
+        expect(responseData.error.code).toBe('SESSION_ALREADY_COMPLETED')
         expect(responseData.error.message).toBeDefined()
       })
 
@@ -412,11 +410,11 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
         )
 
         const response = await DELETE(request, { params: Promise.resolve({ sessionId }) })
-        const responseData = await response.json()
 
-        expect(response.status).toBe(200)
-        expect(responseData.data.sessionId).toBe(sessionId)
-        expect(responseData.data.status).toBe('ABANDONED')
+        expect(response.status).toBe(204)
+        // 204 No Contentの場合、レスポンスボディは空
+        const responseText = await response.text()
+        expect(responseText).toBe('')
       })
     })
 
@@ -474,9 +472,10 @@ describe('DELETE /api/v1/shopping-sessions/{sessionId} Integration Tests', () =>
         const abandonResponse = await DELETE(abandonRequest, {
           params: Promise.resolve({ sessionId }),
         })
-        const abandonResponseData = await abandonResponse.json()
-        expect(abandonResponse.status).toBe(200)
-        expect(abandonResponseData.data.status).toBe('ABANDONED')
+        expect(abandonResponse.status).toBe(204)
+        // 204 No Contentの場合、レスポンスボディは空
+        const responseText = await abandonResponse.text()
+        expect(responseText).toBe('')
 
         // 再度中断を試みる
         const retryRequest = new NextRequest(

@@ -2,7 +2,6 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { AbandonShoppingSessionCommand } from '@/modules/ingredients/server/application/commands/abandon-shopping-session.command'
 import { AbandonShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/abandon-shopping-session.handler'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
 import {
   BusinessRuleException,
   NotFoundException,
@@ -51,32 +50,14 @@ describe('AbandonShoppingSessionHandler', () => {
       mockRepository.findById.mockResolvedValue(mockSession)
       mockRepository.update.mockResolvedValue(mockSession)
 
-      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123', undefined)
+      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123')
 
       // When: ハンドラーを実行
-      const result = await handler.handle(command)
+      await handler.handle(command)
 
       // Then: セッションが中断される
-      expect(mockSession.abandon).toHaveBeenCalledWith(undefined)
+      expect(mockSession.abandon).toHaveBeenCalledWith()
       expect(mockRepository.update).toHaveBeenCalledWith(mockSession)
-      expect(result).toBeInstanceOf(ShoppingSessionDto)
-    })
-
-    it('中断理由を指定してセッションを中断できる', async () => {
-      // Given: アクティブなセッション
-      mockRepository.findById.mockResolvedValue(mockSession)
-      mockRepository.update.mockResolvedValue(mockSession)
-
-      const reason = 'user-cancelled'
-      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123', reason)
-
-      // When: ハンドラーを実行
-      const result = await handler.handle(command)
-
-      // Then: 指定した理由でセッションが中断される
-      expect(mockSession.abandon).toHaveBeenCalledWith(reason)
-      expect(mockRepository.update).toHaveBeenCalledWith(mockSession)
-      expect(result).toBeInstanceOf(ShoppingSessionDto)
     })
   })
 
@@ -86,7 +67,7 @@ describe('AbandonShoppingSessionHandler', () => {
       mockRepository.findById.mockResolvedValue(null)
 
       const nonExistentId = ShoppingSessionId.create().getValue()
-      const command = new AbandonShoppingSessionCommand(nonExistentId, 'user123', undefined)
+      const command = new AbandonShoppingSessionCommand(nonExistentId, 'user123')
 
       // When/Then: NotFoundExceptionがスローされる
       await expect(handler.handle(command)).rejects.toThrow(NotFoundException)
@@ -98,7 +79,7 @@ describe('AbandonShoppingSessionHandler', () => {
       mockSession.getUserId.mockReturnValue('other-user')
       mockRepository.findById.mockResolvedValue(mockSession)
 
-      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123', undefined)
+      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123')
 
       // When/Then: NotFoundExceptionがスローされる（権限エラーを隠蔽）
       await expect(handler.handle(command)).rejects.toThrow(NotFoundException)
@@ -112,7 +93,7 @@ describe('AbandonShoppingSessionHandler', () => {
       })
       mockRepository.findById.mockResolvedValue(mockSession)
 
-      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123', undefined)
+      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123')
 
       // When/Then: BusinessRuleExceptionがスローされる
       await expect(handler.handle(command)).rejects.toThrow(BusinessRuleException)
@@ -128,7 +109,7 @@ describe('AbandonShoppingSessionHandler', () => {
       })
       mockRepository.findById.mockResolvedValue(mockSession)
 
-      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123', undefined)
+      const command = new AbandonShoppingSessionCommand(validSessionId, 'user123')
 
       // When/Then: BusinessRuleExceptionがスローされる
       await expect(handler.handle(command)).rejects.toThrow(BusinessRuleException)
@@ -141,7 +122,7 @@ describe('AbandonShoppingSessionHandler', () => {
   describe('バリデーション', () => {
     it('無効なセッションID形式の場合はエラーになる', async () => {
       // Given: 無効なセッションID
-      const command = new AbandonShoppingSessionCommand('invalid-id', 'user123', undefined)
+      const command = new AbandonShoppingSessionCommand('invalid-id', 'user123')
 
       // When/Then: バリデーションエラーがスローされる
       await expect(handler.handle(command)).rejects.toThrow()
