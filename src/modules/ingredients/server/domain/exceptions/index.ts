@@ -18,3 +18,4 @@ export {
 } from './not-found.exception'
 export { DuplicateIngredientException } from './duplicate-ingredient.exception'
 export { ActiveShoppingSessionExistsException } from './active-session-exists.exception'
+export { SessionAlreadyCompletedException } from './session-already-completed.exception'

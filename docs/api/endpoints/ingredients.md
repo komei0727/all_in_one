@@ -1667,7 +1667,7 @@ interface ActiveShoppingSessionResponse {
 ### エンドポイント情報
 
 - **メソッド**: `PUT`
-- **パス**: `/api/v1/shopping-sessions/{id}/complete`
+- **パス**: `/api/v1/shopping-sessions/{sessionId}/complete`
 - **認証**: 必要
 - **権限**: セッションの所有者
 
@@ -1677,16 +1677,11 @@ interface ActiveShoppingSessionResponse {
 
 | パラメータ | 型     | 必須 | 説明                     |
 | ---------- | ------ | ---- | ------------------------ |
-| id         | string | Yes  | セッションID（CUID形式） |
+| sessionId  | string | Yes  | セッションID（CUID形式） |
 
 #### リクエストボディ
 
-```typescript
-interface CompleteShoppingSessionRequest {
-  notes?: string // 完了時のメモ
-  totalSpent?: number // 総支出額（小数点以下2桁まで）
-}
-```
+リクエストボディは不要です（空のJSONオブジェクト `{}` または省略可能）。
 
 ### レスポンス
 
@@ -1700,15 +1695,21 @@ interface CompleteShoppingSessionResponse {
     status: 'COMPLETED'
     startedAt: string
     completedAt: string
-    duration: number // 秒単位
-    checkedItemsCount: number
-    totalSpent?: number
+    duration: number // セッション継続時間（秒単位）
+    checkedItemsCount: number // 確認済み食材の数
     deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
     location?: {
       name?: string
       latitude: number
       longitude: number
     }
+    checkedItems?: Array<{
+      ingredientId: string
+      ingredientName: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      checkedAt: string
+    }> // 確認済み食材の履歴
   }
   meta: {
     timestamp: string

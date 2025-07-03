@@ -1,5 +1,5 @@
 import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
-import { type ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
+import { type CompleteShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/complete-shopping-session.dto'
 import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
 
 import { completeShoppingSessionValidator } from '../../validators/complete-shopping-session.validator'
@@ -17,7 +17,7 @@ interface CompleteShoppingSessionRequest {
  */
 export class CompleteShoppingSessionApiHandler extends BaseApiHandler<
   CompleteShoppingSessionRequest,
-  ShoppingSessionDto
+  CompleteShoppingSessionDto
 > {
   constructor(private readonly completeShoppingSessionHandler: CompleteShoppingSessionHandler) {
     super()
@@ -44,7 +44,7 @@ export class CompleteShoppingSessionApiHandler extends BaseApiHandler<
   async execute(
     request: CompleteShoppingSessionRequest,
     userId: string
-  ): Promise<ShoppingSessionDto> {
+  ): Promise<CompleteShoppingSessionDto> {
     // コマンドハンドラーを実行
     const result = await this.completeShoppingSessionHandler.handle({
       sessionId: request.sessionId,

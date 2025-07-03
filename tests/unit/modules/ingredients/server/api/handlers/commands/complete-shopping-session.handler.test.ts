@@ -4,6 +4,7 @@ import { ZodError } from 'zod'
 
 import { CompleteShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/complete-shopping-session.handler'
 import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
+import { CompleteShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/complete-shopping-session.dto'
 import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
 import {
   NotFoundException,
@@ -99,13 +100,29 @@ describe('CompleteShoppingSessionApiHandler', () => {
           []
         )
 
-        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockResolvedValueOnce(sessionDto)
+        // CompleteShoppingSessionDtoを作成（duration, checkedItemsCountを追加）
+        const completeSessionDto = new CompleteShoppingSessionDto(
+          sessionDto.sessionId,
+          sessionDto.userId,
+          sessionDto.status,
+          sessionDto.startedAt,
+          sessionDto.completedAt,
+          sessionDto.deviceType,
+          sessionDto.location,
+          sessionDto.checkedItems,
+          3600, // duration: 1時間
+          5 // checkedItemsCount: 5個の食材をチェック
+        )
+
+        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockResolvedValueOnce(
+          completeSessionDto
+        )
 
         // When: ハンドラーを実行
         const result = await handler.execute({ sessionId }, userId)
 
-        // Then: セッションDTOが返される
-        expect(result).toBe(sessionDto)
+        // Then: 完了セッションDTOが返される
+        expect(result).toBe(completeSessionDto)
         expect(mockCompleteShoppingSessionHandler.handle).toHaveBeenCalledWith({
           sessionId,
           userId,

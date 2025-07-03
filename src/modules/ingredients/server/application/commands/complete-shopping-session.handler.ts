@@ -2,7 +2,7 @@ import { type CompleteShoppingSessionCommand } from './complete-shopping-session
 import { BusinessRuleException, NotFoundException } from '../../domain/exceptions'
 import { ShoppingSessionId } from '../../domain/value-objects'
 import { CheckedItemDto } from '../dtos/checked-item.dto'
-import { ShoppingSessionDto } from '../dtos/shopping-session.dto'
+import { CompleteShoppingSessionDto } from '../dtos/complete-shopping-session.dto'
 
 import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
 
@@ -17,7 +17,7 @@ export class CompleteShoppingSessionHandler {
    * @param command セッション完了コマンド
    * @returns 完了したセッションのDTO
    */
-  async handle(command: CompleteShoppingSessionCommand): Promise<ShoppingSessionDto> {
+  async handle(command: CompleteShoppingSessionCommand): Promise<CompleteShoppingSessionDto> {
     // セッションを取得
     const sessionId = new ShoppingSessionId(command.sessionId)
     const session = await this.sessionRepository.findById(sessionId)
@@ -52,7 +52,7 @@ export class CompleteShoppingSessionHandler {
           )
       )
 
-    return new ShoppingSessionDto(
+    return new CompleteShoppingSessionDto(
       updatedSession.getId().getValue(),
       updatedSession.getUserId(),
       updatedSession.getStatus().getValue(),
@@ -66,7 +66,9 @@ export class CompleteShoppingSessionHandler {
             name: updatedSession.getLocationName() ?? undefined,
           }
         : null,
-      checkedItemDtos
+      checkedItemDtos,
+      Math.floor(updatedSession.getDuration() / 1000), // ミリ秒から秒に変換
+      updatedSession.getCheckedItemsCount()
     )
   }
 }

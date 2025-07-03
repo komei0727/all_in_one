@@ -2,7 +2,10 @@ import { faker } from '@faker-js/faker/locale/ja'
 import { describe, expect, it, beforeEach } from 'vitest'
 
 import { ShoppingSession } from '@/modules/ingredients/server/domain/entities/shopping-session.entity'
-import { BusinessRuleException } from '@/modules/ingredients/server/domain/exceptions'
+import {
+  BusinessRuleException,
+  SessionAlreadyCompletedException,
+} from '@/modules/ingredients/server/domain/exceptions'
 import {
   ShoppingSessionId,
   SessionStatus,
@@ -185,8 +188,8 @@ describe('ShoppingSession', () => {
       session.complete()
 
       // 再度完了を試みる
-      expect(() => session.complete()).toThrow(BusinessRuleException)
-      expect(() => session.complete()).toThrow('アクティブでないセッションは完了できません')
+      expect(() => session.complete()).toThrow(SessionAlreadyCompletedException)
+      expect(() => session.complete()).toThrow('is already completed')
     })
   })
 

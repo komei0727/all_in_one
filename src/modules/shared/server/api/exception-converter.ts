@@ -82,7 +82,10 @@ export class UniversalExceptionConverter {
 
     if (error instanceof BusinessRuleException) {
       // エラーコードがある場合はそれを使用、なければデフォルトの422
-      const statusCode = error.code === 'ACTIVE_SESSION_EXISTS' ? 409 : 422
+      const statusCode =
+        error.code === 'ACTIVE_SESSION_EXISTS' || error.code === 'SESSION_ALREADY_COMPLETED'
+          ? 409
+          : 422
       return new ApiBusinessRuleException(
         error.message,
         {

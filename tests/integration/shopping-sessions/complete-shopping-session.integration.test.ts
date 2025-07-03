@@ -116,6 +116,10 @@ describe('PUT /api/v1/shopping-sessions/[sessionId]/complete Integration Tests',
         expect(data.sessionId).toBe(activeSessionId)
         expect(data.status).toBe('COMPLETED')
         expect(data.completedAt).not.toBeNull()
+        expect(data.duration).toBeTypeOf('number')
+        expect(data.duration).toBeGreaterThan(0) // セッション継続時間は0より大きい
+        expect(data.checkedItemsCount).toBeTypeOf('number')
+        expect(data.checkedItemsCount).toBe(0) // 基本テストでは食材確認なし
 
         // データベースで状態が更新されていることを確認
         const dbSession = await prisma.shoppingSession.findUnique({
@@ -125,26 +129,21 @@ describe('PUT /api/v1/shopping-sessions/[sessionId]/complete Integration Tests',
         expect(dbSession?.completedAt).not.toBeNull()
       })
 
-      it('TC002: 完了時メモと総支出額の記録', async () => {
-        // Given: 認証済みユーザーとアクティブセッション
+      it('TC002: セッション継続時間と確認件数の正確な記録', async () => {
+        // Given: 認証済みユーザーとアクティブセッション（15分前開始）
         const testUserId = mockAuthUser()
         const activeSessionId = testDataHelpers.shoppingSessionId()
+        const startTime = new Date(Date.now() - 15 * 60 * 1000) // 15分前に開始
 
         await prisma.shoppingSession.create({
           data: {
             id: activeSessionId,
             userId: testUserId,
             status: 'ACTIVE',
-            startedAt: new Date(Date.now() - 15 * 60 * 1000), // 15分前に開始
-            deviceType: 'WEB',
+            startedAt: startTime,
+            deviceType: 'TABLET',
           },
         })
-
-        // 完了時の情報
-        const completionData = {
-          notes: faker.lorem.sentence(),
-          totalSpent: faker.number.float({ min: 500, max: 5000, fractionDigits: 2 }),
-        }
 
         const request = new NextRequest(
           `http://localhost:3000/api/v1/shopping-sessions/${activeSessionId}/complete`,
@@ -153,7 +152,7 @@ describe('PUT /api/v1/shopping-sessions/[sessionId]/complete Integration Tests',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(completionData),
+            body: JSON.stringify({}),
           }
         )
 
@@ -161,29 +160,18 @@ describe('PUT /api/v1/shopping-sessions/[sessionId]/complete Integration Tests',
         const response = await PUT(request, { params: { sessionId: activeSessionId } })
         const responseData = await response.json()
 
-        if (response.status !== 200) {
-          console.log('TC002 Error Status:', response.status)
-          console.log('TC002 Error Data:', JSON.stringify(responseData, null, 2))
-
-          if (response.status === 500) {
-            // 実装がnotesやtotalSpentフィールドをサポートしていない場合
-            console.log('TC002 Implementation does not support notes/totalSpent fields')
-            expect(response.status).toBe(500)
-            return
-          }
-        }
+        console.log('TC002 Response Status:', response.status)
+        console.log('TC002 Response Data:', JSON.stringify(responseData, null, 2))
 
         const data = responseData.data?.data || responseData.data
 
-        // Then: 完了時の情報が記録される
+        // Then: 継続時間と確認件数が正確に記録される
         expect(response.status).toBe(200)
         expect(data.status).toBe('COMPLETED')
-
-        // メモと支出額が記録されているかチェック（実装に依存）
-        console.log('TC002 Completion Data:', {
-          notes: completionData.notes,
-          totalSpent: completionData.totalSpent,
-        })
+        expect(data.duration).toBeTypeOf('number')
+        expect(data.duration).toBeGreaterThanOrEqual(15 * 60 - 5) // 約15分（5秒の誤差許容）
+        expect(data.duration).toBeLessThanOrEqual(15 * 60 + 5)
+        expect(data.checkedItemsCount).toBe(0) // 食材確認なしのセッション
       })
     })
   })
@@ -247,12 +235,13 @@ describe('PUT /api/v1/shopping-sessions/[sessionId]/complete Integration Tests',
         const response = await PUT(request, { params: { sessionId: completedSessionId } })
         const errorData = await response.json()
 
-        // Then: 409 Conflictが返される（実装により異なる可能性）
+        // Then: 409 Conflictが返される
         console.log('TC102 Status:', response.status)
         console.log('TC102 Error:', errorData.error?.code)
 
-        expect([409, 422, 400]).toContain(response.status) // 実装により異なる
+        expect(response.status).toBe(409)
         expect(errorData.error).toBeDefined()
+        expect(errorData.error.code).toBe('SESSION_ALREADY_COMPLETED')
       })
 
       it('TC103: 他ユーザーのセッション（403または404エラー）', async () => {
