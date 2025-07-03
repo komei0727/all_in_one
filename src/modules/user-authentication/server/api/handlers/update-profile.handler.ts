@@ -27,12 +27,12 @@ export class UpdateProfileApiHandler extends BaseApiHandler<UpdateProfileRequest
   /**
    * プロフィール更新のビジネスロジックを実行
    * @param request バリデーション済みのリクエストデータ
-   * @param userId 認証済みユーザーID（NextAuthID）
+   * @param userId 認証済みユーザーID（ドメインユーザーID）
    * @returns 更新されたユーザープロフィール
    */
   async execute(request: UpdateProfileRequest, userId: string): Promise<unknown> {
     // 現在のユーザー情報を取得
-    const currentUser = await this.userApplicationService.getUserByNextAuthId(userId)
+    const currentUser = await this.userApplicationService.getUserById(userId)
 
     if (!currentUser) {
       throw new UserNotFoundException(userId)

@@ -28,12 +28,12 @@ export class GetProfileApiHandler extends BaseApiHandler<GetProfileRequest, unkn
   /**
    * プロフィール取得のビジネスロジックを実行
    * @param request バリデーション済みのリクエストデータ
-   * @param userId 認証済みユーザーID（NextAuthID）
+   * @param userId 認証済みユーザーID（ドメインユーザーID）
    * @returns ユーザープロフィール
    */
   async execute(request: GetProfileRequest, userId: string): Promise<unknown> {
-    // NextAuthIDを使ってユーザープロフィールを取得
-    const user = await this.userApplicationService.getUserByNextAuthId(userId)
+    // ドメインユーザーIDを使ってユーザープロフィールを取得
+    const user = await this.userApplicationService.getUserById(userId)
 
     if (!user) {
       throw new UserNotFoundException(userId)
