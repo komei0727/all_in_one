@@ -841,6 +841,619 @@ tests/integration/
 
 ---
 
+# 4. 買い物セッション追加機能コンテキスト
+
+## 4.1 get-recent-sessions.integration.test.ts
+
+**対象**: `GET /api/v1/shopping-sessions/recent`
+
+### 正常系
+
+#### 基本的な最近のセッション取得
+
+- **TC001**: デフォルトパラメータでの取得
+
+  - limit=10（デフォルト）
+  - 最新のセッションから時系列順に取得
+  - レスポンス形式の検証（200 OK）
+  - ページネーション情報の確認
+
+- **TC002**: カスタムlimitでの取得
+
+  - limit=5, 20, 50の各パターン
+  - 指定した件数通りに取得される
+  - 最大50件までの制限確認
+
+- **TC003**: 空の結果
+  - セッションが一つもない場合
+  - data: [], total: 0
+  - エラーなく空配列が返される
+
+#### セッションデータの検証
+
+- **TC004**: セッション情報の完全性
+
+  - sessionId, status, startedAt, completedAt
+  - duration（秒単位）の計算確認
+  - checkedItemsCount, totalSpent
+  - deviceType, locationの有無
+
+- **TC005**: ステータス別の取得確認
+  - COMPLETEDセッション
+  - ABANDONEDセッション
+  - 両方のステータスが混在
+
+### 異常系
+
+#### パラメータエラー
+
+- **TC101**: 不正なlimit値（400エラー）
+  - limit=0 → 「1以上である必要があります」
+  - limit=51 → 「最大50件までです」
+  - limit=負の値 → エラー
+
+#### 認証エラー
+
+- **TC201**: 認証されていない場合（401エラー）
+  - エラーコード: UNAUTHORIZED
+  - メッセージ: "認証が必要です"
+
+### データ分離
+
+#### ユーザー分離
+
+- **TC301**: 認証ユーザーのセッションのみ取得
+  - 他ユーザーのセッションは含まれない
+  - domainUserIdによる正しいフィルタリング
+
+---
+
+## 4.2 get-shopping-history.integration.test.ts
+
+**対象**: `GET /api/v1/shopping-sessions/history`
+
+### 正常系
+
+#### 基本的な履歴取得
+
+- **TC001**: デフォルトパラメータでの履歴取得
+
+  - page=1, limit=20
+  - 完了日時の降順でソート
+  - 全ステータス（COMPLETED, ABANDONED）を含む
+
+- **TC002**: ページネーション
+  - 異なるページサイズ（limit: 10, 30, 50）
+  - 次ページ・前ページの確認
+  - 総件数とページ数の計算確認
+
+#### フィルタリング
+
+- **TC003**: 期間フィルター
+
+  - from/toパラメータでの期間指定
+  - ISO 8601形式の日時
+  - 境界値の扱い（from以上、to以下）
+
+- **TC004**: ステータスフィルター
+  - status=COMPLETED → 完了セッションのみ
+  - status=ABANDONED → 中断セッションのみ
+  - 無効なステータス → 400エラー
+
+#### 複合フィルター
+
+- **TC005**: 期間とステータスの組み合わせ
+  - 先月のCOMPLETEDセッション
+  - 今週のABANDONEDセッション
+  - フィルター条件がAND演算される
+
+### 異常系
+
+#### パラメータエラー
+
+- **TC101**: 不正な日付形式（400エラー）
+
+  - from="invalid-date"
+  - エラーコード: VALIDATION_ERROR
+  - メッセージ: "無効な日付形式です"
+
+- **TC102**: 不正なページネーション（400エラー）
+  - page=0 → 「ページは1以上である必要があります」
+  - limit=101 → 「1ページあたりの件数は100以下である必要があります」
+
+#### 認証エラー
+
+- **TC201**: 認証されていない場合（401エラー）
+
+### データ整合性
+
+#### 履歴データの完全性
+
+- **TC301**: セッション詳細情報
+  - 各セッションの開始・完了時刻
+  - 継続時間の正確性
+  - チェック済み食材数の正確性
+
+---
+
+## 4.3 get-shopping-statistics.integration.test.ts
+
+**対象**: `GET /api/v1/shopping-sessions/statistics`
+
+### 正常系
+
+#### 基本的な統計取得
+
+- **TC001**: デフォルト期間（month）での統計
+
+  - 過去1ヶ月間の統計情報
+  - overview, topCheckedIngredients, sessionPatterns
+  - レスポンス形式の検証（200 OK）
+
+- **TC002**: 期間別統計
+
+  - period=week → 過去1週間
+  - period=month → 過去1ヶ月
+  - period=year → 過去1年
+  - 各期間での正しい集計
+
+- **TC003**: カスタム期間指定
+  - from/toでの任意期間指定
+  - 期間内のデータのみ集計される
+
+#### 統計データの検証
+
+- **TC004**: 概要統計の正確性
+
+  - totalSessions = completedSessions + abandonedSessions
+  - averageSessionDurationの計算確認
+  - averageCheckedItemsの計算確認
+
+- **TC005**: トップチェック食材
+
+  - checkCountの降順でソート
+  - outOfStockRate（0-1の範囲）
+  - 食材名とカテゴリー名の取得
+
+- **TC006**: セッションパターン分析
+  - byHour: 0-23時の時間帯別分布
+  - byDayOfWeek: 0（日）-6（土）の曜日別分布
+  - 合計がtotalSessionsと一致
+
+#### レコメンデーション
+
+- **TC007**: 推奨事項の生成
+  - FREQUENT_OUT_OF_STOCK: 頻繁に在庫切れ
+  - NEVER_CHECKED: 一度も確認されていない
+  - EXPIRING_OFTEN: よく期限切れになる
+
+### 異常系
+
+#### パラメータエラー
+
+- **TC101**: 無効な期間指定（400エラー）
+  - period="invalid"
+  - from > to の期間指定
+
+#### 認証エラー
+
+- **TC201**: 認証されていない場合（401エラー）
+
+### パフォーマンス
+
+#### 大量データ処理
+
+- **TC301**: 1000件以上のセッションでの統計
+  - 適切な時間内（1秒以内）に処理
+  - 集計の正確性維持
+
+---
+
+## 4.4 get-ingredient-statistics.integration.test.ts
+
+**対象**: `GET /api/v1/shopping-sessions/ingredient-statistics`
+
+### 正常系
+
+#### 基本的な食材統計取得
+
+- **TC001**: 全食材の統計情報取得
+
+  - 食材ごとのチェック回数
+  - 在庫切れ率
+  - 最終チェック日時
+  - レスポンス形式の検証（200 OK）
+
+- **TC002**: フィルタリング（実装による）
+  - カテゴリー別フィルター
+  - 期間フィルター
+  - 在庫状態フィルター
+
+### 異常系
+
+#### 認証不要の確認
+
+- **TC101**: 認証なしでアクセス可能
+  - Bearerトークンなしでも200 OK
+  - ただしデータは空または制限される可能性
+
+### 注意事項
+
+- このエンドポイントは認証不要として実装されている
+- ingredient-check-statisticsとの違いを明確にする必要がある
+
+---
+
+## 4.5 get-ingredient-check-statistics.integration.test.ts
+
+**対象**: `GET /api/v1/shopping-sessions/ingredient-check-statistics`
+
+### 正常系
+
+#### 基本的な食材チェック統計取得
+
+- **TC001**: 認証ユーザーの食材統計取得
+
+  - 食材ごとのチェック回数
+  - 在庫切れ率
+  - 最終チェック日時
+  - レスポンス形式の検証（200 OK）
+
+- **TC002**: 詳細な統計情報
+  - チェック頻度の時系列データ
+  - 在庫状態の変化履歴
+  - 期限状態の変化履歴
+
+### 異常系
+
+#### 認証エラー
+
+- **TC101**: 認証されていない場合（401エラー）
+  - エラーコード: UNAUTHORIZED
+  - メッセージ: "認証が必要です"
+
+### データ分離
+
+#### ユーザー分離
+
+- **TC201**: 認証ユーザーの食材のみ統計に含まれる
+  - 他ユーザーの食材チェックは含まれない
+
+---
+
+## 4.6 get-quick-access-ingredients.integration.test.ts
+
+**対象**: `GET /api/v1/shopping-sessions/quick-access-ingredients`
+
+### 正常系
+
+#### 基本的なクイックアクセス食材取得
+
+- **TC001**: デフォルトlimit（20件）での取得
+
+  - recentlyChecked: 最近チェックした食材
+  - frequentlyChecked: 頻繁にチェックする食材
+  - レスポンス形式の検証（200 OK）
+
+- **TC002**: カスタムlimitでの取得
+  - limit=10, 30, 50
+  - 最大50件の制限確認
+  - 各セクションの件数確認
+
+#### データ内容の検証
+
+- **TC003**: 最近チェックした食材
+
+  - lastCheckedAtの降順でソート
+  - 各食材の現在の在庫状態
+  - 期限状態の表示
+
+- **TC004**: 頻繁にチェックする食材
+
+  - checkCountの降順でソート
+  - チェック回数の正確性
+  - 最終チェック日時
+
+- **TC005**: 空の結果
+  - チェック履歴がない場合
+  - recentlyChecked: []
+  - frequentlyChecked: []
+
+### 異常系
+
+#### パラメータエラー
+
+- **TC101**: 不正なlimit値（400エラー）
+  - limit=0 → エラー
+  - limit=51 → 最大値超過エラー
+
+#### 認証エラー
+
+- **TC201**: 認証されていない場合（401エラー）
+
+### データ整合性
+
+#### リアルタイムデータ
+
+- **TC301**: 在庫状態の最新性
+  - 表示される在庫状態が現在の状態と一致
+  - 期限状態も最新の計算結果
+
+---
+
+## 4.7 abandon-shopping-session.integration.test.ts
+
+**対象**: `DELETE /api/v1/shopping-sessions/{sessionId}`
+
+### 正常系
+
+#### 基本的なセッション中断
+
+- **TC001**: アクティブセッションの中断
+
+  - status: ACTIVE → ABANDONED
+  - abandonedAtの設定
+  - レスポンス（204 No Content）
+
+- **TC002**: 中断理由の記録（実装による）
+  - タイムアウトによる自動中断
+  - ユーザーによる手動中断
+  - システムエラーによる中断
+
+### 異常系
+
+#### リソース不存在
+
+- **TC101**: 存在しないセッション（404エラー）
+
+  - エラーコード: SESSION_NOT_FOUND
+  - メッセージ: "セッションが見つかりません"
+
+- **TC102**: 他ユーザーのセッション（403エラー）
+  - エラーコード: FORBIDDEN
+  - メッセージ: "このセッションへのアクセス権限がありません"
+
+#### セッション状態エラー
+
+- **TC201**: 既に完了したセッション（400エラー）
+
+  - status=COMPLETED
+  - エラーコード: SESSION_ALREADY_COMPLETED
+
+- **TC202**: 既に中断されたセッション（400エラー）
+  - status=ABANDONED
+  - エラーコード: SESSION_ALREADY_ABANDONED
+
+#### 認証エラー
+
+- **TC301**: 認証されていない場合（401エラー）
+  - 実装では認証が明示されていない可能性
+
+### データ整合性
+
+#### 中断処理の原子性
+
+- **TC401**: セッション中断とイベント記録
+  - ShoppingSessionAbandonedイベントの発行
+  - チェック履歴の保持
+  - 統計データへの反映
+
+---
+
+# 5. ユーザー管理コンテキスト
+
+## 5.1 get-user-profile.integration.test.ts
+
+**対象**: `GET /api/v1/users/me`
+
+### 正常系
+
+#### 基本的なプロフィール取得
+
+- **TC001**: 認証済みユーザーのプロフィール取得
+
+  - NextAuthセッションが有効
+  - レスポンス形式の検証（200 OK）
+  - 全フィールドの存在確認（id, email, status, profile, preferences等）
+  - メタ情報（timestamp, version）の確認
+
+- **TC002**: プロフィール情報の構造確認
+
+  - profile: displayName, timezone, language
+  - preferences: theme, notifications, emailFrequency
+  - integration: status, lastSyncedAt
+  - タイムスタンプ形式の検証
+
+- **TC003**: デフォルト値の確認
+  - timezone: "Asia/Tokyo"
+  - language: "ja"
+  - theme: "system"
+  - notifications: true
+  - emailFrequency: "weekly"
+
+#### ユーザーステータス別の取得
+
+- **TC004**: ACTIVEステータスのユーザー
+
+  - 正常なレスポンス
+  - 全機能へのアクセス可能
+
+- **TC005**: DEACTIVATEDステータスのユーザー
+  - プロフィール取得は可能
+  - status: "DEACTIVATED"の確認
+
+### 異常系
+
+#### 認証エラー
+
+- **TC101**: 認証されていない場合（401エラー）
+
+  - NextAuthセッションなし
+  - エラーコード: UNAUTHORIZED
+  - メッセージ: "認証が必要です"
+
+- **TC102**: 無効なセッション（401エラー）
+
+  - 期限切れセッション
+  - 改ざんされたセッション
+
+- **TC103**: domainUserIdがない場合（401エラー）
+  - NextAuthユーザーは存在するがドメインユーザーが未作成
+  - エラーコード: UNAUTHORIZED
+  - 統合処理への誘導メッセージ
+
+#### ドメインユーザー不存在
+
+- **TC201**: ドメインユーザーが見つからない（404エラー）
+  - NextAuthとの統合が未完了
+  - エラーコード: DOMAIN_USER_NOT_FOUND
+  - 同期処理の推奨
+
+### データ整合性
+
+#### NextAuthとの統合
+
+- **TC301**: メールアドレスの同期確認
+  - NextAuthのメールとドメインユーザーのメールが一致
+  - 最終ログイン時刻の更新
+
+---
+
+## 5.2 update-user-profile.integration.test.ts
+
+**対象**: `PUT /api/v1/users/me`
+
+### 正常系
+
+#### 基本的なプロフィール更新
+
+- **TC001**: 全プロフィールフィールドの更新
+
+  - displayName: "新しい名前"
+  - timezone: "America/New_York"
+  - language: "en"
+  - レスポンスで更新後の全データ確認（200 OK）
+  - updatedAtの更新確認
+
+- **TC002**: 部分的な更新
+
+  - displayNameのみ更新
+  - timezoneのみ更新
+  - languageのみ更新
+  - 未指定フィールドは変更されない
+
+- **TC003**: 空の更新リクエスト
+  - profile: {} または body: {}
+  - エラーなく処理される
+  - データは変更されない
+
+#### フィールド別の更新パターン
+
+- **TC004**: displayNameの更新パターン
+
+  - 日本語名: "山田太郎"
+  - 英語名: "Taro Yamada"
+  - 特殊文字を含む: "山田@太郎"（許可される文字のみ）
+  - 最大長（50文字）のテスト
+
+- **TC005**: タイムゾーンの更新
+
+  - 有効なIANAタイムゾーン各種
+  - Asia/Tokyo → Europe/London
+  - 夏時間のあるタイムゾーン
+
+- **TC006**: 言語設定の更新
+  - ja → en
+  - サポートされている言語のみ
+
+### 異常系
+
+#### バリデーションエラー
+
+- **TC101**: displayNameの制約違反（400エラー）
+
+  - 空文字: "" → "表示名は必須です"
+  - 51文字以上 → "表示名は50文字以内で入力してください"
+  - 禁止文字（制御文字等）→ "使用できない文字が含まれています"
+
+- **TC102**: 無効なタイムゾーン（400エラー）
+
+  - timezone: "Invalid/Timezone"
+  - エラーコード: VALIDATION_ERROR
+  - メッセージ: "無効なタイムゾーンです"
+
+- **TC103**: サポートされていない言語（400エラー）
+  - language: "xx"
+  - エラーコード: VALIDATION_ERROR
+  - メッセージ: "サポートされていない言語です"
+
+#### 認証・認可エラー
+
+- **TC201**: 認証されていない場合（401エラー）
+- **TC202**: ドメインユーザーが見つからない（404エラー）
+
+### 並行性
+
+#### 同時更新
+
+- **TC301**: 同じユーザーの同時更新
+  - 2つの異なる更新リクエスト
+  - 最後のリクエストが反映される
+  - データ不整合が発生しない
+
+### イベント発行
+
+#### プロフィール更新イベント
+
+- **TC401**: ProfileUpdatedイベントの発行
+  - 変更内容が含まれる
+  - タイムスタンプの記録
+  - アクティビティ履歴への記録
+
+---
+
+## 5.3 メタ情報の検証
+
+### レスポンスメタ情報
+
+#### 共通メタ情報
+
+- **TC001**: timestampフィールド
+
+  - ISO 8601形式
+  - サーバー時刻との一致
+
+- **TC002**: versionフィールド
+  - API バージョン情報
+  - "1.0.0"形式
+
+### エラーレスポンス
+
+#### エラー形式の統一性
+
+- **TC001**: エラーレスポンス構造
+
+  ```typescript
+  {
+    error: {
+      code: string,
+      message: string,
+      type: string,
+      details?: object
+    },
+    meta: {
+      timestamp: string,
+      correlationId: string
+    }
+  }
+  ```
+
+- **TC002**: correlationIdの一意性
+  - 各エラーで異なるID
+  - UUID形式
+
+---
+
 # 共通仕様・横断的関心事
 
 ## エラーハンドリング
@@ -926,38 +1539,10 @@ const price = 150
 - **同時リクエスト**: 50件まで正常処理
 - **データ競合**: 楽観的ロックによる制御
 
-## 実装フェーズ
-
-### Phase 1 (Week 1-2): コア機能
-
-1. create-ingredient.integration.test.ts
-2. get-ingredient-detail.integration.test.ts
-3. get-ingredients.integration.test.ts
-4. update-ingredient.integration.test.ts
-5. delete-ingredient.integration.test.ts
-
-### Phase 2 (Week 3): 在庫管理
-
-1. consume-ingredient.integration.test.ts
-2. replenish-ingredient.integration.test.ts
-3. get-expiring-soon.integration.test.ts
-
-### Phase 3 (Week 4): 買い物セッション
-
-1. start-shopping-session.integration.test.ts
-2. check-ingredient.integration.test.ts
-3. complete-shopping-session.integration.test.ts
-
-### Phase 4 (Week 5): 高度な機能
-
-1. get-categories.integration.test.ts
-2. get-units.integration.test.ts
-3. その他の買い物セッション機能
-
----
-
 ## 更新履歴
 
-| 日付       | 内容     | 作成者 |
-| ---------- | -------- | ------ |
-| 2025-07-02 | 初版作成 | Claude |
+| 日付       | 内容                                             | 作成者 |
+| ---------- | ------------------------------------------------ | ------ |
+| 2025-07-02 | 初版作成                                         | Claude |
+| 2025-07-03 | ユーザー管理APIのテストケース追加                | Claude |
+| 2025-07-03 | 買い物セッション関連APIのテストケース追加（7件） | Claude |
