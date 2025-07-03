@@ -19,7 +19,9 @@ function getApplicationVersion(): string {
 
   try {
     const packageJsonPath = join(process.cwd(), 'package.json')
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as {
+      version?: string
+    }
     const version = packageJson.version || '1.0.0'
     cachedVersion = version
     return version
@@ -42,7 +44,7 @@ export interface ResponseMeta {
 /**
  * 共通レスポンスフォーマット
  */
-export interface FormattedResponse<T = any> {
+export interface FormattedResponse<T = unknown> {
   data?: T
   pagination?: {
     page: number
@@ -69,7 +71,7 @@ export interface ErrorResponse {
     path: string
     details?: {
       rule?: string
-      constraints?: Record<string, any>
+      constraints?: Record<string, unknown>
       suggestions?: string[]
       fields?: Array<{
         field: string

@@ -118,7 +118,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 200 OKが返される
         expect(response.status).toBe(200)
@@ -174,7 +175,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response1 = await GET(request1)
-        const data1 = await response1.json()
+        const responseData1 = await response1.json()
+        const data1 = responseData1.data
 
         // Then: 1ページ目の結果
         expect(response1.status).toBe(200)
@@ -192,7 +194,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response2 = await GET(request2)
-        const data2 = await response2.json()
+        const responseData2 = await response2.json()
+        const data2 = responseData2.data
 
         // Then: 2ページ目の結果
         expect(response2.status).toBe(200)
@@ -258,7 +261,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 検索条件にマッチする結果のみ返される
         expect(response.status).toBe(200)
@@ -317,7 +321,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 指定カテゴリーの食材のみ返される
         expect(response.status).toBe(200)
@@ -376,7 +381,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 指定保存場所の食材のみ返される
         expect(response.status).toBe(200)
@@ -423,7 +429,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           method: 'GET',
         })
         const response1 = await GET(request1)
-        const data1 = await response1.json()
+        const responseData1 = await response1.json()
+        const data1 = responseData1.data
 
         // Then: 在庫ありの食材のみ返される
         expect(response1.status).toBe(200)
@@ -439,7 +446,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response2 = await GET(request2)
-        const data2 = await response2.json()
+        const responseData2 = await response2.json()
+        const data2 = responseData2.data
 
         // Then: 在庫切れの食材のみ返される
         expect(response2.status).toBe(200)
@@ -494,7 +502,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 3日以内に期限切れの食材のみ返される
         expect(response.status).toBe(200)
@@ -556,7 +565,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 条件を満たす食材のみ返される
         expect(response.status).toBe(200)
@@ -602,7 +612,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response1 = await GET(request1)
-        const data1 = await response1.json()
+        const responseData1 = await response1.json()
+        const data1 = responseData1.data
 
         // Then: 名前の昇順でソートされている
         expect(response1.status).toBe(200)
@@ -619,7 +630,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response2 = await GET(request2)
-        const data2 = await response2.json()
+        const responseData2 = await response2.json()
+        const data2 = responseData2.data
 
         // Then: 名前の降順でソートされている
         expect(response2.status).toBe(200)
@@ -643,12 +655,12 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response1 = await GET(request1)
-        const data1 = await response1.json()
+        const errorData1 = await response1.json()
 
         // Then: 400 Bad Request
         expect(response1.status).toBe(400)
-        expect(data1.error.code).toBe('VALIDATION_ERROR')
-        expect(data1.error.message).toContain('無効なページ番号です')
+        expect(errorData1.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData1.error.message).toContain('無効なページ番号です')
 
         // Given: limit が上限を超過
         const request2 = new NextRequest('http://localhost:3000/api/v1/ingredients?limit=101', {
@@ -657,12 +669,12 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response2 = await GET(request2)
-        const data2 = await response2.json()
+        const errorData2 = await response2.json()
 
         // Then: 400 Bad Request
         expect(response2.status).toBe(400)
-        expect(data2.error.code).toBe('VALIDATION_ERROR')
-        expect(data2.error.message).toContain('無効なリミット値です')
+        expect(errorData2.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData2.error.message).toContain('無効なリミット値です')
       })
 
       it('TC102: 不正なソート項目（400エラー）', async () => {
@@ -676,12 +688,12 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 400 Bad Request
         expect(response.status).toBe(400)
-        expect(data.error.code).toBe('VALIDATION_ERROR')
-        expect(data.error.message).toContain('sortByは')
+        expect(errorData.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData.error.message).toContain('sortByは')
       })
     })
 
@@ -697,7 +709,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 空の結果が正常に返される
         expect(response.status).toBe(200)
@@ -741,7 +754,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
           }
         )
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 正しくページネーションされている
         expect(response.status).toBe(200)
@@ -795,7 +809,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 認証ユーザーの食材のみ返される
         expect(response.status).toBe(200)
@@ -843,7 +858,8 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 論理削除されていない食材のみ返される
         expect(response.status).toBe(200)
@@ -865,12 +881,12 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await GET(request)
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Then: 401 Unauthorized
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('UNAUTHORIZED')
-      expect(data.error.message).toContain('Authentication required')
+      expect(errorData.error.code).toBe('UNAUTHORIZED')
+      expect(errorData.error.message).toContain('Authentication required')
     })
 
     it('TC402: 無効なトークン（401エラー）', async () => {
@@ -889,11 +905,11 @@ describe('GET /api/v1/ingredients Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await GET(request)
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Then: 401 Unauthorized
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('UNAUTHORIZED')
+      expect(errorData.error.code).toBe('UNAUTHORIZED')
     })
   })
 })

@@ -16,21 +16,21 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
-// NextResponseの静的メソッドをモック
-vi.mock('next/server', async () => {
-  const actual = await vi.importActual<typeof import('next/server')>('next/server')
-  return {
-    ...actual,
-    NextResponse: {
-      json: vi.fn((body, init) => ({
-        status: init?.status || 200,
-        headers: init?.headers || new Headers(),
-        body,
-        json: async () => body,
-      })),
-    },
-  }
-})
+// response-formatterをモック
+vi.mock('@/modules/shared/server/api/response-formatter', () => ({
+  ResponseFormatter: {
+    success: vi.fn((data) => ({
+      data,
+      meta: {
+        timestamp: new Date().toISOString(),
+        version: '0.1.0',
+      },
+    })),
+  },
+}))
+
+// NextResponseをモックしない
+// 実際のNextResponseを使用することで、より現実的なテストになる
 
 /**
  * UnifiedRouteFactory の単体テスト
@@ -72,7 +72,8 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 401エラーレスポンスが返される
         expect(response.status).toBe(401)
-        expect(response.body).toMatchObject({
+        const body = await response.json()
+        expect(body).toMatchObject({
           error: {
             code: 'UNAUTHORIZED',
             message: 'Authentication required',
@@ -99,7 +100,8 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 401エラーレスポンスが返される
         expect(response.status).toBe(401)
-        expect(response.body).toMatchObject({
+        const body = await response.json()
+        expect(body).toMatchObject({
           error: {
             code: 'UNAUTHORIZED',
             message: 'Authentication required',
@@ -147,7 +149,14 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 正常なレスポンスが返される
         expect(response.status).toBe(201)
-        expect(response.body).toEqual({ id: '123', name: 'test' })
+        const body = await response.json()
+        expect(body).toEqual({
+          data: { id: '123', name: 'test' },
+          meta: {
+            timestamp: expect.any(String),
+            version: '0.1.0',
+          },
+        })
         expect(mockApiHandler.validate).toHaveBeenCalled()
         expect(mockApiHandler.execute).toHaveBeenCalledWith({ name: 'test' }, 'user123')
       })
@@ -161,15 +170,41 @@ describe('UnifiedRouteFactory', () => {
         mockApiHandler.validate.mockReturnValueOnce({})
         mockApiHandler.execute.mockResolvedValueOnce(undefined)
 
+        // handleメソッドをモック
+        const handleSpy = vi.spyOn(mockApiHandler, 'handle')
+        handleSpy.mockResolvedValueOnce(undefined)
+
         const handler = UnifiedRouteFactory.createDeleteHandler(() => mockApiHandler)
-        const request = new NextRequest('http://localhost/api/test/123')
+        const request = new NextRequest('http://localhost/api/test/123', {
+          method: 'DELETE',
+        })
+        // textメソッドをモック
+        vi.spyOn(request, 'text').mockResolvedValueOnce('')
 
         // When: ハンドラーを実行
-        const response = await handler(request)
+        let response
+        try {
+          response = await handler(request)
+        } catch (error) {
+          console.error('Handler threw error:', error)
+          throw error
+        }
 
-        // Then: 200 OKが返される（UnifiedRouteFactoryはundefinedでも200を返す）
-        expect(response.status).toBe(200)
-        expect(response.body).toBeUndefined()
+        // デバッグ: 実際のレスポンスを確認
+        if (response.status === 500) {
+          console.error('Got 500 status')
+          try {
+            const errorBody = response.body
+            console.error('Error body:', errorBody)
+          } catch (e) {
+            console.error('Could not parse error body:', e)
+          }
+        }
+
+        // Then: 204 No Contentが返される（DELETEハンドラーでundefinedの場合）
+        expect(response.status).toBe(204)
+        // 204の場合はbodyがnull
+        expect(response.body).toBeNull()
       })
 
       it('paramsが渡された場合、リクエストデータとマージされる', async () => {
@@ -202,7 +237,10 @@ describe('UnifiedRouteFactory', () => {
             name: 'test',
           },
           'user123',
-          expect.any(Object)
+          expect.objectContaining({
+            method: 'PUT',
+            path: 'http://localhost/api/test/123',
+          })
         )
       })
     })
@@ -232,7 +270,8 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 400エラーレスポンスが返される
         expect(response.status).toBe(400)
-        expect(response.body).toMatchObject({
+        const body = await response.json()
+        expect(body).toMatchObject({
           error: {
             code: 'VALIDATION_ERROR',
             message: 'Invalid input',
@@ -256,7 +295,8 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 404エラーレスポンスが返される
         expect(response.status).toBe(404)
-        expect(response.body).toMatchObject({
+        const body = await response.json()
+        expect(body).toMatchObject({
           error: {
             code: 'RESOURCE_NOT_FOUND',
             message: 'Resource not found',
@@ -283,7 +323,8 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 422エラーレスポンスが返される
         expect(response.status).toBe(422)
-        expect(response.body).toMatchObject({
+        const body = await response.json()
+        expect(body).toMatchObject({
           error: {
             code: 'BUSINESS_RULE_VIOLATION',
             message: 'Amount must be positive',
@@ -308,7 +349,8 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 500エラーレスポンスが返される
         expect(response.status).toBe(500)
-        expect(response.body).toMatchObject({
+        const body = await response.json()
+        expect(body).toMatchObject({
           error: {
             code: 'INTERNAL_SERVER_ERROR',
             message: 'An unexpected error occurred',
@@ -368,7 +410,14 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 200 OKが返される
         expect(response.status).toBe(200)
-        expect(response.body).toEqual({ success: true })
+        const body = await response.json()
+        expect(body).toEqual({
+          data: { success: true },
+          meta: {
+            timestamp: expect.any(String),
+            version: '0.1.0',
+          },
+        })
       })
 
       it('createPostHandler - POSTリクエストを処理', async () => {
@@ -384,7 +433,14 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 201 Createdが返される
         expect(response.status).toBe(201)
-        expect(response.body).toEqual({ success: true })
+        const body = await response.json()
+        expect(body).toEqual({
+          data: { success: true },
+          meta: {
+            timestamp: expect.any(String),
+            version: '0.1.0',
+          },
+        })
       })
 
       it('createPutHandler - PUTリクエストを処理', async () => {
@@ -400,7 +456,14 @@ describe('UnifiedRouteFactory', () => {
 
         // Then: 200 OKが返される
         expect(response.status).toBe(200)
-        expect(response.body).toEqual({ success: true })
+        const body = await response.json()
+        expect(body).toEqual({
+          data: { success: true },
+          meta: {
+            timestamp: expect.any(String),
+            version: '0.1.0',
+          },
+        })
       })
 
       it('createDeleteHandler - DELETEリクエストを処理', async () => {

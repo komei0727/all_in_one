@@ -114,7 +114,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 200 OKが返される
         expect(response.status).toBe(200)
@@ -162,7 +163,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: expiryInfoがnull
         expect(response.status).toBe(200)
@@ -207,7 +209,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 全フィールドが正しく返される
         expect(response.status).toBe(200)
@@ -256,7 +259,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 期限情報が存在し、将来の日付である
         expect(response.status).toBe(200)
@@ -299,7 +303,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 在庫切れ状態
         expect(response.status).toBe(200)
@@ -325,11 +330,11 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: nonExistentId }) })
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 404 Not Foundが返される
         expect(response.status).toBe(404)
-        expect(data.error.code).toBe('RESOURCE_NOT_FOUND')
+        expect(errorData.error.code).toBe('RESOURCE_NOT_FOUND')
       })
 
       it('TC102: 他ユーザーの食材（404エラー）', async () => {
@@ -365,11 +370,11 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
         const response = await GET(request, {
           params: Promise.resolve({ id: otherUserIngredient.id }),
         })
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 404 Not Found（プライバシー保護のため403ではなく404）
         expect(response.status).toBe(404)
-        expect(data.error.code).toBe('RESOURCE_NOT_FOUND')
+        expect(errorData.error.code).toBe('RESOURCE_NOT_FOUND')
       })
 
       it('TC103: 論理削除された食材（404エラー）', async () => {
@@ -403,11 +408,11 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
         const response = await GET(request, {
           params: Promise.resolve({ id: deletedIngredient.id }),
         })
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 404 Not Found
         expect(response.status).toBe(404)
-        expect(data.error.code).toBe('RESOURCE_NOT_FOUND')
+        expect(errorData.error.code).toBe('RESOURCE_NOT_FOUND')
       })
     })
 
@@ -424,11 +429,11 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await GET(request, { params: Promise.resolve({ id: invalidId }) })
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 400 Bad Request
         expect(response.status).toBe(400)
-        expect(data.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData.error.code).toBe('VALIDATION_ERROR')
       })
     })
   })
@@ -446,12 +451,12 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await GET(request, { params: Promise.resolve({ id: validId }) })
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Then: 401 Unauthorized
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('UNAUTHORIZED')
-      expect(data.error.message).toContain('Authentication required')
+      expect(errorData.error.code).toBe('UNAUTHORIZED')
+      expect(errorData.error.message).toContain('Authentication required')
     })
 
     it('TC302: 無効なトークン（401エラー）', async () => {
@@ -472,11 +477,11 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await GET(request, { params: Promise.resolve({ id: validId }) })
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Then: 401 Unauthorized
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('UNAUTHORIZED')
+      expect(errorData.error.code).toBe('UNAUTHORIZED')
     })
   })
 
@@ -509,7 +514,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-      const data = await response.json()
+      const responseData = await response.json()
+      const data = responseData.data
 
       // Then: 関連データが正しく結合されている
       expect(response.status).toBe(200)
@@ -550,7 +556,8 @@ describe('GET /api/v1/ingredients/[id] Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await GET(request, { params: Promise.resolve({ id: ingredientId.id }) })
-      const data = await response.json()
+      const responseData = await response.json()
+      const data = responseData.data
 
       // Then: 価格の精度が保持されている
       expect(response.status).toBe(200)

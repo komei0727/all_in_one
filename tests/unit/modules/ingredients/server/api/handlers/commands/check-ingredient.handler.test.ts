@@ -50,7 +50,7 @@ describe('CheckIngredientApiHandler', () => {
       const result = await apiHandler.handle(requestData, userId)
 
       // Then: 正しい結果が返される
-      expect(result).toEqual(expectedResult.toJSON().data)
+      expect(result).toEqual(expectedResult.toJSON())
 
       // コマンドハンドラーが正しく呼び出されることを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(expect.any(CheckIngredientCommand))
@@ -97,8 +97,8 @@ describe('CheckIngredientApiHandler', () => {
       )
 
       // Then: それぞれ正しい結果が返される
-      expect(result1).toEqual(expectedResult1.toJSON().data)
-      expect(result2).toEqual(expectedResult2.toJSON().data)
+      expect(result1).toEqual(expectedResult1.toJSON())
+      expect(result2).toEqual(expectedResult2.toJSON())
 
       expect(mockCommandHandler.handle).toHaveBeenCalledTimes(2)
     })

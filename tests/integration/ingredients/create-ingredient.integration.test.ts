@@ -109,7 +109,8 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 201 Createdが返される
         expect(response.status).toBe(201)
@@ -161,7 +162,8 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 201 Createdが返される
         expect(response.status).toBe(201)
@@ -205,7 +207,8 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 全フィールドが正しく設定される
         expect(response.status).toBe(201)
@@ -245,7 +248,8 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 価格の精度が保持される
         expect(response.status).toBe(201)
@@ -286,7 +290,8 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const responseData = await response.json()
+        const data = responseData.data
 
         // Then: 賞味期限のみが設定される
         expect(response.status).toBe(201)
@@ -326,7 +331,8 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
           // When: APIを呼び出す
           const response = await POST(request)
-          const data = await response.json()
+          const responseData = await response.json()
+          const data = responseData.data
 
           // Then: 正しい保存場所タイプで作成される
           expect(response.status).toBe(201)
@@ -372,16 +378,16 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 400 Bad Requestが返される
         expect(response.status).toBe(400)
-        expect(data.error).toBeDefined()
-        expect(data.error.code).toBe('VALIDATION_ERROR')
-        expect(data.error.details.validationErrors).toBeDefined()
-        expect(data.error.details.validationErrors.some((err: any) => err.field === 'name')).toBe(
-          true
-        )
+        expect(errorData.error).toBeDefined()
+        expect(errorData.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData.error.details.validationErrors).toBeDefined()
+        expect(
+          errorData.error.details.validationErrors.some((err: any) => err.field === 'name')
+        ).toBe(true)
       })
 
       it('TC102: 食材名が長すぎる場合400エラーを返す', async () => {
@@ -414,15 +420,15 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 400 Bad Requestが返される
         expect(response.status).toBe(400)
-        expect(data.error.code).toBe('VALIDATION_ERROR')
-        expect(data.error.details.validationErrors).toBeDefined()
-        expect(data.error.details.validationErrors.some((err: any) => err.field === 'name')).toBe(
-          true
-        )
+        expect(errorData.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData.error.details.validationErrors).toBeDefined()
+        expect(
+          errorData.error.details.validationErrors.some((err: any) => err.field === 'name')
+        ).toBe(true)
       })
 
       it('TC103: 数量が0以下の場合400エラーを返す', async () => {
@@ -453,14 +459,16 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 400 Bad Requestが返される
         expect(response.status).toBe(400)
-        expect(data.error.code).toBe('VALIDATION_ERROR')
-        expect(data.error.details.validationErrors).toBeDefined()
+        expect(errorData.error.code).toBe('VALIDATION_ERROR')
+        expect(errorData.error.details.validationErrors).toBeDefined()
         expect(
-          data.error.details.validationErrors.some((err: any) => err.field === 'quantity.amount')
+          errorData.error.details.validationErrors.some(
+            (err: any) => err.field === 'quantity.amount'
+          )
         ).toBe(true)
       })
     })
@@ -495,12 +503,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 404 Not Foundが返される
         expect(response.status).toBe(404)
-        expect(data.error.code).toBe('RESOURCE_NOT_FOUND')
-        expect(data.error.message).toContain('Category not found')
+        expect(errorData.error.code).toBe('RESOURCE_NOT_FOUND')
+        expect(errorData.error.message).toContain('Category not found')
       })
 
       it('TC202: 存在しない単位IDの場合404エラーを返す', async () => {
@@ -532,12 +540,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
         // When: APIを呼び出す
         const response = await POST(request)
-        const data = await response.json()
+        const errorData = await response.json()
 
         // Then: 404 Not Foundが返される
         expect(response.status).toBe(404)
-        expect(data.error.code).toBe('RESOURCE_NOT_FOUND')
-        expect(data.error.message).toContain('Unit not found')
+        expect(errorData.error.code).toBe('RESOURCE_NOT_FOUND')
+        expect(errorData.error.message).toContain('Unit not found')
       })
     })
   })
@@ -566,12 +574,12 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await POST(request)
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Then: 401 Unauthorizedが返される
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('UNAUTHORIZED')
-      expect(data.error.message).toContain('Authentication required')
+      expect(errorData.error.code).toBe('UNAUTHORIZED')
+      expect(errorData.error.message).toContain('Authentication required')
     })
 
     it('TC403: domainUserIdがない場合401エラーを返す', async () => {
@@ -603,11 +611,11 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await POST(request)
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Then: 401 Unauthorizedが返される
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('UNAUTHORIZED')
+      expect(errorData.error.code).toBe('UNAUTHORIZED')
     })
   })
 
@@ -651,7 +659,7 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
       })
 
       // 全て異なるIDが生成される
-      const ids = results.map((r) => r.ingredient.id)
+      const ids = results.map((r) => r.data.ingredient.id)
       const uniqueIds = new Set(ids)
       expect(uniqueIds.size).toBe(3)
 
@@ -693,9 +701,9 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
       // Debug: レスポンス詳細を確認
       if (response.status !== 201) {
-        const data = await response.json()
+        const errorData = await response.json()
         console.log('TC602 Error Status:', response.status)
-        console.log('TC602 Error Data:', JSON.stringify(data, null, 2))
+        console.log('TC602 Error Data:', JSON.stringify(errorData, null, 2))
       }
 
       // Then: 正常に処理される（Next.jsは寛容）
@@ -724,17 +732,17 @@ describe('POST /api/v1/ingredients Integration Tests', () => {
 
       // When: APIを呼び出す
       const response = await POST(request)
-      const data = await response.json()
+      const errorData = await response.json()
 
       // Debug: エラー詳細を確認
       if (response.status !== 500) {
         console.log('TC601 Error Status:', response.status)
-        console.log('TC601 Error Data:', JSON.stringify(data, null, 2))
+        console.log('TC601 Error Data:', JSON.stringify(errorData, null, 2))
       }
 
       // Then: 500 Internal Server Errorが返される
       expect(response.status).toBe(500)
-      expect(data.error.code).toBe('INTERNAL_SERVER_ERROR')
+      expect(errorData.error.code).toBe('INTERNAL_SERVER_ERROR')
     })
   })
 })

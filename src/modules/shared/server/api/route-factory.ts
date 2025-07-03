@@ -74,7 +74,7 @@ export class UnifiedRouteFactory {
 
         // 5. APIハンドラーの実行
         const apiHandler = apiHandlerFactory()
-        const result = await apiHandler.handle(requestData, userId)
+        const result = await apiHandler.handle(requestData, userId, context)
 
         // 6. 成功レスポンスの生成
         return this.createSuccessResponse(result, 201)
@@ -165,7 +165,7 @@ export class UnifiedRouteFactory {
         }
 
         const apiHandler = apiHandlerFactory()
-        const result = await apiHandler.handle(requestData, userId)
+        const result = await apiHandler.handle(requestData, userId, context)
 
         return this.createSuccessResponse(result, 200)
       } catch (error) {
@@ -225,7 +225,9 @@ export class UnifiedRouteFactory {
         const apiHandler = apiHandlerFactory()
         const result = await apiHandler.handle(requestData, userId, errorContext)
 
-        return this.createSuccessResponse(result, 200)
+        // DELETEハンドラーがvoidを返す場合は204 No Contentを返す
+        const statusCode = result === undefined || result === null ? 204 : 200
+        return this.createSuccessResponse(result, statusCode)
       } catch (error) {
         return this.handleError(error, errorContext)
       }
@@ -280,13 +282,13 @@ export class UnifiedRouteFactory {
       processedData = (data as { toJSON: () => unknown }).toJSON() as T
     }
 
-    // DELETEリクエストで204 No Contentの場合はメタデータのみ返す
+    // 204 No Contentの場合は空のレスポンスを返す
+    // NextResponse.json()は204ステータスコードをサポートしていないため、
+    // 空のResponseオブジェクトを直接作成する
     if (status === 204) {
-      const response = ResponseFormatter.meta()
-      return NextResponse.json(response, {
+      return new NextResponse(null, {
         status: 204,
         headers: {
-          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
         },
       })
@@ -308,6 +310,12 @@ export class UnifiedRouteFactory {
    * エラーハンドリング
    */
   private static handleError(error: unknown, context: ErrorContext): NextResponse {
+    // デバッグ用：エラーを出力
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('RouteFactory handleError:', error)
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    }
+
     // API例外への統一変換
     const apiException = UniversalExceptionConverter.convert(error, context)
 
@@ -331,6 +339,15 @@ export class UnifiedRouteFactory {
     if (process.env.NODE_ENV === 'production' && apiException.statusCode >= 500) {
       errorResponse.error.message = 'Internal server error'
       delete errorResponse.error.details
+    }
+
+    // 開発環境では元のエラーメッセージを含める
+    if (process.env.NODE_ENV !== 'production' && apiException.statusCode >= 500) {
+      errorResponse.error.details = {
+        ...errorResponse.error.details,
+        originalError: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }
     }
 
     return NextResponse.json(errorResponse, {
