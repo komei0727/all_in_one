@@ -26,15 +26,27 @@ export class DeleteIngredientApiHandler extends BaseApiHandler<DeleteIngredientR
    * 食材IDの形式を検証
    */
   validate(data: unknown): DeleteIngredientRequest {
-    // dataはparams.ingredientIdまたはingredientIdを含むオブジェクト
-    const params = data as { ingredientId?: string; params?: { ingredientId: string } }
+    // dataはparams.id、params.ingredientId、またはingredientIdを含むオブジェクト
+    const params = data as {
+      ingredientId?: string
+      id?: string
+      params?: { ingredientId?: string; id?: string }
+    }
 
-    const id = params.ingredientId || params.params?.ingredientId || ''
+    // idの取得（複数の可能性を考慮）
+    const id =
+      params.ingredientId || params.id || params.params?.ingredientId || params.params?.id || ''
 
-    // プレフィックス付きCUID形式のバリデーション（ing_で始まるCUID v2）
-    const ingredientIdRegex = /^ing_[0-9a-z]{24}$/
+    // 食材IDの形式をバリデーション
+    // IDが空の場合
+    if (!id) {
+      throw new ValidationException('食材IDは必須です')
+    }
+
+    // 食材ID形式のバリデーション（ing_プレフィックス付き）
+    const ingredientIdRegex = /^ing_[0-9a-z]{24,}$/
     if (!ingredientIdRegex.test(id)) {
-      throw new ValidationException('無効なIDフォーマットです。食材IDはing_で始まる必要があります')
+      throw new ValidationException('無効なIDフォーマットです')
     }
 
     return { id }
