@@ -3,7 +3,7 @@ import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
 
 /**
  * ユーザープロフィール取得 API
- * GET /api/auth/user/profile
+ * GET /api/v1/users/me
  */
 export const GET = UnifiedRouteFactory.createGetHandler(() =>
   CompositionRoot.getInstance().getGetProfileApiHandler()
@@ -11,7 +11,7 @@ export const GET = UnifiedRouteFactory.createGetHandler(() =>
 
 /**
  * ユーザープロフィール更新 API
- * PUT /api/auth/user/profile
+ * PUT /api/v1/users/me
  */
 export const PUT = UnifiedRouteFactory.createPutHandler(() =>
   CompositionRoot.getInstance().getUpdateProfileApiHandler()

@@ -55,7 +55,7 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
-        const response = await fetch('/api/auth/user/profile')
+        const response = await fetch('/api/v1/users/me')
 
         if (response.ok) {
           const data = (await response.json()) as ApiResponse<UserProfile>
@@ -85,7 +85,7 @@ export default function ProfilePage() {
     setSuccess(null)
 
     try {
-      const response = await fetch('/api/auth/user/profile', {
+      const response = await fetch('/api/v1/users/me', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

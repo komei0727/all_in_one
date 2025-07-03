@@ -104,7 +104,7 @@ export default function HomePage() {
                   <div className="space-y-2">
                     <div>
                       <Link
-                        href="/api/auth/user/profile"
+                        href="/api/v1/users/me"
                         target="_blank"
                         className="block text-indigo-600 hover:text-indigo-500"
                       >
