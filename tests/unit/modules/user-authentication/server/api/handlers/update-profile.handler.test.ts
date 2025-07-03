@@ -13,8 +13,14 @@ describe('UpdateProfileApiHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUserApplicationService = {
-      getUserByNextAuthId: vi.fn(),
+      getUserById: vi.fn(),
+      getUserByEmail: vi.fn(),
       updateUserProfile: vi.fn(),
+      createOrUpdateFromNextAuth: vi.fn(),
+      handleSuccessfulAuthentication: vi.fn(),
+      deactivateUser: vi.fn(),
+      getActiveUsers: vi.fn(),
+      getActiveUserCount: vi.fn(),
     } as unknown as UserApplicationService
     apiHandler = new UpdateProfileApiHandler(mockUserApplicationService)
   })
@@ -22,31 +28,35 @@ describe('UpdateProfileApiHandler', () => {
   // テストデータビルダー
   const createUserId = () => faker.string.uuid()
   const createNextAuthId = () => faker.string.uuid()
-  const createUserProfile = () => ({
-    id: createUserId(),
-    nextAuthId: createNextAuthId(),
-    email: faker.internet.email(),
-    profile: {
-      displayName: faker.person.fullName(),
-      timezone: faker.location.timeZone(),
-      language: faker.helpers.arrayElement(['ja', 'en'] as const),
-      preferences: {
-        theme: faker.helpers.arrayElement(['light', 'dark', 'auto'] as const),
-        notifications: faker.datatype.boolean(),
-        emailFrequency: faker.helpers.arrayElement([
-          'daily',
-          'weekly',
-          'monthly',
-          'never',
-        ] as const),
+  const createUserProfile = () => {
+    const nextAuthId = createNextAuthId()
+    return {
+      id: createUserId(),
+      userId: nextAuthId,
+      nextAuthId: nextAuthId,
+      email: faker.internet.email(),
+      profile: {
+        displayName: faker.person.fullName(),
+        timezone: faker.location.timeZone(),
+        language: faker.helpers.arrayElement(['ja', 'en'] as const),
+        preferences: {
+          theme: faker.helpers.arrayElement(['light', 'dark', 'auto'] as const),
+          notifications: faker.datatype.boolean(),
+          emailFrequency: faker.helpers.arrayElement([
+            'daily',
+            'weekly',
+            'monthly',
+            'never',
+          ] as const),
+        },
       },
-    },
-    status: faker.helpers.arrayElement(['ACTIVE', 'DEACTIVATED'] as const),
-    isActive: true,
-    lastLoginAt: faker.date.recent(),
-    createdAt: faker.date.past(),
-    updatedAt: faker.date.recent(),
-  })
+      status: faker.helpers.arrayElement(['ACTIVE', 'DEACTIVATED'] as const),
+      isActive: true,
+      lastLoginAt: faker.date.recent(),
+      createdAt: faker.date.past(),
+      updatedAt: faker.date.recent(),
+    }
+  }
 
   const createValidUpdateRequest = () => ({
     displayName: faker.person.fullName(),
@@ -57,7 +67,7 @@ describe('UpdateProfileApiHandler', () => {
   describe('正常系', () => {
     it('プロフィール更新が正常に実行される', async () => {
       // Given: 有効な更新リクエストとユーザー
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = createValidUpdateRequest()
       const currentUser = createUserProfile()
       const updatedUser = {
@@ -68,17 +78,17 @@ describe('UpdateProfileApiHandler', () => {
         },
       }
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockResolvedValueOnce(updatedUser)
 
       // When: APIハンドラーを実行
-      const result = await apiHandler.handle(updateRequest, nextAuthId)
+      const result = await apiHandler.handle(updateRequest, userId)
 
       // Then: 更新されたプロフィール情報が返される
       expect(result).toEqual(updatedUser)
 
       // UserApplicationServiceが正しく呼び出されることを確認
-      expect(mockUserApplicationService.getUserByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+      expect(mockUserApplicationService.getUserById).toHaveBeenCalledWith(userId)
       expect(mockUserApplicationService.updateUserProfile).toHaveBeenCalledWith(currentUser.id, {
         displayName: updateRequest.displayName,
         timezone: updateRequest.timezone,
@@ -88,7 +98,7 @@ describe('UpdateProfileApiHandler', () => {
 
     it('日本語の表示名でプロフィール更新できる', async () => {
       // Given: 日本語の表示名を含む更新リクエスト
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = {
         displayName: '田中太郎',
         timezone: 'Asia/Tokyo',
@@ -103,11 +113,11 @@ describe('UpdateProfileApiHandler', () => {
         },
       }
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockResolvedValueOnce(updatedUser)
 
       // When: APIハンドラーを実行
-      const result = await apiHandler.handle(updateRequest, nextAuthId)
+      const result = await apiHandler.handle(updateRequest, userId)
 
       // Then: 日本語表示名が正しく更新される
       expect(result).toEqual(updatedUser)
@@ -120,7 +130,7 @@ describe('UpdateProfileApiHandler', () => {
 
     it('英語の言語設定でプロフィール更新できる', async () => {
       // Given: 英語言語設定の更新リクエスト
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = {
         displayName: 'John Smith',
         timezone: 'America/New_York',
@@ -135,11 +145,11 @@ describe('UpdateProfileApiHandler', () => {
         },
       }
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockResolvedValueOnce(updatedUser)
 
       // When: APIハンドラーを実行
-      const result = await apiHandler.handle(updateRequest, nextAuthId)
+      const result = await apiHandler.handle(updateRequest, userId)
 
       // Then: 英語設定が正しく更新される
       expect(result).toEqual(updatedUser)
@@ -163,7 +173,7 @@ describe('UpdateProfileApiHandler', () => {
       await expect(apiHandler.handle(invalidRequest, createNextAuthId())).rejects.toThrow()
 
       // UserApplicationServiceが呼び出されないことを確認
-      expect(mockUserApplicationService.getUserByNextAuthId).not.toHaveBeenCalled()
+      expect(mockUserApplicationService.getUserById).not.toHaveBeenCalled()
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
 
@@ -178,7 +188,7 @@ describe('UpdateProfileApiHandler', () => {
       await expect(apiHandler.handle(invalidRequest, createNextAuthId())).rejects.toThrow()
 
       // UserApplicationServiceが呼び出されないことを確認
-      expect(mockUserApplicationService.getUserByNextAuthId).not.toHaveBeenCalled()
+      expect(mockUserApplicationService.getUserById).not.toHaveBeenCalled()
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
 
@@ -193,7 +203,7 @@ describe('UpdateProfileApiHandler', () => {
       await expect(apiHandler.handle(invalidRequest, createNextAuthId())).rejects.toThrow()
 
       // UserApplicationServiceが呼び出されないことを確認
-      expect(mockUserApplicationService.getUserByNextAuthId).not.toHaveBeenCalled()
+      expect(mockUserApplicationService.getUserById).not.toHaveBeenCalled()
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
 
@@ -208,7 +218,7 @@ describe('UpdateProfileApiHandler', () => {
       await expect(apiHandler.handle(invalidRequest, createNextAuthId())).rejects.toThrow()
 
       // UserApplicationServiceが呼び出されないことを確認
-      expect(mockUserApplicationService.getUserByNextAuthId).not.toHaveBeenCalled()
+      expect(mockUserApplicationService.getUserById).not.toHaveBeenCalled()
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
 
@@ -222,7 +232,7 @@ describe('UpdateProfileApiHandler', () => {
       await expect(apiHandler.handle(invalidRequest, createNextAuthId())).rejects.toThrow()
 
       // UserApplicationServiceが呼び出されないことを確認
-      expect(mockUserApplicationService.getUserByNextAuthId).not.toHaveBeenCalled()
+      expect(mockUserApplicationService.getUserById).not.toHaveBeenCalled()
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
   })
@@ -230,37 +240,33 @@ describe('UpdateProfileApiHandler', () => {
   describe('例外処理', () => {
     it('ユーザーが見つからない場合はNotFoundExceptionが伝播される', async () => {
       // Given: 存在しないユーザーID
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = createValidUpdateRequest()
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(null)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(null)
 
       // When & Then: ApiNotFoundExceptionに変換されることを確認
-      await expect(apiHandler.handle(updateRequest, nextAuthId)).rejects.toThrow(
-        ApiNotFoundException
-      )
+      await expect(apiHandler.handle(updateRequest, userId)).rejects.toThrow(ApiNotFoundException)
 
-      expect(mockUserApplicationService.getUserByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+      expect(mockUserApplicationService.getUserById).toHaveBeenCalledWith(userId)
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
 
     it('プロフィール更新でエラーが発生した場合は適切に処理される', async () => {
       // Given: 更新処理でエラーが発生する
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = createValidUpdateRequest()
       const currentUser = createUserProfile()
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockRejectedValueOnce(
         new Error('Database update failed')
       )
 
       // When & Then: ApiInternalExceptionに変換されることを確認
-      await expect(apiHandler.handle(updateRequest, nextAuthId)).rejects.toThrow(
-        ApiInternalException
-      )
+      await expect(apiHandler.handle(updateRequest, userId)).rejects.toThrow(ApiInternalException)
 
-      expect(mockUserApplicationService.getUserByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+      expect(mockUserApplicationService.getUserById).toHaveBeenCalledWith(userId)
       expect(mockUserApplicationService.updateUserProfile).toHaveBeenCalledWith(currentUser.id, {
         displayName: updateRequest.displayName,
         timezone: updateRequest.timezone,
@@ -270,39 +276,35 @@ describe('UpdateProfileApiHandler', () => {
 
     it('ユーザー取得でエラーが発生した場合は適切に処理される', async () => {
       // Given: ユーザー取得でエラーが発生する
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = createValidUpdateRequest()
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockRejectedValueOnce(
+      vi.mocked(mockUserApplicationService.getUserById).mockRejectedValueOnce(
         new Error('Database connection failed')
       )
 
       // When & Then: ApiInternalExceptionに変換されることを確認
-      await expect(apiHandler.handle(updateRequest, nextAuthId)).rejects.toThrow(
-        ApiInternalException
-      )
+      await expect(apiHandler.handle(updateRequest, userId)).rejects.toThrow(ApiInternalException)
 
-      expect(mockUserApplicationService.getUserByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+      expect(mockUserApplicationService.getUserById).toHaveBeenCalledWith(userId)
       expect(mockUserApplicationService.updateUserProfile).not.toHaveBeenCalled()
     })
 
     it('予期しないエラーが発生した場合は適切に処理される', async () => {
       // Given: 予期しないエラー
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = createValidUpdateRequest()
       const currentUser = createUserProfile()
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockRejectedValueOnce(
         new TypeError('Unexpected type error')
       )
 
       // When & Then: ApiInternalExceptionに変換されることを確認
-      await expect(apiHandler.handle(updateRequest, nextAuthId)).rejects.toThrow(
-        ApiInternalException
-      )
+      await expect(apiHandler.handle(updateRequest, userId)).rejects.toThrow(ApiInternalException)
 
-      expect(mockUserApplicationService.getUserByNextAuthId).toHaveBeenCalledWith(nextAuthId)
+      expect(mockUserApplicationService.getUserById).toHaveBeenCalledWith(userId)
       expect(mockUserApplicationService.updateUserProfile).toHaveBeenCalledWith(currentUser.id, {
         displayName: updateRequest.displayName,
         timezone: updateRequest.timezone,
@@ -325,7 +327,7 @@ describe('UpdateProfileApiHandler', () => {
   describe('エッジケース', () => {
     it('表示名が1文字の場合も正常に処理される', async () => {
       // Given: 1文字の表示名
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = {
         displayName: 'A',
         timezone: 'Asia/Tokyo',
@@ -340,11 +342,11 @@ describe('UpdateProfileApiHandler', () => {
         },
       }
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockResolvedValueOnce(updatedUser)
 
       // When: APIハンドラーを実行
-      const result = await apiHandler.handle(updateRequest, nextAuthId)
+      const result = await apiHandler.handle(updateRequest, userId)
 
       // Then: 正常に更新される
       expect(result).toEqual(updatedUser)
@@ -356,7 +358,7 @@ describe('UpdateProfileApiHandler', () => {
 
     it('表示名が100文字ちょうどの場合は正常に処理される', async () => {
       // Given: 100文字の表示名
-      const nextAuthId = createNextAuthId()
+      const userId = createNextAuthId()
       const updateRequest = {
         displayName: 'a'.repeat(100), // ちょうど100文字
         timezone: 'Asia/Tokyo',
@@ -371,11 +373,11 @@ describe('UpdateProfileApiHandler', () => {
         },
       }
 
-      vi.mocked(mockUserApplicationService.getUserByNextAuthId).mockResolvedValueOnce(currentUser)
+      vi.mocked(mockUserApplicationService.getUserById).mockResolvedValueOnce(currentUser)
       vi.mocked(mockUserApplicationService.updateUserProfile).mockResolvedValueOnce(updatedUser)
 
       // When: APIハンドラーを実行
-      const result = await apiHandler.handle(updateRequest, nextAuthId)
+      const result = await apiHandler.handle(updateRequest, userId)
 
       // Then: 正常に更新される
       expect(result).toEqual(updatedUser)

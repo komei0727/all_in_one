@@ -76,11 +76,16 @@ export class GetUnitsApiHandler extends BaseApiHandler<GetUnitsRequest, GetUnits
 
     // groupByTypeパラメータのバリデーション
     if (request.groupByType !== undefined) {
-      if (typeof request.groupByType !== 'boolean') {
+      // クエリパラメータは文字列として渡されるため、文字列から真偽値に変換
+      if (request.groupByType === 'true') {
+        result.groupByType = true
+      } else if (request.groupByType === 'false') {
+        result.groupByType = false
+      } else if (typeof request.groupByType === 'boolean') {
+        result.groupByType = request.groupByType
+      } else {
         throw new ValidationException('groupByTypeは真偽値である必要があります')
       }
-
-      result.groupByType = request.groupByType
     }
 
     return result
