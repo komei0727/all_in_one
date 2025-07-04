@@ -1,3 +1,5 @@
+import { Decimal } from '@prisma/client/runtime/library'
+
 import type { PrismaClient } from '@/generated/prisma'
 
 import { CheckedItemDto } from '../../application/dtos/checked-item.dto'
@@ -471,11 +473,19 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     const hasNext = page < totalPages
     const hasPrev = page > 1
 
-    // セッションデータを取得
+    // セッションデータを取得（食材の価格情報も含める）
     const sessions = await this.prisma.shoppingSession.findMany({
       where,
       include: {
-        sessionItems: true,
+        sessionItems: {
+          include: {
+            ingredient: {
+              select: {
+                price: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { startedAt: 'desc' },
       skip,
@@ -488,6 +498,12 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         ? Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / 1000)
         : 0
 
+      // セッション中に確認した食材の価格を合計
+      const totalSpent = session.sessionItems
+        .map((item) => item.ingredient.price)
+        .filter((price): price is Decimal => price !== null)
+        .reduce((sum, price) => sum.add(price), new Decimal(0))
+
       return {
         sessionId: session.id,
         status: session.status as 'COMPLETED' | 'ABANDONED',
@@ -495,7 +511,7 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         completedAt: session.completedAt?.toISOString(),
         duration,
         checkedItemsCount: session.sessionItems.length,
-        totalSpent: undefined, // TODO: 将来の実装で追加
+        totalSpent: totalSpent.gt(0) ? Number(totalSpent) : undefined,
         deviceType: session.deviceType as 'MOBILE' | 'TABLET' | 'DESKTOP' | undefined,
         location:
           session.locationLat && session.locationLng
