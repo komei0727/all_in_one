@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vites
 
 import { GET } from '@/app/api/v1/shopping-sessions/recent/route'
 import { auth } from '@/auth'
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -50,9 +50,9 @@ describe('GET /api/v1/shopping-sessions/recent Integration Tests', () => {
     await setupIntegrationTest()
     prisma = getTestPrismaClient()
 
-    // CompositionRootをリセットして、テスト用のPrismaクライアントを使用
-    CompositionRoot.resetInstance()
-    CompositionRoot.getInstance(prisma as any)
+    // IngredientsApiCompositionRootをリセットして、テスト用のPrismaクライアントを使用
+    IngredientsApiCompositionRoot.resetInstance()
+    IngredientsApiCompositionRoot.getInstance(prisma as any)
 
     vi.clearAllMocks()
   })
@@ -61,8 +61,8 @@ describe('GET /api/v1/shopping-sessions/recent Integration Tests', () => {
     // 各テストの後にデータベースをクリーンアップ
     await cleanupIntegrationTest()
 
-    // CompositionRootをリセット
-    CompositionRoot.resetInstance()
+    // IngredientsApiCompositionRootをリセット
+    IngredientsApiCompositionRoot.resetInstance()
 
     vi.clearAllMocks()
   })

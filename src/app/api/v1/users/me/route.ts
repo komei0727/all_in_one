@@ -1,4 +1,4 @@
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
 
 /**
@@ -6,7 +6,7 @@ import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
  * GET /api/v1/users/me
  */
 export const GET = UnifiedRouteFactory.createGetHandler(() =>
-  CompositionRoot.getInstance().getGetProfileApiHandler()
+  IngredientsApiCompositionRoot.getInstance().getGetProfileApiHandler()
 )
 
 /**
@@ -14,5 +14,5 @@ export const GET = UnifiedRouteFactory.createGetHandler(() =>
  * PUT /api/v1/users/me
  */
 export const PUT = UnifiedRouteFactory.createPutHandler(() =>
-  CompositionRoot.getInstance().getUpdateProfileApiHandler()
+  IngredientsApiCompositionRoot.getInstance().getUpdateProfileApiHandler()
 )

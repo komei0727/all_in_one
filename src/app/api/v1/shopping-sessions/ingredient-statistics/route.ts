@@ -1,4 +1,4 @@
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
 
 /**
@@ -6,5 +6,5 @@ import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
  * GET /api/v1/shopping-sessions/ingredient-statistics
  */
 export const GET = UnifiedRouteFactory.createGetHandler(() =>
-  CompositionRoot.getInstance().getGetIngredientCheckStatisticsApiHandler()
+  IngredientsApiCompositionRoot.getInstance().getGetIngredientCheckStatisticsApiHandler()
 )
