@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
 import { GET } from '@/app/api/v1/ingredients/units/route'
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -25,17 +25,17 @@ describe('GET /api/v1/ingredients/units Integration Tests', () => {
     await setupIntegrationTest()
     prisma = getTestPrismaClient()
 
-    // CompositionRootをリセットして、テスト用のPrismaクライアントを使用
-    CompositionRoot.resetInstance()
-    CompositionRoot.getInstance(prisma as any)
+    // IngredientsApiCompositionRootをリセットして、テスト用のPrismaクライアントを使用
+    IngredientsApiCompositionRoot.resetInstance()
+    IngredientsApiCompositionRoot.getInstance(prisma as any)
   })
 
   afterEach(async () => {
     // 各テストの後にデータベースをクリーンアップ
     await cleanupIntegrationTest()
 
-    // CompositionRootをリセット
-    CompositionRoot.resetInstance()
+    // IngredientsApiCompositionRootをリセット
+    IngredientsApiCompositionRoot.resetInstance()
   })
 
   afterAll(async () => {

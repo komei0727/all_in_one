@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vites
 import { DELETE, GET, PUT } from '@/app/api/v1/ingredients/[id]/route'
 import { POST } from '@/app/api/v1/ingredients/route'
 import { auth } from '@/auth'
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -34,9 +34,9 @@ describe('Error Handling Integration Tests', () => {
     await setupIntegrationTest()
     prisma = getTestPrismaClient()
 
-    // CompositionRootをリセットして、テスト用のPrismaクライアントを使用
-    CompositionRoot.resetInstance()
-    CompositionRoot.getInstance(prisma as any)
+    // IngredientsApiCompositionRootをリセットして、テスト用のPrismaクライアントを使用
+    IngredientsApiCompositionRoot.resetInstance()
+    IngredientsApiCompositionRoot.getInstance(prisma as any)
 
     // 認証モックのリセット
     vi.mocked(auth).mockReset()

@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vites
 
 import { GET } from '@/app/api/v1/shopping/categories/[id]/ingredients/route'
 import { auth } from '@/auth'
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import {
   getTestPrismaClient,
   setupIntegrationTest,
@@ -66,10 +66,10 @@ describe('GET /api/v1/shopping/categories/{id}/ingredients Integration Tests', (
     await setupIntegrationTest()
     prisma = getTestPrismaClient()
 
-    // CompositionRootをリセットしてテスト用のPrismaClientを使用
-    CompositionRoot.resetInstance()
+    // IngredientsApiCompositionRootをリセットしてテスト用のPrismaClientを使用
+    IngredientsApiCompositionRoot.resetInstance()
     // @ts-expect-error - テスト用のPrismaClientは型が異なるが、実行時には問題ない
-    CompositionRoot.getInstance(prisma)
+    IngredientsApiCompositionRoot.getInstance(prisma)
   })
 
   afterEach(async () => {
@@ -77,7 +77,7 @@ describe('GET /api/v1/shopping/categories/{id}/ingredients Integration Tests', (
     await cleanupIntegrationTest()
 
     // CompositionRootもリセット
-    CompositionRoot.resetInstance()
+    IngredientsApiCompositionRoot.resetInstance()
   })
 
   afterAll(async () => {

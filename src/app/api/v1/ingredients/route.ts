@@ -1,4 +1,4 @@
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
 
 /**
@@ -7,7 +7,7 @@ import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
  * 食材を新規登録するAPIエンドポイント
  */
 export const POST = UnifiedRouteFactory.createPostHandler(() =>
-  CompositionRoot.getInstance().getCreateIngredientApiHandler()
+  IngredientsApiCompositionRoot.getInstance().getCreateIngredientApiHandler()
 )
 
 /**
@@ -17,5 +17,5 @@ export const POST = UnifiedRouteFactory.createPostHandler(() =>
  * UnifiedRouteFactoryを使用して統一的なエラーハンドリングと認証処理を実現
  */
 export const GET = UnifiedRouteFactory.createGetHandler(() =>
-  CompositionRoot.getInstance().getGetIngredientsApiHandler()
+  IngredientsApiCompositionRoot.getInstance().getGetIngredientsApiHandler()
 )

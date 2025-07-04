@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server'
 
-import { CompositionRoot } from '@/modules/ingredients/server/infrastructure/composition-root'
+import { IngredientsApiCompositionRoot } from '@/modules/ingredients/server/composition-root'
 import { UnifiedRouteFactory } from '@/modules/shared/server/api/route-factory'
 
 /**
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   // UnifiedRouteFactoryのハンドラーを作成して実行
   const handler = UnifiedRouteFactory.createGetHandler(() =>
-    CompositionRoot.getInstance().getGetIngredientByIdApiHandler()
+    IngredientsApiCompositionRoot.getInstance().getGetIngredientByIdApiHandler()
   )
 
   // paramsを渡してハンドラーを実行
@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   // UnifiedRouteFactoryのハンドラーを作成して実行
   const handler = UnifiedRouteFactory.createPutHandler(() =>
-    CompositionRoot.getInstance().getUpdateIngredientApiHandler()
+    IngredientsApiCompositionRoot.getInstance().getUpdateIngredientApiHandler()
   )
 
   // paramsを渡してハンドラーを実行
@@ -53,7 +53,7 @@ export async function DELETE(
 
   // UnifiedRouteFactoryのハンドラーを作成して実行
   const handler = UnifiedRouteFactory.createDeleteHandler(() =>
-    CompositionRoot.getInstance().getDeleteIngredientApiHandler()
+    IngredientsApiCompositionRoot.getInstance().getDeleteIngredientApiHandler()
   )
 
   // paramsを渡してハンドラーを実行
