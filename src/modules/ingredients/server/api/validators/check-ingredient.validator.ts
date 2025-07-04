@@ -8,13 +8,13 @@ export const checkIngredientSchema = z.object({
   sessionId: z
     .string()
     .min(1, 'セッションIDは必須です')
-    .uuid('セッションIDは有効なUUID形式である必要があります'),
+    .regex(/^[a-zA-Z0-9_-]+$/, 'セッションIDは有効な形式である必要があります'),
 
   /** 食材ID（必須） */
   ingredientId: z
     .string()
     .min(1, '食材IDは必須です')
-    .uuid('食材IDは有効なUUID形式である必要があります'),
+    .regex(/^[a-zA-Z0-9_-]+$/, '食材IDは有効な形式である必要があります'),
 
   /** ユーザーID（必須） */
   userId: z.string().min(1, 'ユーザーIDは必須です'),

@@ -381,7 +381,8 @@ export class CompositionRoot {
   public getCheckIngredientHandler(): CheckIngredientHandler {
     return new CheckIngredientHandler(
       this.getShoppingSessionRepository(),
-      this.getIngredientRepository()
+      this.getIngredientRepository(),
+      this.getUnitRepository()
     )
   }
 

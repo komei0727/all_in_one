@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CheckIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/check-ingredient.handler'
 import { CheckIngredientCommand } from '@/modules/ingredients/server/application/commands/check-ingredient.command'
 import type { CheckIngredientHandler } from '@/modules/ingredients/server/application/commands/check-ingredient.handler'
+import { CheckIngredientResponseDto } from '@/modules/ingredients/server/application/dtos/check-ingredient-response.dto'
 import {
   BusinessRuleException,
   NotFoundException,
@@ -11,7 +12,6 @@ import {
 import { ApiBusinessRuleException } from '@/modules/shared/server/api/exceptions/api-business-rule.exception'
 import { ApiInternalException } from '@/modules/shared/server/api/exceptions/api-internal.exception'
 import { ApiNotFoundException } from '@/modules/shared/server/api/exceptions/api-not-found.exception'
-import { shoppingSessionDtoBuilder } from '@tests/__fixtures__/builders/dtos/shopping-session-dto.builder'
 
 describe('CheckIngredientApiHandler', () => {
   let mockCommandHandler: CheckIngredientHandler
@@ -37,11 +37,24 @@ describe('CheckIngredientApiHandler', () => {
       const ingredientId = createValidIngredientId()
       const userId = createUserId()
 
-      const expectedResult = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ACTIVE')
-        .build()
+      const expectedResult = new CheckIngredientResponseDto(
+        sessionId,
+        ingredientId,
+        'トマト',
+        'cat_vegetable',
+        'IN_STOCK',
+        'FRESH',
+        {
+          amount: 5,
+          unit: {
+            id: 'unit_piece',
+            name: '個',
+            symbol: '個',
+          },
+        },
+        null,
+        new Date().toISOString()
+      )
 
       vi.mocked(mockCommandHandler.handle).mockResolvedValue(expectedResult)
 
@@ -70,17 +83,43 @@ describe('CheckIngredientApiHandler', () => {
       const ingredientId2 = createValidIngredientId()
       const userId = createUserId()
 
-      const expectedResult1 = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ACTIVE')
-        .build()
+      const expectedResult1 = new CheckIngredientResponseDto(
+        sessionId,
+        ingredientId1,
+        'トマト',
+        'cat_vegetable',
+        'IN_STOCK',
+        'FRESH',
+        {
+          amount: 5,
+          unit: {
+            id: 'unit_piece',
+            name: '個',
+            symbol: '個',
+          },
+        },
+        null,
+        new Date().toISOString()
+      )
 
-      const expectedResult2 = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ACTIVE')
-        .build()
+      const expectedResult2 = new CheckIngredientResponseDto(
+        sessionId,
+        ingredientId2,
+        'にんじん',
+        'cat_vegetable',
+        'LOW_STOCK',
+        'NEAR_EXPIRY',
+        {
+          amount: 2,
+          unit: {
+            id: 'unit_piece',
+            name: '個',
+            symbol: '個',
+          },
+        },
+        3,
+        new Date().toISOString()
+      )
 
       vi.mocked(mockCommandHandler.handle)
         .mockResolvedValueOnce(expectedResult1)
@@ -106,7 +145,7 @@ describe('CheckIngredientApiHandler', () => {
 
   describe('バリデーション', () => {
     it('無効な形式のセッションIDの場合はバリデーションエラーを投げる', async () => {
-      const invalidSessionId = 'invalid-session-id'
+      const invalidSessionId = 'invalid@session#id!' // 特殊文字を含む不正な形式
       const ingredientId = createValidIngredientId()
       const userId = createUserId()
 
@@ -121,7 +160,7 @@ describe('CheckIngredientApiHandler', () => {
 
     it('無効な形式の食材IDの場合はバリデーションエラーを投げる', async () => {
       const sessionId = createValidSessionId()
-      const invalidIngredientId = 'invalid-ingredient-id'
+      const invalidIngredientId = 'invalid@ingredient#id!' // 特殊文字を含む不正な形式
       const userId = createUserId()
 
       // BaseApiHandlerは例外を投げるのでexpect.rejectsでテスト

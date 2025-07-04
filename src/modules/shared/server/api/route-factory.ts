@@ -69,8 +69,8 @@ export class UnifiedRouteFactory {
           // Content-Typeが不正でもJSONとして解析できない場合は無視
         }
 
-        // 4. パラメータとボディを統合
-        const requestData = { ...params, ...body }
+        // 4. パラメータとボディを統合（userIdも含める）
+        const requestData = { ...params, ...body, userId }
 
         // 5. APIハンドラーの実行
         const apiHandler = apiHandlerFactory()

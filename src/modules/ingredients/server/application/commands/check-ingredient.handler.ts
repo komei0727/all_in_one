@@ -7,12 +7,13 @@ import {
   IngredientId,
   ShoppingSessionId,
   StockStatus,
+  UnitId,
 } from '../../domain/value-objects'
-import { CheckedItemDto } from '../dtos/checked-item.dto'
-import { ShoppingSessionDto } from '../dtos/shopping-session.dto'
+import { CheckIngredientResponseDto } from '../dtos/check-ingredient-response.dto'
 
 import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
 import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
+import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 
 /**
  * 食材確認ハンドラー
@@ -21,15 +22,16 @@ import type { ShoppingSessionRepository } from '../../domain/repositories/shoppi
 export class CheckIngredientHandler {
   constructor(
     private readonly sessionRepository: ShoppingSessionRepository,
-    private readonly ingredientRepository: IngredientRepository
+    private readonly ingredientRepository: IngredientRepository,
+    private readonly unitRepository: UnitRepository
   ) {}
 
   /**
    * 食材を確認してセッションに追加
    * @param command 食材確認コマンド
-   * @returns 更新されたセッションのDTO
+   * @returns 食材確認結果のDTO
    */
-  async handle(command: CheckIngredientCommand): Promise<ShoppingSessionDto> {
+  async handle(command: CheckIngredientCommand): Promise<CheckIngredientResponseDto> {
     // セッションを取得
     const sessionId = new ShoppingSessionId(command.sessionId)
     const session = await this.sessionRepository.findById(sessionId)
@@ -61,15 +63,6 @@ export class CheckIngredientHandler {
       throw new BusinessRuleException('この食材を確認する権限がありません')
     }
 
-    // 既にチェック済みかどうか確認
-    const isAlreadyChecked = session
-      .getCheckedItems()
-      .some((item) => item.getIngredientId().equals(ingredientId))
-
-    if (isAlreadyChecked) {
-      throw new BusinessRuleException('この食材は既にチェック済みです')
-    }
-
     // 在庫状態を判定
     const stockService = new StockCalculationService()
     const stockStatus = stockService.calculateStockStatus(ingredient)
@@ -86,42 +79,43 @@ export class CheckIngredientHandler {
       expiryStatus: this.mapToExpiryStatusVO(expiryStatus),
     })
 
-    // セッションに食材を追加
-    session.checkIngredient(checkedItem)
+    // セッションに食材を追加（上書き更新）
+    session.checkItem({
+      ingredientId: checkedItem.getIngredientId(),
+      ingredientName: checkedItem.getIngredientName(),
+      stockStatus: checkedItem.getStockStatus(),
+      expiryStatus: checkedItem.getExpiryStatus(),
+    })
 
     // 更新を永続化
     const updatedSession = await this.sessionRepository.update(session)
 
-    // チェック済みアイテムをDTOに変換
-    const checkedItemDtos = updatedSession
-      .getCheckedItems()
-      .map(
-        (item) =>
-          new CheckedItemDto(
-            item.getIngredientId().getValue(),
-            item.getIngredientName().getValue(),
-            item.getStockStatus().getValue(),
-            item.getExpiryStatus()?.getValue() ?? null,
-            item.getCheckedAt().toISOString()
-          )
-      )
+    // 単位情報を取得
+    const unitId = new UnitId(ingredient.getIngredientStock().getUnitId().getValue())
+    const unit = await this.unitRepository.findById(unitId)
 
-    // DTOに変換して返す
-    return new ShoppingSessionDto(
+    if (!unit) {
+      throw new NotFoundException('単位', unitId.getValue())
+    }
+
+    // 食材確認結果のDTOを返す
+    return new CheckIngredientResponseDto(
       updatedSession.getId().getValue(),
-      updatedSession.getUserId(),
-      updatedSession.getStatus().getValue(),
-      updatedSession.getStartedAt().toISOString(),
-      updatedSession.getCompletedAt()?.toISOString() ?? null,
-      updatedSession.getDeviceType()?.getValue() ?? null,
-      updatedSession.getLocation()
-        ? {
-            latitude: updatedSession.getLocation()!.getLatitude(),
-            longitude: updatedSession.getLocation()!.getLongitude(),
-            name: updatedSession.getLocationName() ?? undefined,
-          }
-        : null,
-      checkedItemDtos
+      ingredient.getId().getValue(),
+      ingredient.getName().getValue(),
+      ingredient.getCategoryId()?.getValue() ?? null,
+      checkedItem.getStockStatus().getValue(),
+      checkedItem.getExpiryStatus()?.getValue() ?? null,
+      {
+        amount: ingredient.getIngredientStock().getQuantity(),
+        unit: {
+          id: unit.getId(),
+          name: unit.getName(),
+          symbol: unit.getSymbol(),
+        },
+      },
+      ingredient.getIngredientStock().getThreshold(),
+      checkedItem.getCheckedAt().toISOString()
     )
   }
 

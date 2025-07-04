@@ -209,7 +209,7 @@ describe('Ingredient ドメインイベント発行', () => {
       // 期限切れ検知時にイベントが発行されることを確認
       const userId = testDataHelpers.userId()
       const categoryId = testDataHelpers.categoryId()
-      const expiredDate = faker.date.past()
+      const expiredDate = new Date(Date.now() - 24 * 60 * 60 * 1000) // 1日前（確実に期限切れ）
 
       const ingredient = new IngredientBuilder()
         .withUserId(userId)

@@ -135,7 +135,7 @@ export class NextAuthUserBuilder extends BaseBuilder<NextAuthUserProps, NextAuth
    * 特定のメールドメインでビルド
    */
   withEmailDomain(domain: string): this {
-    const localPart = faker.internet.userName()
+    const localPart = faker.internet.username()
     return this.with('email', `${localPart}@${domain}`)
   }
 

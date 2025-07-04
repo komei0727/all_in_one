@@ -149,24 +149,31 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
 
         const data = responseData.data?.data || responseData.data
 
-        // Then: 在庫状態と期限状態が判定される
-        expect(response.status).toBe(200)
+        // Then: 個別の食材確認結果が返される
+        expect(response.status).toBe(201)
         expect(data).toBeDefined()
 
-        // 在庫状態の判定確認（実装に依存）
-        if (data.stockStatus) {
-          expect(['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK']).toContain(data.stockStatus)
-        }
+        // 基本フィールドの確認
+        expect(data.sessionId).toBe(activeSessionId)
+        expect(data.ingredientId).toBe(ingredientId)
+        expect(data.ingredientName).toBeDefined()
 
-        // 期限状態の判定確認（実装に依存）
-        if (data.expiryStatus) {
-          expect(['FRESH', 'EXPIRING_SOON', 'EXPIRED']).toContain(data.expiryStatus)
-        }
+        // 在庫状態の判定確認
+        expect(['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK']).toContain(data.stockStatus)
+
+        // 期限状態の判定確認
+        expect(['FRESH', 'NEAR_EXPIRY', 'EXPIRING_SOON', 'CRITICAL', 'EXPIRED', null]).toContain(
+          data.expiryStatus
+        )
+
+        // 在庫数量情報
+        expect(data.currentQuantity).toBeDefined()
+        expect(data.currentQuantity.amount).toBeGreaterThan(0)
+        expect(data.currentQuantity.unit).toBeDefined()
+        expect(data.currentQuantity.unit.symbol).toBeDefined()
 
         // 確認時刻の記録
-        if (data.checkedAt) {
-          expect(data.checkedAt).toBeDefined()
-        }
+        expect(data.checkedAt).toBeDefined()
       })
 
       it('TC002: 在庫状態の判定ロジック - 在庫あり', async () => {
@@ -217,7 +224,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
         })
         const responseData = await response.json()
 
-        if (response.status !== 200) {
+        if (response.status !== 201) {
           console.log('TC002 Not implemented or error:', response.status)
           expect([404, 500, 400]).toContain(response.status)
           return
@@ -225,12 +232,11 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
 
         const data = responseData.data?.data || responseData.data
 
-        // Then: IN_STOCKと判定される（実装に依存）
-        if (data.stockStatus) {
-          console.log('TC002 Stock Status:', data.stockStatus)
-          // 数量(10) > 閾値(3) → IN_STOCK
-          expect(data.stockStatus).toBe('IN_STOCK')
-        }
+        // Then: IN_STOCKと判定される
+        console.log('TC002 Stock Status:', data.stockStatus)
+        // 数量(10) > 閾値(3) → IN_STOCK
+        expect(data.stockStatus).toBe('IN_STOCK')
+        expect(data.threshold).toBe(3)
       })
 
       it('TC003: 期限状態の判定ロジック - 新鮮', async () => {
@@ -249,7 +255,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
           },
         })
 
-        // 期限まで余裕がある食材（5日後期限）
+        // 期限まで余裕がある食材（10日後期限）
         await prisma.ingredient.create({
           data: {
             id: ingredientId,
@@ -260,7 +266,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
             unitId: getTestDataIds().units.piece,
             storageLocationType: 'REFRIGERATED',
             purchaseDate: new Date(),
-            bestBeforeDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5日後期限
+            bestBeforeDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10日後期限（FRESHになる）
           },
         })
 
@@ -281,7 +287,7 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
         })
         const responseData = await response.json()
 
-        if (response.status !== 200) {
+        if (response.status !== 201) {
           console.log('TC003 Not implemented or error:', response.status)
           expect([404, 500, 400]).toContain(response.status)
           return
@@ -289,17 +295,15 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
 
         const data = responseData.data?.data || responseData.data
 
-        // Then: FRESHと判定される（実装に依存）
-        if (data.expiryStatus) {
-          console.log('TC003 Expiry Status:', data.expiryStatus)
-          // 期限まで4日以上 → FRESH
-          expect(data.expiryStatus).toBe('FRESH')
-        }
+        // Then: FRESHと判定される
+        console.log('TC003 Expiry Status:', data.expiryStatus)
+        // 期限まで7日より先（10日） → FRESH
+        expect(data.expiryStatus).toBe('FRESH')
       })
     })
 
     describe('確認履歴の管理', () => {
-      it('TC004: 同一食材の重複確認', async () => {
+      it('TC004: 同一食材の重複確認（上書き更新）', async () => {
         // Given: 認証済みユーザー、アクティブセッション、食材
         const testUserId = mockAuthUser()
         const activeSessionId = testDataHelpers.shoppingSessionId()
@@ -328,7 +332,8 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
           },
         })
 
-        const request = new NextRequest(
+        // When: 同じ食材を2回確認
+        const firstRequest = new NextRequest(
           `http://localhost:3000/api/v1/shopping-sessions/${activeSessionId}/check/${ingredientId}`,
           {
             method: 'POST',
@@ -339,39 +344,56 @@ describe('POST /api/v1/shopping-sessions/[sessionId]/check/[ingredientId] Integr
           }
         )
 
-        // When: 同じ食材を2回確認
-        const firstResponse = await POST(request, {
+        const firstResponse = await POST(firstRequest, {
           params: { sessionId: activeSessionId, ingredientId },
         })
+        const firstData = await firstResponse.json()
 
         // 少し時間を空ける
         await new Promise((resolve) => setTimeout(resolve, 100))
 
-        const secondResponse = await POST(request, {
+        const secondRequest = new NextRequest(
+          `http://localhost:3000/api/v1/shopping-sessions/${activeSessionId}/check/${ingredientId}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          }
+        )
+
+        const secondResponse = await POST(secondRequest, {
           params: { sessionId: activeSessionId, ingredientId },
         })
+        const secondData = await secondResponse.json()
 
-        if (firstResponse.status !== 200 || secondResponse.status !== 200) {
-          console.log('TC004 Not implemented or error')
-          expect([404, 500, 400]).toContain(firstResponse.status)
+        if (firstResponse.status !== 201 || secondResponse.status !== 201) {
+          console.log('TC004 First response status:', firstResponse.status)
+          console.log('TC004 Second response status:', secondResponse.status)
+          console.log('TC004 First response data:', JSON.stringify(firstData, null, 2))
+          console.log('TC004 Second response data:', JSON.stringify(secondData, null, 2))
+
+          // 一旦、両方の応答が201になることを期待
+          expect(firstResponse.status).toBe(201)
+          expect(secondResponse.status).toBe(201)
           return
         }
 
-        // Then: 最新の確認情報で上書きされる（実装に依存）
-        const firstData =
-          (await firstResponse.json()).data?.data || (await firstResponse.json()).data
-        const secondData =
-          (await secondResponse.json()).data?.data || (await secondResponse.json()).data
+        // Then: 2回目も正常に処理され、最新の確認情報で上書きされる
+        expect(firstResponse.status).toBe(201)
+        expect(secondResponse.status).toBe(201)
 
-        console.log('TC004 First check:', firstData.checkedAt)
-        console.log('TC004 Second check:', secondData.checkedAt)
+        console.log('TC004 First response:', JSON.stringify(firstData, null, 2))
+        console.log('TC004 Second response:', JSON.stringify(secondData, null, 2))
 
-        if (firstData.checkedAt && secondData.checkedAt) {
-          // 2回目の確認時刻が新しいことを確認
-          expect(new Date(secondData.checkedAt).getTime()).toBeGreaterThan(
-            new Date(firstData.checkedAt).getTime()
-          )
-        }
+        const firstCheckedAt = firstData.data?.data?.checkedAt || firstData.data?.checkedAt
+        const secondCheckedAt = secondData.data?.data?.checkedAt || secondData.data?.checkedAt
+
+        // 2回目の確認時刻が新しいことを確認
+        expect(new Date(secondCheckedAt).getTime()).toBeGreaterThan(
+          new Date(firstCheckedAt).getTime()
+        )
       })
     })
   })

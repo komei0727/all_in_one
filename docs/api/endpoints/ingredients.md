@@ -1767,7 +1767,7 @@ interface CompleteShoppingSessionResponse {
 
 ### 概要
 
-買い物セッション中に食材の在庫状態を確認し、履歴に記録します。
+買い物セッション中に食材の在庫状態を確認し、履歴に記録します。同じ食材を複数回確認した場合は、最新の情報で上書き更新されます。
 
 ### エンドポイント情報
 
@@ -1787,7 +1787,7 @@ interface CompleteShoppingSessionResponse {
 
 ### レスポンス
 
-#### 成功時（200 OK）
+#### 成功時（201 Created）
 
 ```typescript
 interface CheckIngredientResponse {
@@ -1795,9 +1795,9 @@ interface CheckIngredientResponse {
     sessionId: string
     ingredientId: string
     ingredientName: string
-    categoryId: string
+    categoryId: string | null
     stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
-    expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+    expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED' | null
     currentQuantity: {
       amount: number
       unit: {
@@ -1806,7 +1806,7 @@ interface CheckIngredientResponse {
         symbol: string
       }
     }
-    threshold?: number
+    threshold: number | null
     checkedAt: string
   }
   meta: {
@@ -2364,15 +2364,16 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 
 ## 更新履歴
 
-| 日付       | 内容                                                                              | 更新者     |
-| ---------- | --------------------------------------------------------------------------------- | ---------- |
-| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正 | @komei0727 |
-| 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
-| 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加              | @komei0727 |
-| 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化             | Claude     |
-| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加                               | Claude     |
-| 2025-07-03 | deviceTypeとlocationの実装完了により注記を削除                                    | Claude     |
-| 2025-07-03 | 買い物セッション放棄APIのエラーレスポンスを実装に合わせて修正（403→404）          | Claude     |
+| 日付       | 内容                                                                                      | 更新者     |
+| ---------- | ----------------------------------------------------------------------------------------- | ---------- |
+| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正         | @komei0727 |
+| 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                               | @komei0727 |
+| 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加                      | @komei0727 |
+| 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化                     | Claude     |
+| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加                                       | Claude     |
+| 2025-07-03 | deviceTypeとlocationの実装完了により注記を削除                                            | Claude     |
+| 2025-07-03 | 買い物セッション放棄APIのエラーレスポンスを実装に合わせて修正（403→404）                  | Claude     |
+| 2025-07-04 | 買い物セッション食材確認APIの仕様を実装に合わせて修正（ステータスコード、レスポンス形式） | Claude     |
 
 ## 関連ドキュメント
 
