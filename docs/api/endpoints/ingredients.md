@@ -1548,8 +1548,6 @@ interface EventsResponse {
 
 買い物モードを開始し、新しい買い物セッションを作成します。同時にアクティブなセッションは1つまでです。
 
-**注意**: 現在の実装では、`deviceType`と`location`はリクエストで受け取りますが、まだ永続化されません（DTOではnullで返されます）。
-
 ### エンドポイント情報
 
 - **メソッド**: `POST`
@@ -1563,7 +1561,6 @@ interface EventsResponse {
 
 ```typescript
 interface StartShoppingSessionRequest {
-  userId: string // ユーザーID（必須）
   deviceType?: 'MOBILE' | 'DESKTOP' | 'TABLET' // デバイスタイプ
   location?: {
     name?: string // 場所の名前（最大100文字）
@@ -1585,9 +1582,8 @@ interface StartShoppingSessionResponse {
     status: 'ACTIVE'
     startedAt: string
     completedAt: null
-    deviceType: string | null // 現在の実装ではnull
+    deviceType: string | null
     location: {
-      // 現在の実装ではnull
       name?: string
       latitude: number
       longitude: number
@@ -1645,6 +1641,13 @@ interface ActiveShoppingSessionResponse {
       latitude: number
       longitude: number
     }
+    checkedItems?: Array<{
+      ingredientId: string
+      ingredientName: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      checkedAt: string
+    }> | null // チェックした食材の履歴（最大50件）
   } | null // アクティブセッションがない場合はnull
   meta: {
     timestamp: string
@@ -1664,7 +1667,7 @@ interface ActiveShoppingSessionResponse {
 ### エンドポイント情報
 
 - **メソッド**: `PUT`
-- **パス**: `/api/v1/shopping-sessions/{id}/complete`
+- **パス**: `/api/v1/shopping-sessions/{sessionId}/complete`
 - **認証**: 必要
 - **権限**: セッションの所有者
 
@@ -1674,16 +1677,11 @@ interface ActiveShoppingSessionResponse {
 
 | パラメータ | 型     | 必須 | 説明                     |
 | ---------- | ------ | ---- | ------------------------ |
-| id         | string | Yes  | セッションID（CUID形式） |
+| sessionId  | string | Yes  | セッションID（CUID形式） |
 
 #### リクエストボディ
 
-```typescript
-interface CompleteShoppingSessionRequest {
-  notes?: string // 完了時のメモ
-  totalSpent?: number // 総支出額（小数点以下2桁まで）
-}
-```
+リクエストボディは不要です（空のJSONオブジェクト `{}` または省略可能）。
 
 ### レスポンス
 
@@ -1697,15 +1695,21 @@ interface CompleteShoppingSessionResponse {
     status: 'COMPLETED'
     startedAt: string
     completedAt: string
-    duration: number // 秒単位
-    checkedItemsCount: number
-    totalSpent?: number
+    duration: number // セッション継続時間（秒単位）
+    checkedItemsCount: number // 確認済み食材の数
     deviceType?: 'MOBILE' | 'TABLET' | 'DESKTOP'
     location?: {
       name?: string
       latitude: number
       longitude: number
     }
+    checkedItems?: Array<{
+      ingredientId: string
+      ingredientName: string
+      stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
+      expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+      checkedAt: string
+    }> // 確認済み食材の履歴
   }
   meta: {
     timestamp: string
@@ -1716,11 +1720,10 @@ interface CompleteShoppingSessionResponse {
 
 #### エラーレスポンス
 
-| ステータスコード | エラーコード              | 説明                       |
-| ---------------- | ------------------------- | -------------------------- |
-| 404              | SESSION_NOT_FOUND         | セッションが見つからない   |
-| 409              | SESSION_ALREADY_COMPLETED | セッションは既に完了済み   |
-| 403              | FORBIDDEN                 | セッションの所有者ではない |
+| ステータスコード | エラーコード              | 説明                                                   |
+| ---------------- | ------------------------- | ------------------------------------------------------ |
+| 404              | SESSION_NOT_FOUND         | セッションが見つからない、または他ユーザーのセッション |
+| 409              | SESSION_ALREADY_COMPLETED | セッションは既に完了済み                               |
 
 ---
 
@@ -1753,11 +1756,10 @@ interface CompleteShoppingSessionResponse {
 
 #### エラーレスポンス
 
-| ステータスコード | エラーコード              | 説明                       |
-| ---------------- | ------------------------- | -------------------------- |
-| 404              | SESSION_NOT_FOUND         | セッションが見つからない   |
-| 409              | SESSION_ALREADY_COMPLETED | セッションは既に完了済み   |
-| 403              | FORBIDDEN                 | セッションの所有者ではない |
+| ステータスコード | エラーコード              | 説明                                                   |
+| ---------------- | ------------------------- | ------------------------------------------------------ |
+| 404              | SESSION_NOT_FOUND         | セッションが見つからない、または他ユーザーのセッション |
+| 409              | SESSION_ALREADY_COMPLETED | セッションは既に完了済み                               |
 
 ---
 
@@ -1765,7 +1767,7 @@ interface CompleteShoppingSessionResponse {
 
 ### 概要
 
-買い物セッション中に食材の在庫状態を確認し、履歴に記録します。
+買い物セッション中に食材の在庫状態を確認し、履歴に記録します。同じ食材を複数回確認した場合は、最新の情報で上書き更新されます。
 
 ### エンドポイント情報
 
@@ -1785,7 +1787,7 @@ interface CompleteShoppingSessionResponse {
 
 ### レスポンス
 
-#### 成功時（200 OK）
+#### 成功時（201 Created）
 
 ```typescript
 interface CheckIngredientResponse {
@@ -1793,9 +1795,9 @@ interface CheckIngredientResponse {
     sessionId: string
     ingredientId: string
     ingredientName: string
-    categoryId: string
+    categoryId: string | null
     stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' | 'LOW_STOCK'
-    expiryStatus?: 'FRESH' | 'EXPIRING_SOON' | 'EXPIRED'
+    expiryStatus: 'FRESH' | 'NEAR_EXPIRY' | 'EXPIRING_SOON' | 'CRITICAL' | 'EXPIRED' | null
     currentQuantity: {
       amount: number
       unit: {
@@ -1804,7 +1806,7 @@ interface CheckIngredientResponse {
         symbol: string
       }
     }
-    threshold?: number
+    threshold: number | null
     checkedAt: string
   }
   meta: {
@@ -2001,6 +2003,34 @@ interface QuickAccessIngredientsResponse {
   }
 }
 ```
+
+#### レスポンス詳細
+
+**recentlyChecked（最近確認した食材）**:
+
+- 過去30日以内に確認された食材を最新順でソート
+- 最大でlimitパラメータで指定された件数を返却
+
+**frequentlyChecked（頻繁に確認する食材）**:
+
+- 全期間でのチェック回数が多い順にソート
+- recentlyCheckedに含まれる食材は除外（重複排除）
+- 最大でlimitパラメータで指定された件数を返却
+
+**フィールド詳細**:
+
+- `categoryId`: カテゴリーが設定されていない場合は空文字列
+- `categoryName`: カテゴリーが設定されていない場合は"未分類"
+- `expiryStatus`: 期限状態がFRESHの場合はundefined（省略）
+- `checkCount`: 全期間での累計チェック回数
+
+**期限状態の判定基準**:
+
+- `EXPIRED`: 期限切れ
+- `CRITICAL`: 期限まで1日以内
+- `EXPIRING_SOON`: 期限まで3日以内
+- `NEAR_EXPIRY`: 期限まで7日以内
+- `FRESH`: 期限まで7日より多い（レスポンスでは省略）
 
 ---
 
@@ -2362,13 +2392,17 @@ DDD設計に基づき、食材の削除は論理削除として実装されま�
 
 ## 更新履歴
 
-| 日付       | 内容                                                                              | 更新者     |
-| ---------- | --------------------------------------------------------------------------------- | ---------- |
-| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正 | @komei0727 |
-| 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                       | @komei0727 |
-| 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加              | @komei0727 |
-| 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化             | Claude     |
-| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加（現在は実装未完了の注記付き） | Claude     |
+| 日付       | 内容                                                                                      | 更新者     |
+| ---------- | ----------------------------------------------------------------------------------------- | ---------- |
+| 2025-06-23 | 価格フィールドを小数点対応に変更、食材登録APIのレスポンス形式を実装に合わせて修正         | @komei0727 |
+| 2025-06-24 | ExpiryInfo統合、期限管理・在庫チェックAPIエンドポイント追加                               | @komei0727 |
+| 2025-06-24 | ユーザーID前提の設計に更新、認証・認可を必須化、共通エラーコード追加                      | @komei0727 |
+| 2025-06-28 | 買い物サポート機能統合、バッチ操作API詳細仕様追加、ドメイン制約明示化                     | Claude     |
+| 2025-07-01 | 買い物セッションAPIにdeviceTypeとlocation対応を追加                                       | Claude     |
+| 2025-07-03 | deviceTypeとlocationの実装完了により注記を削除                                            | Claude     |
+| 2025-07-03 | 買い物セッション放棄APIのエラーレスポンスを実装に合わせて修正（403→404）                  | Claude     |
+| 2025-07-04 | 買い物セッション食材確認APIの仕様を実装に合わせて修正（ステータスコード、レスポンス形式） | Claude     |
+| 2025-07-04 | クイックアクセス食材取得APIの実装詳細を文書化（判定基準、フィールド詳細）                 | Claude     |
 
 ## 関連ドキュメント
 

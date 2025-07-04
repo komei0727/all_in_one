@@ -9,11 +9,11 @@ export class ShoppingSessionAbandoned extends DomainEvent {
     public readonly sessionId: string,
     public readonly userId: string,
     public readonly durationMs: number,
-    public readonly reason: string,
+    public readonly reason: string = 'user-action',
     metadata: Record<string, unknown> = {}
   ) {
     // バリデーション実行
-    ShoppingSessionAbandoned.validateRequiredFields(sessionId, userId, reason)
+    ShoppingSessionAbandoned.validateRequiredFields(sessionId, userId)
     ShoppingSessionAbandoned.validateDuration(durationMs)
 
     super(sessionId, metadata)
@@ -35,15 +35,12 @@ export class ShoppingSessionAbandoned extends DomainEvent {
   /**
    * 必須フィールドのバリデーション
    */
-  private static validateRequiredFields(sessionId: string, userId: string, reason: string): void {
+  private static validateRequiredFields(sessionId: string, userId: string): void {
     if (!sessionId || sessionId.trim().length === 0) {
       throw new Error('セッションIDは必須です')
     }
     if (!userId || userId.trim().length === 0) {
       throw new Error('ユーザーIDは必須です')
-    }
-    if (!reason || reason.trim().length === 0) {
-      throw new Error('中断理由は必須です')
     }
   }
 

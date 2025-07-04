@@ -14,6 +14,7 @@ const mockPrismaClient = {
     findMany: vi.fn(),
     count: vi.fn(),
     groupBy: vi.fn(),
+    findFirst: vi.fn(),
   },
   ingredient: {
     findMany: vi.fn(),
@@ -41,13 +42,16 @@ describe('PrismaShoppingQueryService', () => {
         startedAt: faker.date.recent(),
         completedAt: faker.date.recent(),
         deviceType: null,
-        location: null,
+        locationLat: null,
+        locationLng: null,
+        locationName: null,
         createdAt: faker.date.recent(),
         updatedAt: faker.date.recent(),
         sessionItems: [],
       }))
 
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue(mockSessions)
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(5)
 
       // When: 直近セッション履歴を取得
       const result = await service.getRecentSessions(userId)
@@ -64,17 +68,27 @@ describe('PrismaShoppingQueryService', () => {
         },
         orderBy: { startedAt: 'desc' },
         take: 10,
+        skip: 0,
       })
 
-      // 結果がShoppingSessionDtoの配列として返される
-      expect(result).toHaveLength(5)
-      expect(result[0]).toBeInstanceOf(ShoppingSessionDto)
+      // 結果がページネーション情報を含むオブジェクトとして返される
+      expect(result.data).toHaveLength(5)
+      expect(result.data[0]).toBeInstanceOf(ShoppingSessionDto)
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 5,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      })
     })
 
     it('指定した件数の履歴を取得できる', async () => {
       // Given: カスタム件数を指定
       const limit = 20
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue([])
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(0)
 
       // When: 指定件数で履歴を取得
       await service.getRecentSessions(userId, limit)
@@ -96,7 +110,9 @@ describe('PrismaShoppingQueryService', () => {
         startedAt: faker.date.recent(),
         completedAt: faker.date.recent(),
         deviceType: null,
-        location: null,
+        locationLat: null,
+        locationLng: null,
+        locationName: null,
         createdAt: faker.date.recent(),
         updatedAt: faker.date.recent(),
         sessionItems: [
@@ -112,19 +128,21 @@ describe('PrismaShoppingQueryService', () => {
             ingredient: {
               id: faker.string.uuid(),
               name: faker.commerce.productName(),
+              price: null,
             },
           },
         ],
       }
 
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue([mockSessionWithItems])
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(1)
 
       // When: セッション履歴を取得
       const result = await service.getRecentSessions(userId)
 
       // Then: セッションアイテムが含まれる
-      expect(result[0].checkedItems).toHaveLength(1)
-      expect(result[0].checkedItems![0].ingredientName).toBe(
+      expect(result.data[0].checkedItems).toHaveLength(1)
+      expect(result.data[0].checkedItems![0].ingredientName).toBe(
         mockSessionWithItems.sessionItems[0].ingredientName
       )
     })
@@ -178,6 +196,11 @@ describe('PrismaShoppingQueryService', () => {
         .mockResolvedValueOnce(mockSessionsForMonthly) // 月次集計用
         .mockResolvedValueOnce(mockSessionsForDuration) // セッション時間計算用
 
+      // 各頻繁チェック食材の最終チェック日時取得のモック
+      mockPrismaClient.shoppingSessionItem.findFirst
+        .mockResolvedValueOnce({ checkedAt: faker.date.recent() }) // 玉ねぎ
+        .mockResolvedValueOnce({ checkedAt: faker.date.recent() }) // にんじん
+
       const periodDays = 30
 
       // When: 買い物統計を取得
@@ -189,6 +212,10 @@ describe('PrismaShoppingQueryService', () => {
       expect(result.topCheckedIngredients).toHaveLength(2)
       expect(result.topCheckedIngredients[0].ingredientName).toBe('玉ねぎ')
       expect(result.topCheckedIngredients[0].checkCount).toBe(10)
+      expect(result.topCheckedIngredients[0].lastCheckedAt).toBeDefined()
+      expect(result.topCheckedIngredients[1].ingredientName).toBe('にんじん')
+      expect(result.topCheckedIngredients[1].checkCount).toBe(8)
+      expect(result.topCheckedIngredients[1].lastCheckedAt).toBeDefined()
       expect(result.monthlySessionCounts).toHaveLength(2)
       expect(result.monthlySessionCounts[0].yearMonth).toBe('2025-06')
       expect(result.monthlySessionCounts[0].sessionCount).toBe(2)
@@ -328,13 +355,18 @@ describe('PrismaShoppingQueryService', () => {
       const result = await service.getQuickAccessIngredients(userId)
 
       // Then: 食材リストが返される
-      expect(result).toHaveLength(2)
-      expect(result[0].ingredientName).toBe('トマト')
-      expect(result[0].checkCount).toBe(3)
-      expect(result[0].currentStockStatus).toBe('LOW_STOCK') // quantity(2) <= threshold(5)
-      expect(result[0].currentExpiryStatus).toBe('NEAR_EXPIRY') // 7日後なので
-      expect(result[1].ingredientName).toBe('きゅうり')
-      expect(result[1].checkCount).toBe(2)
+      expect(result.recentlyChecked).toBeDefined()
+      expect(result.frequentlyChecked).toBeDefined()
+      expect(result.recentlyChecked.length + result.frequentlyChecked.length).toBeGreaterThan(0)
+
+      // 頻繁にチェックされる食材を確認
+      const tomato = [...result.recentlyChecked, ...result.frequentlyChecked].find(
+        (item) => item.ingredientName === 'トマト'
+      )
+      expect(tomato).toBeDefined()
+      expect(tomato?.checkCount).toBe(3)
+      expect(tomato?.currentStockStatus).toBe('LOW_STOCK') // quantity(2) <= threshold(5)
+      expect(tomato?.currentExpiryStatus).toBe('NEAR_EXPIRY') // 7日後なので
 
       // 正しいクエリが実行される
       expect(mockPrismaClient.shoppingSessionItem.findMany).toHaveBeenCalledWith({
@@ -347,7 +379,11 @@ describe('PrismaShoppingQueryService', () => {
           },
         },
         include: {
-          ingredient: true,
+          ingredient: {
+            include: {
+              category: true,
+            },
+          },
         },
       })
     })
@@ -360,8 +396,9 @@ describe('PrismaShoppingQueryService', () => {
       // When: 指定件数でクイックアクセス食材を取得
       const result = await service.getQuickAccessIngredients(userId, limit)
 
-      // Then: 空の配列が返される
-      expect(result).toHaveLength(0)
+      // Then: 空のオブジェクトが返される
+      expect(result.recentlyChecked).toHaveLength(0)
+      expect(result.frequentlyChecked).toHaveLength(0)
     })
   })
 
@@ -488,12 +525,13 @@ describe('PrismaShoppingQueryService', () => {
       // Given: 無効なユーザーID
       const invalidUserId = ''
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue([])
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(0)
 
       // When: 無効なユーザーIDで実行
       const result = await service.getRecentSessions(invalidUserId)
 
       // Then: 例外は発生せず、空の結果が返される
-      expect(result).toHaveLength(0)
+      expect(result.data).toHaveLength(0)
     })
   })
 
@@ -513,10 +551,15 @@ describe('PrismaShoppingQueryService', () => {
       const ingredientStats = await service.getIngredientCheckStatistics(userId)
 
       // Then: 返り値の型が正しい
-      expect(Array.isArray(recentSessions)).toBe(true)
+      expect(recentSessions).toHaveProperty('data')
+      expect(recentSessions).toHaveProperty('pagination')
+      expect(Array.isArray(recentSessions.data)).toBe(true)
       expect(typeof statistics.totalSessions).toBe('number')
       expect(Array.isArray(statistics.topCheckedIngredients)).toBe(true)
-      expect(Array.isArray(quickAccess)).toBe(true)
+      expect(quickAccess).toHaveProperty('recentlyChecked')
+      expect(quickAccess).toHaveProperty('frequentlyChecked')
+      expect(Array.isArray(quickAccess.recentlyChecked)).toBe(true)
+      expect(Array.isArray(quickAccess.frequentlyChecked)).toBe(true)
       expect(Array.isArray(ingredientStats)).toBe(true)
     })
   })

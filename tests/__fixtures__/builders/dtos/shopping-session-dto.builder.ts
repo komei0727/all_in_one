@@ -13,9 +13,11 @@ export class ShoppingSessionDtoBuilder {
   private startedAt: string = faker.date.recent().toISOString()
   private completedAt: string | null = null
   private deviceType: 'MOBILE' | 'WEB' = faker.helpers.arrayElement(['MOBILE', 'WEB'])
-  private location: { placeName: string } | null =
+  private location: { latitude?: number; longitude?: number; name?: string } | null =
     faker.helpers.maybe(() => ({
-      placeName: faker.location.streetAddress(),
+      latitude: Number(faker.location.latitude()),
+      longitude: Number(faker.location.longitude()),
+      name: faker.location.streetAddress(),
     })) ?? null
   private checkedItems: CheckedItemDto[] = []
 
@@ -52,7 +54,7 @@ export class ShoppingSessionDtoBuilder {
     return this
   }
 
-  withLocation(location: { placeName: string } | null): this {
+  withLocation(location: { latitude?: number; longitude?: number; name?: string } | null): this {
     this.location = location
     return this
   }

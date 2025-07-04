@@ -1,5 +1,6 @@
 import type { Category } from '../../domain/entities/category.entity'
 import type { Ingredient } from '../../domain/entities/ingredient.entity'
+import type { Unit } from '../../domain/entities/unit.entity'
 
 /**
  * カテゴリー別食材DTOクラス
@@ -38,15 +39,9 @@ export class IngredientsByCategoryDto {
    */
   toJSON() {
     return {
-      data: {
-        category: this.category,
-        ingredients: this.ingredients,
-        summary: this.summary,
-      },
-      meta: {
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-      },
+      category: this.category,
+      ingredients: this.ingredients,
+      summary: this.summary,
     }
   }
 
@@ -58,36 +53,48 @@ export class IngredientsByCategoryDto {
   static fromDomain(params: {
     category: Category
     ingredients: Array<Ingredient>
+    unitMap: Map<string, Unit>
+    checkedItemsMap: Map<string, Date>
   }): IngredientsByCategoryDto {
     // 食材情報をマッピング
-    const ingredients = params.ingredients.map((ingredient) => ({
-      id: ingredient.getId().getValue(),
-      name: ingredient.getName().getValue(),
-      stockStatus: (() => {
-        if (ingredient.getIngredientStock().isOutOfStock()) return 'OUT_OF_STOCK'
-        if (ingredient.getIngredientStock().isLowStock()) return 'LOW_STOCK'
-        return 'IN_STOCK'
-      })(),
-      expiryStatus: (() => {
-        const expiryInfo = ingredient.getExpiryInfo()
-        if (!expiryInfo) return undefined
+    const ingredients = params.ingredients.map((ingredient) => {
+      // 単位情報を取得
+      const unitId = ingredient.getIngredientStock().getUnitId().getValue()
+      const unit = params.unitMap.get(unitId)
+      const unitSymbol = unit ? unit.getSymbol() : unitId // 単位が見つからない場合はIDを表示
 
-        const daysUntilExpiry = expiryInfo.getDaysUntilExpiry()
-        if (daysUntilExpiry === null) return undefined
+      return {
+        id: ingredient.getId().getValue(),
+        name: ingredient.getName().getValue(),
+        stockStatus: (() => {
+          if (ingredient.getIngredientStock().isOutOfStock()) return 'OUT_OF_STOCK'
+          if (ingredient.getIngredientStock().isLowStock()) return 'LOW_STOCK'
+          return 'IN_STOCK'
+        })(),
+        expiryStatus: (() => {
+          const expiryInfo = ingredient.getExpiryInfo()
+          if (!expiryInfo) return undefined
 
-        if (daysUntilExpiry < 0) return 'EXPIRED'
-        if (daysUntilExpiry <= 3) return 'CRITICAL'
-        if (daysUntilExpiry <= 7) return 'EXPIRING_SOON'
-        return 'FRESH'
-      })(),
-      lastCheckedAt: undefined, // TODO: セッション内での最終確認時刻を実装
-      currentQuantity: {
-        amount: ingredient.getIngredientStock().getQuantity(),
-        unit: {
-          symbol: ingredient.getIngredientStock().getUnitId().getValue(), // 一時的にunitIdを表示
+          const daysUntilExpiry = expiryInfo.getDaysUntilExpiry()
+          if (daysUntilExpiry === null) return undefined
+
+          if (daysUntilExpiry < 0) return 'EXPIRED'
+          if (daysUntilExpiry <= 1) return 'CRITICAL'
+          if (daysUntilExpiry <= 3) return 'EXPIRING_SOON'
+          return undefined // FRESHステータスは表示しない
+        })(),
+        lastCheckedAt: (() => {
+          const checkedAt = params.checkedItemsMap.get(ingredient.getId().getValue())
+          return checkedAt ? checkedAt.toISOString() : undefined
+        })(),
+        currentQuantity: {
+          amount: ingredient.getIngredientStock().getQuantity(),
+          unit: {
+            symbol: unitSymbol,
+          },
         },
-      },
-    }))
+      }
+    })
 
     // サマリー情報を計算
     const summary = {

@@ -39,8 +39,9 @@ export function useCategories() {
       if (!response.ok) {
         throw new Error('カテゴリーの取得に失敗しました')
       }
-      const data = (await response.json()) as { categories: Category[] }
-      return data.categories
+      // UnifiedRouteFactory のレスポンス形式に対応
+      const result = (await response.json()) as { data: { categories: Category[] } }
+      return result.data.categories
     },
   })
 }
@@ -56,8 +57,9 @@ export function useUnits() {
       if (!response.ok) {
         throw new Error('単位の取得に失敗しました')
       }
-      const data = (await response.json()) as { units: Unit[] }
-      return data.units
+      // UnifiedRouteFactory のレスポンス形式に対応
+      const result = (await response.json()) as { data: { units: Unit[] } }
+      return result.data.units
     },
   })
 }
@@ -81,7 +83,9 @@ export function useCreateIngredient() {
         throw new Error(error.error?.message || '食材の登録に失敗しました')
       }
 
-      return response.json() as Promise<IngredientResponse>
+      // UnifiedRouteFactory のレスポンス形式に対応
+      const result = (await response.json()) as { data: IngredientResponse }
+      return result.data
     },
   })
 }
@@ -114,7 +118,9 @@ export function useIngredients(params: IngredientsParams = {}) {
         throw new Error(error.error?.message || '食材の取得に失敗しました')
       }
 
-      return response.json() as Promise<IngredientsListResponse>
+      // UnifiedRouteFactory のレスポンス形式に対応
+      const result = (await response.json()) as { data: IngredientsListResponse }
+      return result.data
     },
   })
 }

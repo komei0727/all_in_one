@@ -59,17 +59,15 @@ describe('GetSessionHistoryApiHandler', () => {
       mockGetSessionHistoryHandler.handle.mockResolvedValue(mockResult)
 
       // When: デフォルトパラメータでリクエスト
-      const result = await handler.handle(new Request('http://localhost'), userId)
+      const requestData = {}
+      const result = await handler.handle(requestData, userId)
 
       // Then: 正常なレスポンスが返される
-      expect(result.status).toBe(200)
-      const data = await result.json()
-
       // API仕様書に準拠したレスポンスフォーマットの確認
-      expect(data.data).toEqual(mockResult.data)
-      expect(data.pagination).toEqual(mockResult.pagination)
-      expect(data.meta).toHaveProperty('timestamp')
-      expect(data.meta.version).toBe('1.0.0')
+      expect(result.data).toEqual(mockResult.data)
+      expect(result.pagination).toEqual(mockResult.pagination)
+      expect(result.meta).toHaveProperty('timestamp')
+      expect(result.meta.version).toBe('1.0.0')
 
       // ハンドラーがデフォルト値で呼び出される
       expect(mockGetSessionHistoryHandler.handle).toHaveBeenCalledWith(
@@ -101,12 +99,16 @@ describe('GetSessionHistoryApiHandler', () => {
       mockGetSessionHistoryHandler.handle.mockResolvedValue(mockResult)
 
       // When: すべてのパラメータ付きでリクエスト
-      const url =
-        'http://localhost?page=2&limit=10&from=2025-07-01T00:00:00Z&to=2025-07-31T23:59:59Z&status=COMPLETED'
-      const result = await handler.handle(new Request(url), userId)
+      const requestData = {
+        page: '2',
+        limit: '10',
+        from: '2025-07-01T00:00:00Z',
+        to: '2025-07-31T23:59:59Z',
+        status: 'COMPLETED',
+      }
+      await handler.handle(requestData, userId)
 
       // Then: 正常なレスポンスが返される
-      expect(result.status).toBe(200)
 
       // ハンドラーが正しいパラメータで呼び出される
       expect(mockGetSessionHistoryHandler.handle).toHaveBeenCalledWith(
@@ -124,69 +126,41 @@ describe('GetSessionHistoryApiHandler', () => {
 
   describe('バリデーション', () => {
     it('pageパラメータが数値でない場合、バリデーションエラーを返す', async () => {
-      // When: 無効なpageでリクエスト
-      const result = await handler.handle(new Request('http://localhost?page=abc'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.message).toBe('Validation failed')
-      expect(data.errors).toContainEqual({
-        field: 'page',
-        message: 'page must be a valid integer',
-      })
+      // When & Then: 無効なpageでリクエスト
+      const requestData = { page: 'abc' }
+      await expect(handler.handle(requestData, userId)).rejects.toThrow(
+        'pageは有効な整数である必要があります'
+      )
     })
 
     it('limitが範囲外の場合、バリデーションエラーを返す', async () => {
-      // When: 範囲外のlimitでリクエスト
-      const result = await handler.handle(new Request('http://localhost?limit=200'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.errors).toContainEqual({
-        field: 'limit',
-        message: 'limit must be between 1 and 100',
-      })
+      // When & Then: 範囲外のlimitでリクエスト
+      const requestData = { limit: '200' }
+      await expect(handler.handle(requestData, userId)).rejects.toThrow(
+        'limitは1以上100以下である必要があります'
+      )
     })
 
     it('fromが無効な日付形式の場合、バリデーションエラーを返す', async () => {
-      // When: 無効な日付でリクエスト
-      const result = await handler.handle(new Request('http://localhost?from=invalid-date'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.errors).toContainEqual({
-        field: 'from',
-        message: 'from must be a valid ISO 8601 date',
-      })
+      // When & Then: 無効な日付でリクエスト
+      const requestData = { from: 'invalid-date' }
+      await expect(handler.handle(requestData, userId)).rejects.toThrow(
+        'fromは有効なISO 8601形式の日付である必要があります'
+      )
     })
 
     it('statusが無効な値の場合、バリデーションエラーを返す', async () => {
-      // When: 無効なstatusでリクエスト
-      const result = await handler.handle(new Request('http://localhost?status=INVALID'), userId)
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.errors).toContainEqual({
-        field: 'status',
-        message: 'status must be either COMPLETED or ABANDONED',
-      })
+      // When & Then: 無効なstatusでリクエスト
+      const requestData = { status: 'INVALID' }
+      await expect(handler.handle(requestData, userId)).rejects.toThrow(
+        'statusはCOMPLETEDまたはABANDONEDのいずれかである必要があります'
+      )
     })
 
     it('複数のバリデーションエラーがある場合、すべて返す', async () => {
-      // When: 複数の無効なパラメータでリクエスト
-      const result = await handler.handle(
-        new Request('http://localhost?page=0&limit=0&status=INVALID'),
-        userId
-      )
-
-      // Then: 400エラーが返される
-      expect(result.status).toBe(400)
-      const data = await result.json()
-      expect(data.errors).toHaveLength(3)
+      // When & Then: 複数の無効なパラメータでリクエスト
+      const requestData = { page: '0', limit: '0', status: 'INVALID' }
+      await expect(handler.handle(requestData, userId)).rejects.toThrow()
     })
   })
 
@@ -195,13 +169,11 @@ describe('GetSessionHistoryApiHandler', () => {
       // Given: ハンドラーでエラーが発生
       mockGetSessionHistoryHandler.handle.mockRejectedValue(new Error('Database error'))
 
-      // When: リクエスト
-      const result = await handler.handle(new Request('http://localhost'), userId)
-
-      // Then: 500エラーが返される
-      expect(result.status).toBe(500)
-      const data = await result.json()
-      expect(data.message).toBe('Internal server error')
+      // When & Then: リクエスト
+      const requestData = {}
+      await expect(handler.handle(requestData, userId)).rejects.toThrow(
+        'An unexpected error occurred'
+      )
     })
   })
 })

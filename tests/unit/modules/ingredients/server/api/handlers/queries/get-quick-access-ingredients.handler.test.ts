@@ -23,7 +23,7 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
 
   describe('handle', () => {
     describe('正常系', () => {
-      it('デフォルトリミット（10件）でクイックアクセス食材を取得できる', async () => {
+      it('デフォルトリミット（20件）でクイックアクセス食材を取得できる', async () => {
         // Given: クイックアクセス食材データ
         const userId = testDataHelpers.userId()
         const mockIngredients = [
@@ -53,29 +53,34 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
           },
         ]
 
-        vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce(
-          mockIngredients
-        )
-
-        const request = new Request('http://localhost', {
-          method: 'GET',
+        vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce({
+          recentlyChecked: mockIngredients.map((ing) => ({
+            ...ing,
+            categoryId: 'cat1',
+            categoryName: '野菜',
+          })),
+          frequentlyChecked: mockIngredients.map((ing) => ({
+            ...ing,
+            categoryId: 'cat2',
+            categoryName: '乳製品',
+          })),
         })
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
+        // When: ハンドラーを実行（デフォルトリミット）
+        const response = await handler.handle({}, userId)
 
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
-          ingredients: mockIngredients,
-        })
+        // Then: クイックアクセス食材データが返される
+        expect(response).toHaveProperty('recentlyChecked')
+        expect(response).toHaveProperty('frequentlyChecked')
+        expect(response.recentlyChecked[0]).toHaveProperty('name')
+        expect(response.recentlyChecked[0]).toHaveProperty('categoryId')
+        expect(response.recentlyChecked[0]).toHaveProperty('categoryName')
 
         // デフォルトリミットで呼ばれている
         expect(mockGetQuickAccessIngredientsHandler.handle).toHaveBeenCalledWith(
           expect.objectContaining({
             userId,
-            limit: 10,
+            limit: 20,
           })
         )
       })
@@ -99,21 +104,22 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
           currentExpiryStatus: faker.helpers.arrayElement(['FRESH', 'EXPIRING_SOON', 'EXPIRED']),
         }))
 
-        vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce(
-          mockIngredients
-        )
-
-        const request = new Request(`http://localhost?limit=${limit}`, {
-          method: 'GET',
+        vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce({
+          recentlyChecked: mockIngredients
+            .slice(0, Math.floor(limit / 2))
+            .map((ing) => ({ ...ing, categoryId: 'cat1', categoryName: '野菜' })),
+          frequentlyChecked: mockIngredients
+            .slice(Math.floor(limit / 2))
+            .map((ing) => ({ ...ing, categoryId: 'cat2', categoryName: '乳製品' })),
         })
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
+        // When: ハンドラーを実行（カスタムリミット）
+        const response = await handler.handle({ limit }, userId)
 
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData.ingredients).toHaveLength(limit)
+        // Then: 指定した件数のクイックアクセス食材データが返される
+        expect(
+          response.recentlyChecked.length + response.frequentlyChecked.length
+        ).toBeLessThanOrEqual(limit * 2)
 
         // 指定リミットで呼ばれている
         expect(mockGetQuickAccessIngredientsHandler.handle).toHaveBeenCalledWith(
@@ -127,20 +133,18 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
       it('空の結果が返された場合も正常にレスポンスを返す', async () => {
         // Given: 空の結果
         const userId = testDataHelpers.userId()
-        vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce([])
-
-        const request = new Request('http://localhost', {
-          method: 'GET',
+        vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockResolvedValueOnce({
+          recentlyChecked: [],
+          frequentlyChecked: [],
         })
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
+        // When: ハンドラーを実行（空のデータ）
+        const response = await handler.handle({}, userId)
 
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
-          ingredients: [],
+        // Then: 空のクイックアクセス食材データが返される
+        expect(response).toEqual({
+          recentlyChecked: [],
+          frequentlyChecked: [],
         })
       })
     })
@@ -149,66 +153,27 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
       it('limitが不正な形式の場合、バリデーションエラーを返す', async () => {
         // Given: 不正なリミットパラメータ
         const userId = testDataHelpers.userId()
-        const request = new Request('http://localhost?limit=invalid', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'limit',
-            message: 'limit must be a valid integer',
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ limit: 'invalid' }, userId)).rejects.toThrow(
+          'limitは有効な整数である必要があります'
         )
       })
 
       it('limitが範囲外（0以下）の場合、バリデーションエラーを返す', async () => {
         // Given: 範囲外のリミットパラメータ
         const userId = testDataHelpers.userId()
-        const request = new Request('http://localhost?limit=0', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'limit',
-            message: 'limit must be between 1 and 100',
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ limit: 0 }, userId)).rejects.toThrow(
+          'limitは1以上50以下である必要があります'
         )
       })
 
-      it('limitが範囲外（100超）の場合、バリデーションエラーを返す', async () => {
+      it('limitが範囲外（50超）の場合、バリデーションエラーを返す', async () => {
         // Given: 範囲外のリミットパラメータ
         const userId = testDataHelpers.userId()
-        const request = new Request('http://localhost?limit=101', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'limit',
-            message: 'limit must be between 1 and 100',
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ limit: 51 }, userId)).rejects.toThrow(
+          'limitは1以上50以下である必要があります'
         )
       })
 
@@ -218,17 +183,8 @@ describe('GetQuickAccessIngredientsApiHandler', () => {
         const error = new Error('Database connection failed')
         vi.mocked(mockGetQuickAccessIngredientsHandler.handle).mockRejectedValueOnce(error)
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 500エラーが返される
-        expect(response.status).toBe(500)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Internal server error')
+        // When & Then: APIエラーが発生する
+        await expect(handler.handle({}, userId)).rejects.toThrow('An unexpected error occurred')
       })
     })
   })

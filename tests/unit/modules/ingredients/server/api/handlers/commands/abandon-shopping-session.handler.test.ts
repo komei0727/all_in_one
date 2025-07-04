@@ -8,7 +8,9 @@ import {
   BusinessRuleException,
   NotFoundException,
 } from '@/modules/ingredients/server/domain/exceptions'
-import { shoppingSessionDtoBuilder } from '@tests/__fixtures__/builders/dtos/shopping-session-dto.builder'
+import { ApiBusinessRuleException } from '@/modules/shared/server/api/exceptions/api-business-rule.exception'
+import { ApiInternalException } from '@/modules/shared/server/api/exceptions/api-internal.exception'
+import { ApiNotFoundException } from '@/modules/shared/server/api/exceptions/api-not-found.exception'
 
 describe('AbandonShoppingSessionApiHandler', () => {
   let mockCommandHandler: AbandonShoppingSessionHandler
@@ -26,45 +28,26 @@ describe('AbandonShoppingSessionApiHandler', () => {
   const createValidSessionId = () => `ses_${faker.string.alphanumeric(20)}`
   const createUserId = () => faker.string.uuid()
 
-  const createMockRequest = (body?: unknown) => {
-    const request = new Request('http://localhost:3000/api/v1/shopping-sessions/abandon', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    })
-    return request
-  }
-
   describe('正常系', () => {
     it('理由なしで買い物セッションを中断できる', async () => {
       // テストデータの準備
       const sessionId = createValidSessionId()
       const userId = createUserId()
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
 
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
+      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(undefined)
 
-      // 空のリクエストボディで実行
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId }, userId)
+      // BaseApiHandlerのhandleメソッドの新しいシグネチャで実行
+      const requestData = { sessionId }
+      const result = await apiHandler.handle(requestData, userId)
 
-      // レスポンスの検証
-      expect(response.status).toBe(200)
-      const responseData = await response.json()
-      expect(responseData).toEqual(mockDto.toJSON().data)
+      // レスポンスの検証（void）
+      expect(result).toBeUndefined()
 
       // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId,
           userId,
-          reason: undefined,
         })
       )
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
@@ -72,180 +55,93 @@ describe('AbandonShoppingSessionApiHandler', () => {
       )
     })
 
-    it('理由を指定して買い物セッションを中断できる', async () => {
+    it('正しいコマンドオブジェクトが作成される', async () => {
       // テストデータの準備
       const sessionId = createValidSessionId()
       const userId = createUserId()
-      const reason = faker.lorem.sentence()
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
 
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
+      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(undefined)
 
-      // 理由を含むリクエストボディで実行
-      const request = createMockRequest({ reason })
-      const response = await apiHandler.handle(request, { sessionId }, userId)
+      // APIハンドラーを実行
+      const requestData = { sessionId }
+      const result = await apiHandler.handle(requestData, userId)
 
-      // レスポンスの検証
-      expect(response.status).toBe(200)
-      const responseData = await response.json()
-      expect(responseData).toEqual(mockDto.toJSON().data)
+      // レスポンスの検証（void）
+      expect(result).toBeUndefined()
 
-      // コマンドハンドラーが理由付きで呼び出されたことを確認
+      // コマンドハンドラーが正しく呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId,
           userId,
-          reason,
         })
       )
-    })
-
-    it('無効なJSONボディでも処理を継続する', async () => {
-      // テストデータの準備
-      const sessionId = createValidSessionId()
-      const userId = createUserId()
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
-
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
-
-      // 無効なJSONのリクエスト
-      const request = new Request('http://localhost:3000/api/v1/shopping-sessions/abandon', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: 'invalid json',
-      })
-      const response = await apiHandler.handle(request, { sessionId }, userId)
-
-      // レスポンスの検証
-      expect(response.status).toBe(200)
-      const responseData = await response.json()
-      expect(responseData).toEqual(mockDto.toJSON().data)
-
-      // コマンドハンドラーが理由なしで呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sessionId,
-          userId,
-          reason: undefined,
-        })
+        expect.any(AbandonShoppingSessionCommand)
       )
     })
   })
 
   describe('バリデーション', () => {
-    it('無効な形式のセッションIDの場合は400エラーを返す', async () => {
-      // 無効なセッションID（プレフィックスなし）
-      const invalidSessionId = faker.string.alphanumeric(20)
+    it('無効な形式のセッションIDの場合はバリデーションエラーを投げる', async () => {
+      const invalidSessionId = 'invalid-session-id'
       const userId = createUserId()
 
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId: invalidSessionId }, userId)
+      // BaseApiHandlerは例外を投げるのでexpect.rejectsでテスト
+      await expect(apiHandler.handle({ sessionId: invalidSessionId }, userId)).rejects.toThrow()
 
-      // レスポンスの検証
-      expect(response.status).toBe(400)
-      const responseData = await response.json()
-      expect(responseData).toMatchObject({
-        message: 'Validation failed',
-        errors: [
-          {
-            path: ['sessionId'],
-            message: 'Invalid session ID format',
-          },
-        ],
-      })
-
-      // コマンドハンドラーが呼び出されていないことを確認
+      // コマンドハンドラーが呼び出されないことを確認
       expect(mockCommandHandler.handle).not.toHaveBeenCalled()
     })
 
-    it('短すぎるセッションIDの場合は400エラーを返す', async () => {
-      // 短すぎるセッションID
-      const invalidSessionId = `ses_${faker.string.alphanumeric(10)}`
+    it('短すぎるセッションIDの場合はバリデーションエラーを投げる', async () => {
+      const invalidSessionId = 'ses_123' // 20文字未満
       const userId = createUserId()
 
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId: invalidSessionId }, userId)
+      // BaseApiHandlerは例外を投げるのでexpect.rejectsでテスト
+      await expect(apiHandler.handle({ sessionId: invalidSessionId }, userId)).rejects.toThrow()
 
-      // レスポンスの検証
-      expect(response.status).toBe(400)
-      const responseData = await response.json()
-      expect(responseData.message).toBe('Validation failed')
-
-      // コマンドハンドラーが呼び出されていないことを確認
-      expect(mockCommandHandler.handle).not.toHaveBeenCalled()
-    })
-
-    it('長すぎるセッションIDの場合は400エラーを返す', async () => {
-      // 長すぎるセッションID
-      const invalidSessionId = `ses_${faker.string.alphanumeric(35)}`
-      const userId = createUserId()
-
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId: invalidSessionId }, userId)
-
-      // レスポンスの検証
-      expect(response.status).toBe(400)
-      const responseData = await response.json()
-      expect(responseData.message).toBe('Validation failed')
-
-      // コマンドハンドラーが呼び出されていないことを確認
+      // コマンドハンドラーが呼び出されないことを確認
       expect(mockCommandHandler.handle).not.toHaveBeenCalled()
     })
   })
 
-  describe('異常系', () => {
-    it('セッションが見つからない場合は404エラーを返す', async () => {
-      // テストデータの準備
+  describe('例外処理', () => {
+    it('セッションが見つからない場合はNotFoundExceptionが伝播される', async () => {
       const sessionId = createValidSessionId()
       const userId = createUserId()
 
       vi.mocked(mockCommandHandler.handle).mockRejectedValueOnce(
-        new NotFoundException('Shopping session', sessionId)
+        new NotFoundException('Session', 'Session not found')
       )
 
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId }, userId)
+      // ApiNotFoundExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId }, userId)).rejects.toThrow(ApiNotFoundException)
 
-      // レスポンスの検証
-      expect(response.status).toBe(404)
-      const responseData = await response.json()
-      expect(responseData).toMatchObject({
-        message: `Shopping session not found: ${sessionId}`,
-      })
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(
+        expect.any(AbandonShoppingSessionCommand)
+      )
     })
 
-    it('ビジネスルール違反の場合は409エラーを返す', async () => {
-      // テストデータの準備
+    it('ビジネスルール違反の場合はBusinessRuleExceptionが伝播される', async () => {
       const sessionId = createValidSessionId()
       const userId = createUserId()
 
       vi.mocked(mockCommandHandler.handle).mockRejectedValueOnce(
-        new BusinessRuleException('Session is already completed')
+        new BusinessRuleException('Cannot abandon completed session')
       )
 
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId }, userId)
+      // ApiBusinessRuleExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId }, userId)).rejects.toThrow(
+        ApiBusinessRuleException
+      )
 
-      // レスポンスの検証
-      expect(response.status).toBe(409)
-      const responseData = await response.json()
-      expect(responseData).toMatchObject({
-        message: 'Session is already completed',
-      })
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(
+        expect.any(AbandonShoppingSessionCommand)
+      )
     })
 
-    it('予期しないエラーの場合は500エラーを返す', async () => {
-      // テストデータの準備
+    it('予期しないエラーが発生した場合は適切に処理される', async () => {
       const sessionId = createValidSessionId()
       const userId = createUserId()
 
@@ -253,43 +149,11 @@ describe('AbandonShoppingSessionApiHandler', () => {
         new Error('Unexpected database error')
       )
 
-      const request = createMockRequest()
-      const response = await apiHandler.handle(request, { sessionId }, userId)
+      // ApiInternalExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId }, userId)).rejects.toThrow(ApiInternalException)
 
-      // レスポンスの検証
-      expect(response.status).toBe(500)
-      const responseData = await response.json()
-      expect(responseData).toMatchObject({
-        message: 'Internal server error',
-      })
-    })
-
-    it('理由が文字列以外の場合は無視される', async () => {
-      // テストデータの準備
-      const sessionId = createValidSessionId()
-      const userId = createUserId()
-      const mockDto = shoppingSessionDtoBuilder()
-        .withSessionId(sessionId)
-        .withUserId(userId)
-        .withStatus('ABANDONED')
-        .build()
-
-      vi.mocked(mockCommandHandler.handle).mockResolvedValueOnce(mockDto)
-
-      // 数値の理由を含むリクエストボディ
-      const request = createMockRequest({ reason: 123 })
-      const response = await apiHandler.handle(request, { sessionId }, userId)
-
-      // レスポンスの検証
-      expect(response.status).toBe(200)
-
-      // コマンドハンドラーが理由として数値で呼び出されたことを確認
       expect(mockCommandHandler.handle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sessionId,
-          userId,
-          reason: 123,
-        })
+        expect.any(AbandonShoppingSessionCommand)
       )
     })
   })

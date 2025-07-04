@@ -1,97 +1,118 @@
-import { type GetShoppingStatisticsHandler } from '@/modules/ingredients/server/application/queries/get-shopping-statistics.handler'
-import { GetShoppingStatisticsQuery } from '@/modules/ingredients/server/application/queries/get-shopping-statistics.query'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
+
+import { GetShoppingStatisticsQuery } from '../../../application/queries/get-shopping-statistics.query'
+
+import type { GetShoppingStatisticsHandler } from '../../../application/queries/get-shopping-statistics.handler'
+
+/**
+ * GetShoppingStatisticsリクエストの型定義
+ */
+interface GetShoppingStatisticsRequest {
+  periodDays?: number
+}
+
+/**
+ * GetShoppingStatisticsレスポンスの型定義
+ * ShoppingStatisticsインターフェースに合わせて簡素化
+ */
+interface GetShoppingStatisticsResponse {
+  statistics: {
+    totalSessions: number
+    totalCheckedIngredients: number
+    averageSessionDurationMinutes: number
+    topCheckedIngredients: Array<{
+      ingredientId: string
+      ingredientName: string
+      checkCount: number
+      checkRatePercentage: number
+      lastCheckedAt: string
+    }>
+    monthlySessionCounts: Array<{
+      yearMonth: string
+      sessionCount: number
+    }>
+  }
+}
 
 /**
  * 買い物統計取得APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
  */
-export class GetShoppingStatisticsApiHandler {
-  constructor(private readonly getShoppingStatisticsHandler: GetShoppingStatisticsHandler) {}
+export class GetShoppingStatisticsApiHandler extends BaseApiHandler<
+  GetShoppingStatisticsRequest,
+  GetShoppingStatisticsResponse
+> {
+  constructor(private readonly getShoppingStatisticsHandler: GetShoppingStatisticsHandler) {
+    super()
+  }
 
-  async handle(request: Request, userId: string): Promise<Response> {
-    try {
-      // URLからクエリパラメータを取得
-      let url: URL
-      try {
-        // request.urlが相対URLの場合でも動作するようにベースURLを指定
-        url = new URL(request.url, 'http://localhost')
-      } catch (urlError) {
-        console.error('URL parsing error:', urlError, 'Request URL:', request.url)
-        throw urlError
-      }
-      const periodDaysParam = url.searchParams.get('periodDays')
+  /**
+   * リクエストのバリデーション
+   * クエリパラメータの妥当性を検証
+   */
+  validate(data: unknown): GetShoppingStatisticsRequest {
+    // 空のリクエストも許可（デフォルト値を使用）
+    if (!data) {
+      return {}
+    }
 
-      let periodDays = 30 // デフォルト値
+    // dataが適切な型であることを確認
+    if (typeof data !== 'object') {
+      throw new ValidationException('リクエストデータが不正です')
+    }
 
-      // periodDaysのバリデーション
-      if (periodDaysParam) {
-        const parsedPeriodDays = parseInt(periodDaysParam, 10)
+    const request = data as Record<string, unknown>
+    const result: GetShoppingStatisticsRequest = {}
 
-        // 数値でない場合
+    // periodDaysパラメータのバリデーション
+    if (request.periodDays !== undefined) {
+      const periodDaysValue = request.periodDays
+
+      // 文字列の場合は数値に変換
+      let parsedPeriodDays: number
+      if (typeof periodDaysValue === 'string') {
+        parsedPeriodDays = parseInt(periodDaysValue, 10)
         if (isNaN(parsedPeriodDays)) {
-          return new Response(
-            JSON.stringify({
-              message: 'Validation failed',
-              errors: [
-                {
-                  field: 'periodDays',
-                  message: 'periodDays must be a valid integer',
-                },
-              ],
-            }),
-            {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
+          throw new ValidationException('periodDaysは有効な整数である必要があります')
         }
-
-        // 範囲チェック（1-365）
-        if (parsedPeriodDays < 1 || parsedPeriodDays > 365) {
-          return new Response(
-            JSON.stringify({
-              message: 'Validation failed',
-              errors: [
-                {
-                  field: 'periodDays',
-                  message: 'periodDays must be between 1 and 365',
-                },
-              ],
-            }),
-            {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        periodDays = parsedPeriodDays
+      } else if (typeof periodDaysValue === 'number') {
+        parsedPeriodDays = periodDaysValue
+      } else {
+        throw new ValidationException('periodDaysは数値である必要があります')
       }
 
-      // クエリを作成して実行
-      const query = new GetShoppingStatisticsQuery(userId, periodDays)
-      const statistics = await this.getShoppingStatisticsHandler.handle(query)
-
-      // レスポンスを作成
-      const response = {
-        statistics,
+      // 範囲チェック（1-365）
+      if (parsedPeriodDays < 1 || parsedPeriodDays > 365) {
+        throw new ValidationException('periodDaysは1以上365以下である必要があります')
       }
 
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // 予期しないエラー
-      console.error('Unexpected error in GetShoppingStatisticsApiHandler:', error)
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
+      result.periodDays = parsedPeriodDays
+    }
+
+    return result
+  }
+
+  /**
+   * ビジネスロジックの実行
+   * 買い物統計を取得する処理
+   */
+  async execute(
+    request: GetShoppingStatisticsRequest,
+    userId: string
+  ): Promise<GetShoppingStatisticsResponse> {
+    // デフォルト値の設定
+    const periodDays = request.periodDays || 30
+
+    // クエリオブジェクトを作成
+    const query = new GetShoppingStatisticsQuery(userId, periodDays)
+
+    // クエリを実行
+    const statistics = await this.getShoppingStatisticsHandler.handle(query)
+
+    // レスポンスを作成
+    return {
+      statistics,
     }
   }
 }

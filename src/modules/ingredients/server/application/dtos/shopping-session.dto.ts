@@ -16,9 +16,10 @@ export class ShoppingSessionDto {
     public readonly location: {
       latitude?: number
       longitude?: number
-      placeName?: string
+      name?: string
     } | null,
-    public readonly checkedItems?: CheckedItemDto[]
+    public readonly checkedItems?: CheckedItemDto[],
+    public readonly totalSpent?: number
   ) {}
 
   /**
@@ -27,16 +28,22 @@ export class ShoppingSessionDto {
    */
   toJSON() {
     return {
-      data: {
-        sessionId: this.sessionId,
-        userId: this.userId,
-        status: this.status,
-        startedAt: this.startedAt,
-        completedAt: this.completedAt,
-        deviceType: this.deviceType,
-        location: this.location,
-        checkedItems: this.checkedItems?.map((item) => item.toJSON().data) || null,
-      },
+      sessionId: this.sessionId,
+      userId: this.userId,
+      status: this.status,
+      startedAt: this.startedAt,
+      completedAt: this.completedAt,
+      deviceType: this.deviceType,
+      location: this.location,
+      checkedItems:
+        this.checkedItems?.map((item) => ({
+          ingredientId: item.ingredientId,
+          ingredientName: item.ingredientName,
+          stockStatus: item.stockStatus,
+          expiryStatus: item.expiryStatus,
+          checkedAt: item.checkedAt,
+        })) || null,
+      totalSpent: this.totalSpent,
     }
   }
 
@@ -57,10 +64,11 @@ export class ShoppingSessionDto {
         ? {
             latitude: entity.getLocation()!.getLatitude(),
             longitude: entity.getLocation()!.getLongitude(),
-            placeName: entity.getLocation()!.getName() ?? undefined,
+            name: entity.getLocation()!.getName() ?? undefined,
           }
         : null,
-      undefined // checkedItemsは必要に応じて追加
+      undefined, // checkedItemsは必要に応じて追加
+      undefined // totalSpentは必要に応じて追加
     )
   }
 }

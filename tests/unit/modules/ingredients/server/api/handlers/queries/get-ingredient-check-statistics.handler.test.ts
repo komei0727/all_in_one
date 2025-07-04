@@ -76,17 +76,11 @@ describe('GetIngredientCheckStatisticsApiHandler', () => {
           mockStatistics
         )
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（ingredientId未指定）
+        const response = await handler.handle({}, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
+        // Then: 統計データが返される
+        expect(response).toEqual({
           statistics: mockStatistics,
         })
 
@@ -136,17 +130,11 @@ describe('GetIngredientCheckStatisticsApiHandler', () => {
           mockStatistics
         )
 
-        const request = new Request(`http://localhost?ingredientId=${ingredientId}`, {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（ingredientId指定）
+        const response = await handler.handle({ ingredientId }, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
+        // Then: 統計データが返される
+        expect(response).toEqual({
           statistics: mockStatistics,
         })
 
@@ -164,17 +152,11 @@ describe('GetIngredientCheckStatisticsApiHandler', () => {
         const userId = faker.string.uuid()
         vi.mocked(mockGetIngredientCheckStatisticsHandler.handle).mockResolvedValueOnce([])
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（空のデータ）
+        const response = await handler.handle({}, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
+        // Then: 空の統計データが返される
+        expect(response).toEqual({
           statistics: [],
         })
       })
@@ -189,17 +171,11 @@ describe('GetIngredientCheckStatisticsApiHandler', () => {
           mockStatistics
         )
 
-        const request = new Request('http://localhost?ingredientId=', {
-          method: 'GET',
-        })
+        // When: ハンドラーを実行（空文字のingredientId）
+        const response = await handler.handle({ ingredientId: '' }, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 200レスポンスが返される（空文字はundefinedとして処理）
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
+        // Then: 統計データが返される（空文字はundefinedとして処理）
+        expect(response).toEqual({
           statistics: mockStatistics,
         })
 
@@ -215,22 +191,9 @@ describe('GetIngredientCheckStatisticsApiHandler', () => {
       it('ingredientIdが不正な形式の場合、バリデーションエラーを返す', async () => {
         // Given: 不正な形式のingredientId
         const userId = faker.string.uuid()
-        const request = new Request('http://localhost?ingredientId=invalid-uuid', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toContainEqual(
-          expect.objectContaining({
-            field: 'ingredientId',
-            message: expect.stringContaining('must be a valid UUID'),
-          })
+        // When & Then: バリデーションエラーが発生する
+        await expect(handler.handle({ ingredientId: 'invalid-uuid' }, userId)).rejects.toThrow(
+          'ingredientIdは有効なUUIDまたはプレフィックス付きIDである必要があります'
         )
       })
 
@@ -240,17 +203,8 @@ describe('GetIngredientCheckStatisticsApiHandler', () => {
         const error = new Error('Database connection failed')
         vi.mocked(mockGetIngredientCheckStatisticsHandler.handle).mockRejectedValueOnce(error)
 
-        const request = new Request('http://localhost', {
-          method: 'GET',
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, userId)
-
-        // Then: 500エラーが返される
-        expect(response.status).toBe(500)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Internal server error')
+        // When & Then: APIエラーが発生する
+        await expect(handler.handle({}, userId)).rejects.toThrow('An unexpected error occurred')
       })
     })
   })

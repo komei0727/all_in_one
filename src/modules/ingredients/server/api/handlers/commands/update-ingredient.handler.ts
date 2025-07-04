@@ -1,5 +1,6 @@
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+
 import { UpdateIngredientCommand } from '../../../application/commands/update-ingredient.command'
-import { ValidationException } from '../../../domain/exceptions'
 import { updateIngredientSchema } from '../../validators/update-ingredient.validator'
 
 import type { UpdateIngredientHandler } from '../../../application/commands/update-ingredient.handler'
@@ -7,28 +8,58 @@ import type { IngredientDto } from '../../../application/dtos/ingredient.dto'
 import type { UpdateIngredientRequest } from '../../validators/update-ingredient.validator'
 
 /**
- * 食材更新APIハンドラー
+ * UpdateIngredientリクエストの拡張型定義
+ * URLパラメータとボディを統合
  */
-export class UpdateIngredientApiHandler {
-  constructor(private readonly updateIngredientHandler: UpdateIngredientHandler) {}
+interface UpdateIngredientApiRequest extends UpdateIngredientRequest {
+  ingredientId: string
+}
+
+/**
+ * 食材更新APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
+ */
+export class UpdateIngredientApiHandler extends BaseApiHandler<
+  UpdateIngredientApiRequest,
+  IngredientDto
+> {
+  constructor(private readonly updateIngredientHandler: UpdateIngredientHandler) {
+    super()
+  }
 
   /**
-   * HTTPリクエストを処理して更新された食材情報を返す
+   * リクエストのバリデーション
+   * Zodスキーマを使用して食材更新リクエストを検証
    */
-  async handle(
-    body: unknown,
-    ingredientId: string,
-    userId: string
-  ): Promise<ReturnType<IngredientDto['toJSON']>> {
-    // リクエストボディのバリデーション
-    const validationResult = updateIngredientSchema.safeParse(body)
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0]
-      throw new ValidationException(firstError?.message || 'リクエストボディが不正です')
+  validate(data: unknown): UpdateIngredientApiRequest {
+    // dataはparams.ingredientIdとbodyが含まれるオブジェクト
+    const params = data as { ingredientId?: string; params?: { ingredientId: string } } & Record<
+      string,
+      unknown
+    >
+
+    // ingredientIdの取得（idパラメータからも取得）
+    const ingredientId = params.ingredientId || params.params?.ingredientId || params.id || ''
+
+    // ボディのバリデーション
+    const body = { ...params }
+    delete body.ingredientId
+    delete body.params
+    delete body.id
+
+    const validatedBody = updateIngredientSchema.parse(body)
+
+    return {
+      ...validatedBody,
+      ingredientId: ingredientId as string,
     }
+  }
 
-    const request = validationResult.data as UpdateIngredientRequest
-
+  /**
+   * ビジネスロジックの実行
+   * 食材を更新する処理
+   */
+  async execute(request: UpdateIngredientApiRequest, userId: string): Promise<IngredientDto> {
     // 日付文字列をDateオブジェクトに変換
     const purchaseDate = request.purchaseDate ? new Date(request.purchaseDate) : undefined
 
@@ -48,7 +79,7 @@ export class UpdateIngredientApiHandler {
 
     // コマンドを作成
     const command = new UpdateIngredientCommand(
-      ingredientId,
+      request.ingredientId,
       userId,
       request.name,
       request.categoryId,
@@ -72,6 +103,6 @@ export class UpdateIngredientApiHandler {
     // ハンドラーを実行
     const result = await this.updateIngredientHandler.execute(command)
 
-    return result.toJSON()
+    return result
   }
 }

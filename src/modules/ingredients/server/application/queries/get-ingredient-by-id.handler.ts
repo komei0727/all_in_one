@@ -21,7 +21,7 @@ export class GetIngredientByIdHandler {
 
     // 食材が見つからない場合は例外を投げる
     if (!ingredientDetail) {
-      throw new IngredientNotFoundException()
+      throw new IngredientNotFoundException(query.id)
     }
 
     return ingredientDetail

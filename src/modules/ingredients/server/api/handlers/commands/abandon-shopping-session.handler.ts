@@ -1,101 +1,40 @@
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+
 import { AbandonShoppingSessionCommand } from '../../../application/commands/abandon-shopping-session.command'
-import { BusinessRuleException, NotFoundException } from '../../../domain/exceptions'
+import { abandonShoppingSessionValidator } from '../../validators/abandon-shopping-session.validator'
 
 import type { AbandonShoppingSessionHandler } from '../../../application/commands/abandon-shopping-session.handler'
+import type { AbandonShoppingSessionRequest } from '../../validators/abandon-shopping-session.validator'
 
 /**
  * セッション中断APIハンドラー
- * HTTPリクエストを処理し、アプリケーション層のハンドラーに委譲する
+ * BaseApiHandlerを継承して統一的な例外変換とエラーハンドリングを提供
  */
-export class AbandonShoppingSessionApiHandler {
-  constructor(private readonly commandHandler: AbandonShoppingSessionHandler) {}
+export class AbandonShoppingSessionApiHandler extends BaseApiHandler<
+  AbandonShoppingSessionRequest,
+  void
+> {
+  constructor(private readonly commandHandler: AbandonShoppingSessionHandler) {
+    super()
+  }
 
   /**
-   * セッション中断APIを処理
-   * @param request HTTPリクエスト
-   * @param params パスパラメータ
-   * @param userId 認証済みユーザーID
-   * @returns HTTPレスポンス
+   * リクエストデータのバリデーション
+   * @param data バリデーション対象のデータ（パスパラメータ + ボディデータ）
+   * @returns バリデーション済みのリクエストデータ
    */
-  async handle(request: Request, params: { sessionId: string }, userId: string): Promise<Response> {
-    try {
-      // リクエストボディを取得（オプション）
-      let reason: string | undefined
-      try {
-        const body = (await request.json()) as Record<string, unknown>
-        reason = body.reason as string | undefined
-      } catch {
-        // ボディが空の場合は無視
-      }
+  validate(data: unknown): AbandonShoppingSessionRequest {
+    return abandonShoppingSessionValidator.parse(data)
+  }
 
-      // バリデーション
-      const sessionIdPattern = /^ses_[a-zA-Z0-9]{20,30}$/
-      if (!sessionIdPattern.test(params.sessionId)) {
-        return new Response(
-          JSON.stringify({
-            message: 'Validation failed',
-            errors: [
-              {
-                path: ['sessionId'],
-                message: 'Invalid session ID format',
-              },
-            ],
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      // コマンドを作成して実行
-      const command = new AbandonShoppingSessionCommand(params.sessionId, userId, reason)
-      const result = await this.commandHandler.handle(command)
-
-      // 成功レスポンスを返す（toJSON()を使用してフォーマット）
-      return new Response(JSON.stringify(result.toJSON().data), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // ドメイン例外のハンドリング
-      if (error instanceof NotFoundException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      if (error instanceof BusinessRuleException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 409,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      // エラーログを出力
-      console.error('Failed to abandon shopping session:', error)
-
-      // 内部エラーレスポンスを返す
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
+  /**
+   * セッション中断のビジネスロジックを実行
+   * @param request バリデーション済みのリクエストデータ
+   * @param userId 認証済みユーザーID
+   */
+  async execute(request: AbandonShoppingSessionRequest, userId: string): Promise<void> {
+    // コマンドを作成してアプリケーション層のハンドラーに委譲
+    const command = new AbandonShoppingSessionCommand(request.sessionId, userId)
+    await this.commandHandler.handle(command)
   }
 }

@@ -1,3 +1,5 @@
+import { Decimal } from '@prisma/client/runtime/library'
+
 import type { PrismaClient } from '@/generated/prisma'
 
 import { CheckedItemDto } from '../../application/dtos/checked-item.dto'
@@ -12,6 +14,7 @@ import type {
   MonthlyCheckCount,
   SessionHistoryCriteria,
   SessionHistoryResult,
+  RecentSessionsResult,
 } from '../../application/query-services/shopping-query-service.interface'
 
 /**
@@ -23,21 +26,32 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
   /**
    * ユーザーの直近の買い物セッション履歴を取得
    */
-  async getRecentSessions(userId: string, limit = 10): Promise<ShoppingSessionDto[]> {
-    const sessions = await this.prisma.shoppingSession.findMany({
-      where: { userId },
-      include: {
-        sessionItems: {
-          include: {
-            ingredient: true,
+  async getRecentSessions(userId: string, limit = 10, page = 1): Promise<RecentSessionsResult> {
+    // オフセットを計算
+    const offset = (page - 1) * limit
+
+    // 並行してデータと総件数を取得
+    const [sessions, totalCount] = await Promise.all([
+      this.prisma.shoppingSession.findMany({
+        where: { userId },
+        include: {
+          sessionItems: {
+            include: {
+              ingredient: true,
+            },
           },
         },
-      },
-      orderBy: { startedAt: 'desc' },
-      take: limit,
-    })
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.shoppingSession.count({
+        where: { userId },
+      }),
+    ])
 
-    return sessions.map((session) => {
+    // セッションデータをDTOに変換
+    const sessionDtos = sessions.map((session) => {
       // チェック済みアイテムをDTOに変換
       const checkedItems = session.sessionItems.map(
         (item) =>
@@ -50,6 +64,12 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
           )
       )
 
+      // セッション中に確認した食材の価格を合計
+      const totalSpent = session.sessionItems
+        .map((item) => item.ingredient.price)
+        .filter((price): price is Decimal => price !== null)
+        .reduce((sum, price) => sum.add(price), new Decimal(0))
+
       return new ShoppingSessionDto(
         session.id,
         session.userId,
@@ -61,12 +81,30 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
           ? {
               latitude: Number(session.locationLat),
               longitude: Number(session.locationLng),
-              placeName: session.locationName ?? undefined,
+              name: session.locationName ?? undefined,
             }
           : null,
-        checkedItems
+        checkedItems,
+        totalSpent.gt(0) ? Number(totalSpent) : undefined
       )
     })
+
+    // ページネーション情報を計算
+    const totalPages = Math.ceil(totalCount / limit)
+    const hasNext = page < totalPages
+    const hasPrev = page > 1
+
+    return {
+      data: sessionDtos,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    }
   }
 
   /**
@@ -106,7 +144,7 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         },
       }),
 
-      // 頻繁にチェックされた食材Top5
+      // 頻繁にチェックされた食材Top5の基本データ
       this.prisma.shoppingSessionItem.groupBy({
         by: ['ingredientId', 'ingredientName'],
         where: {
@@ -180,14 +218,36 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     // 平均セッション時間を計算
     const averageSessionDurationMinutes = this.calculateAverageSessionDuration(sessionDurations)
 
-    // 頻繁チェック食材を変換
-    const topCheckedIngredientsFormatted: TopCheckedIngredient[] = topCheckedIngredients.map(
-      (item) => ({
-        ingredientId: item.ingredientId,
-        ingredientName: item.ingredientName,
-        checkCount: item._count.id,
-        checkRatePercentage:
-          totalSessions > 0 ? Math.round((item._count.id / totalSessions) * 100) : 0,
+    // 各頻繁チェック食材の最終チェック日時を取得
+    const topCheckedIngredientsFormatted: TopCheckedIngredient[] = await Promise.all(
+      topCheckedIngredients.map(async (item) => {
+        // 該当食材の最新のチェック日時を取得
+        const lastCheckedItem = await this.prisma.shoppingSessionItem.findFirst({
+          where: {
+            ingredientId: item.ingredientId,
+            session: {
+              userId,
+              startedAt: {
+                gte: startDate,
+              },
+            },
+          },
+          orderBy: {
+            checkedAt: 'desc',
+          },
+          select: {
+            checkedAt: true,
+          },
+        })
+
+        return {
+          ingredientId: item.ingredientId,
+          ingredientName: item.ingredientName,
+          checkCount: item._count.id,
+          checkRatePercentage:
+            totalSessions > 0 ? Math.round((item._count.id / totalSessions) * 100) : 0,
+          lastCheckedAt: lastCheckedItem?.checkedAt.toISOString() ?? new Date().toISOString(),
+        }
       })
     )
 
@@ -203,8 +263,18 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
   /**
    * よくチェックする食材のクイックアクセスリストを取得
    */
-  async getQuickAccessIngredients(userId: string, limit = 10): Promise<QuickAccessIngredient[]> {
-    // Prisma ORMを使用してクエリを構築（SQLiteとPostgreSQL両方で動作）
+  async getQuickAccessIngredients(
+    userId: string,
+    limit = 20
+  ): Promise<{
+    recentlyChecked: QuickAccessIngredient[]
+    frequentlyChecked: QuickAccessIngredient[]
+  }> {
+    // 現在の日付を取得
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    // 食材情報を含めて全チェック履歴を取得
     const sessionItems = await this.prisma.shoppingSessionItem.findMany({
       where: {
         session: {
@@ -215,7 +285,11 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         },
       },
       include: {
-        ingredient: true,
+        ingredient: {
+          include: {
+            category: true,
+          },
+        },
       },
     })
 
@@ -223,8 +297,11 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     interface GroupedIngredient {
       ingredientId: string
       ingredientName: string
+      categoryId: string | null
+      categoryName: string | null
       checkCount: number
       lastCheckedAt: Date
+      recentCheckCount: number // 30日以内のチェック回数
       ingredient: {
         quantity: number
         threshold: number | null
@@ -239,8 +316,11 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
           acc[key] = {
             ingredientId: item.ingredientId,
             ingredientName: item.ingredientName,
+            categoryId: item.ingredient.categoryId,
+            categoryName: item.ingredient.category?.name ?? null,
             checkCount: 0,
             lastCheckedAt: item.checkedAt,
+            recentCheckCount: 0,
             ingredient: item.ingredient,
           }
         }
@@ -248,13 +328,25 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         if (item.checkedAt > acc[key].lastCheckedAt) {
           acc[key].lastCheckedAt = item.checkedAt
         }
+        // 30日以内のチェックをカウント
+        if (item.checkedAt >= thirtyDaysAgo) {
+          acc[key].recentCheckCount++
+        }
         return acc
       },
       {} as Record<string, GroupedIngredient>
     )
 
-    // 配列に変換してソート
-    const sorted = Object.values(groupedData)
+    const allItems = Object.values(groupedData)
+
+    // 最近チェックした食材（30日以内にチェックされた食材を最新順でソート）
+    const recentlyCheckedItems = allItems
+      .filter((item) => item.lastCheckedAt >= thirtyDaysAgo)
+      .sort((a, b) => b.lastCheckedAt.getTime() - a.lastCheckedAt.getTime())
+      .slice(0, limit)
+
+    // 頻繁にチェックされる食材（全期間でチェック回数が多い順）
+    const frequentlyCheckedItems = allItems
       .sort((a, b) => {
         if (b.checkCount !== a.checkCount) {
           return b.checkCount - a.checkCount
@@ -263,10 +355,14 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
       })
       .slice(0, limit)
 
-    // 現在の日付を取得
-    const now = new Date()
+    // 重複を除去（recentlyCheckedに含まれる食材をfrequentlyCheckedから除外）
+    const recentlyCheckedIds = new Set(recentlyCheckedItems.map((item) => item.ingredientId))
+    const uniqueFrequentlyCheckedItems = frequentlyCheckedItems
+      .filter((item) => !recentlyCheckedIds.has(item.ingredientId))
+      .slice(0, limit)
 
-    return sorted.map((item) => {
+    // QuickAccessIngredient形式に変換する関数
+    const mapToQuickAccessIngredient = (item: GroupedIngredient): QuickAccessIngredient => {
       // 在庫状態を計算
       let currentStockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
       if (item.ingredient.quantity <= 0) {
@@ -301,12 +397,19 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
       return {
         ingredientId: item.ingredientId,
         ingredientName: item.ingredientName,
+        categoryId: item.categoryId ?? '',
+        categoryName: item.categoryName ?? '未分類',
         checkCount: item.checkCount,
         lastCheckedAt: item.lastCheckedAt.toISOString(),
         currentStockStatus,
         currentExpiryStatus,
       }
-    })
+    }
+
+    return {
+      recentlyChecked: recentlyCheckedItems.map(mapToQuickAccessIngredient),
+      frequentlyChecked: uniqueFrequentlyCheckedItems.map(mapToQuickAccessIngredient),
+    }
   }
 
   /**
@@ -449,11 +552,19 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     const hasNext = page < totalPages
     const hasPrev = page > 1
 
-    // セッションデータを取得
+    // セッションデータを取得（食材の価格情報も含める）
     const sessions = await this.prisma.shoppingSession.findMany({
       where,
       include: {
-        sessionItems: true,
+        sessionItems: {
+          include: {
+            ingredient: {
+              select: {
+                price: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { startedAt: 'desc' },
       skip,
@@ -466,6 +577,12 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         ? Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / 1000)
         : 0
 
+      // セッション中に確認した食材の価格を合計
+      const totalSpent = session.sessionItems
+        .map((item) => item.ingredient.price)
+        .filter((price): price is Decimal => price !== null)
+        .reduce((sum, price) => sum.add(price), new Decimal(0))
+
       return {
         sessionId: session.id,
         status: session.status as 'COMPLETED' | 'ABANDONED',
@@ -473,7 +590,7 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         completedAt: session.completedAt?.toISOString(),
         duration,
         checkedItemsCount: session.sessionItems.length,
-        totalSpent: undefined, // TODO: 将来の実装で追加
+        totalSpent: totalSpent.gt(0) ? Number(totalSpent) : undefined,
         deviceType: session.deviceType as 'MOBILE' | 'TABLET' | 'DESKTOP' | undefined,
         location:
           session.locationLat && session.locationLng

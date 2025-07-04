@@ -1,8 +1,11 @@
 import { faker } from '@faker-js/faker'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ZodError } from 'zod'
 
 import { CompleteShoppingSessionApiHandler } from '@/modules/ingredients/server/api/handlers/commands/complete-shopping-session.handler'
 import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
+import { CompleteShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/complete-shopping-session.dto'
+import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
 import {
   NotFoundException,
   BusinessRuleException,
@@ -23,16 +26,58 @@ describe('CompleteShoppingSessionApiHandler', () => {
     handler = new CompleteShoppingSessionApiHandler(mockCompleteShoppingSessionHandler)
   })
 
-  describe('handle', () => {
+  describe('validate', () => {
+    describe('正常系', () => {
+      it('有効なsessionIdを含むリクエストを検証できる', () => {
+        // Given: 有効なsessionId
+        const sessionId = ShoppingSessionId.create().getValue()
+        const data = { sessionId }
+
+        // When: バリデーションを実行
+        const result = handler.validate(data)
+
+        // Then: 正しいリクエストオブジェクトが返される
+        expect(result).toEqual({ sessionId })
+      })
+
+      it('params形式のデータも処理できる', () => {
+        // Given: params形式のデータ
+        const sessionId = ShoppingSessionId.create().getValue()
+        const data = { params: { sessionId } }
+
+        // When: バリデーションを実行
+        const result = handler.validate(data)
+
+        // Then: 正しいリクエストオブジェクトが返される
+        expect(result).toEqual({ sessionId })
+      })
+    })
+
+    describe('異常系', () => {
+      it('sessionIdが不正な形式の場合、バリデーションエラーが発生する', () => {
+        // Given: 不正なsessionId
+        const data = { sessionId: 'invalid-id' }
+
+        // When/Then: バリデーションエラーが発生
+        expect(() => handler.validate(data)).toThrow(ZodError)
+      })
+
+      it('sessionIdが欠落している場合、バリデーションエラーが発生する', () => {
+        // Given: sessionIdなし
+        const data = {}
+
+        // When/Then: バリデーションエラーが発生
+        expect(() => handler.validate(data)).toThrow(ZodError)
+      })
+    })
+  })
+
+  describe('execute', () => {
     describe('正常系', () => {
       it('有効なリクエストでセッションを完了できる', async () => {
-        // Given: 有効なリクエストデータとレスポンス
+        // Given: 有効なリクエストとモックレスポンス
         const sessionId = ShoppingSessionId.create().getValue()
         const userId = faker.string.uuid()
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
 
         const completedSession = new ShoppingSessionBuilder()
           .withId(sessionId)
@@ -40,38 +85,44 @@ describe('CompleteShoppingSessionApiHandler', () => {
           .withCompletedStatus()
           .build()
 
-        // ShoppingSessionDtoを返すようにモック
-        const sessionDto = {
-          sessionId: completedSession.getId().getValue(),
-          userId: completedSession.getUserId(),
-          status: completedSession.getStatus().getValue(),
-          startedAt: completedSession.getStartedAt().toISOString(),
-          completedAt: completedSession.getCompletedAt()?.toISOString() || null,
-          deviceType: completedSession.getDeviceType()?.getValue() || null,
-          location: completedSession.getLocation()
+        const sessionDto = new ShoppingSessionDto(
+          completedSession.getId().getValue(),
+          completedSession.getUserId(),
+          completedSession.getStatus().getValue(),
+          completedSession.getStartedAt().toISOString(),
+          completedSession.getCompletedAt()?.toISOString() || null,
+          completedSession.getDeviceType()?.getValue() || null,
+          completedSession.getLocation()
             ? {
-                placeName: completedSession.getLocationName() || undefined,
+                name: completedSession.getLocationName() || undefined,
               }
             : null,
-        }
+          []
+        )
+
+        // CompleteShoppingSessionDtoを作成（duration, checkedItemsCountを追加）
+        const completeSessionDto = new CompleteShoppingSessionDto(
+          sessionDto.sessionId,
+          sessionDto.userId,
+          sessionDto.status,
+          sessionDto.startedAt,
+          sessionDto.completedAt,
+          sessionDto.deviceType,
+          sessionDto.location,
+          sessionDto.checkedItems,
+          3600, // duration: 1時間
+          5 // checkedItemsCount: 5個の食材をチェック
+        )
 
         vi.mocked(mockCompleteShoppingSessionHandler.handle).mockResolvedValueOnce(
-          sessionDto as any
+          completeSessionDto
         )
 
         // When: ハンドラーを実行
-        const response = await handler.handle(request, { sessionId }, userId)
+        const result = await handler.execute({ sessionId }, userId)
 
-        // Then: 正しいレスポンスが返される
-        if (response.status !== 200) {
-          const errorData = await response.json()
-          console.error('Error response:', errorData)
-        }
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual(sessionDto)
-
-        // コマンドハンドラーが正しく呼ばれたことを確認
+        // Then: 完了セッションDTOが返される
+        expect(result).toBe(completeSessionDto)
         expect(mockCompleteShoppingSessionHandler.handle).toHaveBeenCalledWith({
           sessionId,
           userId,
@@ -80,110 +131,77 @@ describe('CompleteShoppingSessionApiHandler', () => {
     })
 
     describe('異常系', () => {
-      it('sessionIdが不正な形式の場合、バリデーションエラーを返す', async () => {
-        // Given: 不正なsessionId
-        const invalidSessionId = 'invalid-uuid'
-        const userId = faker.string.uuid()
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
-
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, { sessionId: invalidSessionId }, userId)
-
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toContain('Validation failed')
-      })
-
-      it('セッションが見つからない場合、404エラーを返す', async () => {
+      it('セッションが見つからない場合、NotFoundExceptionがそのまま伝播する', async () => {
         // Given: 存在しないセッション
         const sessionId = ShoppingSessionId.create().getValue()
         const userId = faker.string.uuid()
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+        const error = new NotFoundException('ShoppingSession', sessionId)
 
-        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(
-          new NotFoundException('買い物セッション', sessionId)
-        )
+        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(error)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, { sessionId }, userId)
-
-        // Then: 404エラーが返される
-        expect(response.status).toBe(404)
-        const responseData = await response.json()
-        expect(responseData.message).toBe(`買い物セッション not found: ${sessionId}`)
+        // When/Then: 例外がそのまま伝播される
+        await expect(handler.execute({ sessionId }, userId)).rejects.toThrow(error)
       })
 
-      it('他のユーザーのセッションを完了しようとした場合、403エラーを返す', async () => {
-        // Given: 権限のないセッション
+      it('ビジネスルール違反の場合、BusinessRuleExceptionがそのまま伝播する', async () => {
+        // Given: 他のユーザーのセッション
         const sessionId = ShoppingSessionId.create().getValue()
         const userId = faker.string.uuid()
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+        const error = new BusinessRuleException('このセッションを完了する権限がありません')
 
-        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(
-          new BusinessRuleException('このセッションを完了する権限がありません')
-        )
+        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(error)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, { sessionId }, userId)
-
-        // Then: 403エラーが返される
-        expect(response.status).toBe(403)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('このセッションを完了する権限がありません')
+        // When/Then: 例外がそのまま伝播される
+        await expect(handler.execute({ sessionId }, userId)).rejects.toThrow(error)
       })
 
-      it('既に完了したセッションの場合、409エラーを返す', async () => {
-        // Given: 既に完了したセッション
+      it('既に完了済みのセッションの場合、BusinessRuleExceptionがそのまま伝播する', async () => {
+        // Given: 完了済みセッション
         const sessionId = ShoppingSessionId.create().getValue()
         const userId = faker.string.uuid()
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+        const error = new BusinessRuleException('既に完了済みのセッションです')
 
-        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(
-          new BusinessRuleException('Session is already completed')
-        )
+        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(error)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, { sessionId }, userId)
-
-        // Then: 409エラーが返される
-        expect(response.status).toBe(409)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Session is already completed')
+        // When/Then: 例外がそのまま伝播される
+        await expect(handler.execute({ sessionId }, userId)).rejects.toThrow(error)
       })
+    })
+  })
 
-      it('予期しないエラーの場合、500エラーを返す', async () => {
-        // Given: 予期しないエラー
-        const sessionId = ShoppingSessionId.create().getValue()
-        const userId = faker.string.uuid()
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+  describe('handle (統合)', () => {
+    it('BaseApiHandlerの例外変換機能が正しく動作する', async () => {
+      // Given: Zodバリデーションエラー
+      const data = { sessionId: 'invalid-id' }
+      const userId = faker.string.uuid()
 
-        vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(
-          new Error('Unexpected error')
-        )
+      // When: handleメソッドを実行
+      const resultPromise = handler.handle(data, userId)
 
-        // When: ハンドラーを実行
-        const response = await handler.handle(request, { sessionId }, userId)
+      // Then: ApiValidationExceptionに変換される
+      await expect(resultPromise).rejects.toThrow()
+      await expect(resultPromise).rejects.toMatchObject({
+        statusCode: 400,
+        errorCode: 'VALIDATION_ERROR',
+      })
+    })
 
-        // Then: 500エラーが返される
-        expect(response.status).toBe(500)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Internal server error')
+    it('ドメイン例外が適切にAPI例外に変換される', async () => {
+      // Given: NotFoundException
+      const sessionId = ShoppingSessionId.create().getValue()
+      const userId = faker.string.uuid()
+      const error = new NotFoundException('ShoppingSession', sessionId)
+
+      vi.mocked(mockCompleteShoppingSessionHandler.handle).mockRejectedValueOnce(error)
+
+      // When: handleメソッドを実行
+      const resultPromise = handler.handle({ sessionId }, userId)
+
+      // Then: ApiNotFoundExceptionに変換される
+      await expect(resultPromise).rejects.toThrow()
+      await expect(resultPromise).rejects.toMatchObject({
+        statusCode: 404,
+        errorCode: 'RESOURCE_NOT_FOUND',
       })
     })
   })

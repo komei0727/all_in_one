@@ -30,7 +30,7 @@ export class EmailBuilder extends BaseBuilder<{ value: string }> {
    * 指定したドメインでビルド
    */
   withDomain(domain: string): this {
-    const localPart = faker.internet.userName()
+    const localPart = faker.internet.username()
     return this.with('value', `${localPart}@${domain}`)
   }
 
@@ -48,7 +48,7 @@ export class EmailBuilder extends BaseBuilder<{ value: string }> {
    * Gmailアドレスでビルド
    */
   withGmail(): this {
-    const localPart = faker.internet.userName()
+    const localPart = faker.internet.username()
     return this.with('value', `${localPart}@gmail.com`)
   }
 

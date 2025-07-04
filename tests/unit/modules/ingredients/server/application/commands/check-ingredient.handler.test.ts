@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CheckIngredientCommand } from '@/modules/ingredients/server/application/commands/check-ingredient.command'
 import { CheckIngredientHandler } from '@/modules/ingredients/server/application/commands/check-ingredient.handler'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
+import { CheckIngredientResponseDto } from '@/modules/ingredients/server/application/dtos/check-ingredient-response.dto'
 import {
   BusinessRuleException,
   NotFoundException,
 } from '@/modules/ingredients/server/domain/exceptions'
 import type { IngredientRepository } from '@/modules/ingredients/server/domain/repositories/ingredient-repository.interface'
 import type { ShoppingSessionRepository } from '@/modules/ingredients/server/domain/repositories/shopping-session-repository.interface'
+import type { UnitRepository } from '@/modules/ingredients/server/domain/repositories/unit-repository.interface'
 import {
   CheckedItem,
   ExpiryStatus,
@@ -25,6 +26,7 @@ describe('CheckIngredientHandler', () => {
   let handler: CheckIngredientHandler
   let mockSessionRepository: ShoppingSessionRepository
   let mockIngredientRepository: IngredientRepository
+  let mockUnitRepository: UnitRepository
   let userId: string
   let sessionId: string
   let ingredientId: string
@@ -60,7 +62,16 @@ describe('CheckIngredientHandler', () => {
       count: vi.fn(),
     }
 
-    handler = new CheckIngredientHandler(mockSessionRepository, mockIngredientRepository)
+    mockUnitRepository = {
+      findById: vi.fn(),
+      findAllActive: vi.fn(),
+    }
+
+    handler = new CheckIngredientHandler(
+      mockSessionRepository,
+      mockIngredientRepository,
+      mockUnitRepository
+    )
   })
 
   describe('handle', () => {
@@ -80,18 +91,27 @@ describe('CheckIngredientHandler', () => {
         .withFreshDates()
         .build()
 
+      const mockUnit = {
+        getId: () => 'unit1',
+        getName: () => '個',
+        getSymbol: () => '個',
+      }
+
       vi.mocked(mockSessionRepository.findById).mockResolvedValue(session)
       vi.mocked(mockIngredientRepository.findById).mockResolvedValue(ingredient)
       vi.mocked(mockSessionRepository.update).mockResolvedValue(session)
+      vi.mocked(mockUnitRepository.findById).mockResolvedValue(mockUnit as any)
 
       // When: コマンドを実行
       const command = new CheckIngredientCommand(sessionId, ingredientId, userId)
       const result = await handler.handle(command)
 
-      // Then: 更新されたセッションのDTOが返される
-      expect(result).toBeInstanceOf(ShoppingSessionDto)
+      // Then: 食材確認結果のDTOが返される
+      expect(result).toBeInstanceOf(CheckIngredientResponseDto)
       expect(result.sessionId).toBe(sessionId)
-      expect(result.status).toBe('ACTIVE')
+      expect(result.ingredientId).toBe(ingredientId)
+      expect(result.ingredientName).toBe('トマト')
+      expect(result.stockStatus).toBe('IN_STOCK')
 
       // セッションが更新された
       expect(mockSessionRepository.update).toHaveBeenCalledWith(
@@ -213,8 +233,15 @@ describe('CheckIngredientHandler', () => {
         )
         .build()
 
+      const mockUnit = {
+        getId: () => 'unit1',
+        getName: () => 'ml',
+        getSymbol: () => 'ml',
+      }
+
       vi.mocked(mockSessionRepository.findById).mockResolvedValue(session)
       vi.mocked(mockIngredientRepository.findById).mockResolvedValue(ingredient)
+      vi.mocked(mockUnitRepository.findById).mockResolvedValue(mockUnit as any)
 
       const updatedSession = new ShoppingSessionBuilder()
         .withId(sessionId)
@@ -234,16 +261,19 @@ describe('CheckIngredientHandler', () => {
 
       // When: コマンドを実行
       const command = new CheckIngredientCommand(sessionId, ingredientId, userId)
-      await handler.handle(command)
+      const result = await handler.handle(command)
 
       // Then: 正しい状態でチェックアイテムが追加される
+      expect(result).toBeInstanceOf(CheckIngredientResponseDto)
+      expect(result.stockStatus).toBe('LOW_STOCK') // 在庫少
+      expect(result.expiryStatus).toBe('NEAR_EXPIRY') // 5日後は賞味期限なのでNEAR_EXPIRY（3-7日）
+
       const updateCall = vi.mocked(mockSessionRepository.update).mock.calls[0][0]
       const checkedItems = updateCall.getCheckedItems()
       expect(checkedItems).toHaveLength(1)
-      // 在庫状態と期限状態は実装時に詳細を確認
     })
 
-    it('同じ食材を重複してチェックできない', async () => {
+    it('同じ食材を重複してチェックした場合は上書き更新される', async () => {
       // Given: 既にチェック済みの食材を含むセッション
       const checkedItem = CheckedItem.create({
         ingredientId: new IngredientId(ingredientId),
@@ -259,15 +289,34 @@ describe('CheckIngredientHandler', () => {
         .withCheckedItems([checkedItem])
         .build()
 
-      const ingredient = new IngredientBuilder().withId(ingredientId).withUserId(userId).build()
+      const ingredient = new IngredientBuilder()
+        .withId(ingredientId)
+        .withUserId(userId)
+        .withName('トマト')
+        .withQuantity(3) // 在庫が変わった
+        .build()
+
+      const mockUnit = {
+        getId: () => 'unit1',
+        getName: () => '個',
+        getSymbol: () => '個',
+      }
 
       vi.mocked(mockSessionRepository.findById).mockResolvedValue(session)
       vi.mocked(mockIngredientRepository.findById).mockResolvedValue(ingredient)
+      vi.mocked(mockSessionRepository.update).mockResolvedValue(session)
+      vi.mocked(mockUnitRepository.findById).mockResolvedValue(mockUnit as any)
 
-      // When/Then: エラーが発生
+      // When: コマンドを実行
       const command = new CheckIngredientCommand(sessionId, ingredientId, userId)
-      await expect(handler.handle(command)).rejects.toThrow(BusinessRuleException)
-      await expect(handler.handle(command)).rejects.toThrow('この食材は既にチェック済みです')
+      const result = await handler.handle(command)
+
+      // Then: エラーではなく正常に処理される
+      expect(result).toBeInstanceOf(CheckIngredientResponseDto)
+      expect(result.ingredientId).toBe(ingredientId)
+
+      // セッションが更新された
+      expect(mockSessionRepository.update).toHaveBeenCalled()
     })
   })
 })

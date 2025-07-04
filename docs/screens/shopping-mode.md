@@ -183,7 +183,7 @@ interface ShoppingSession {
   checkedItems: CheckedItem[]
   deviceType?: string
   location?: {
-    placeName?: string
+    name?: string
   }
 }
 

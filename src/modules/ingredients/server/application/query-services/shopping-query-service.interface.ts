@@ -10,9 +10,10 @@ export interface ShoppingQueryService {
    * ユーザーの直近の買い物セッション履歴を取得
    * @param userId ユーザーID
    * @param limit 取得件数（デフォルト: 10）
-   * @returns 買い物セッション履歴
+   * @param page ページ番号（デフォルト: 1）
+   * @returns 買い物セッション履歴とページネーション情報
    */
-  getRecentSessions(userId: string, limit?: number): Promise<ShoppingSessionDto[]>
+  getRecentSessions(userId: string, limit?: number, page?: number): Promise<RecentSessionsResult>
 
   /**
    * ユーザーの買い物セッション履歴を検索条件付きで取得
@@ -33,10 +34,16 @@ export interface ShoppingQueryService {
   /**
    * よくチェックする食材のクイックアクセスリストを取得
    * @param userId ユーザーID
-   * @param limit 取得件数（デフォルト: 10）
-   * @returns クイックアクセス用食材リスト
+   * @param limit 取得件数（デフォルト: 20）
+   * @returns クイックアクセス用食材リスト（最近チェックと頻繁チェック）
    */
-  getQuickAccessIngredients(userId: string, limit?: number): Promise<QuickAccessIngredient[]>
+  getQuickAccessIngredients(
+    userId: string,
+    limit?: number
+  ): Promise<{
+    recentlyChecked: QuickAccessIngredient[]
+    frequentlyChecked: QuickAccessIngredient[]
+  }>
 
   /**
    * 食材ごとのチェック履歴統計を取得
@@ -64,6 +71,23 @@ export interface SessionHistoryCriteria {
   to?: string
   /** ステータスフィルタ */
   status?: 'COMPLETED' | 'ABANDONED'
+}
+
+/**
+ * 最近のセッション取得結果
+ */
+export interface RecentSessionsResult {
+  /** セッション履歴データ */
+  data: ShoppingSessionDto[]
+  /** ページネーション情報 */
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
 }
 
 /**
@@ -126,6 +150,10 @@ export interface QuickAccessIngredient {
   ingredientId: string
   /** 食材名 */
   ingredientName: string
+  /** カテゴリーID */
+  categoryId: string
+  /** カテゴリー名 */
+  categoryName: string
   /** チェック回数 */
   checkCount: number
   /** 最終チェック日時 */
@@ -148,6 +176,8 @@ export interface TopCheckedIngredient {
   checkCount: number
   /** チェック率（全セッションに対する割合） */
   checkRatePercentage: number
+  /** 最終チェック日時 */
+  lastCheckedAt: string
 }
 
 /**

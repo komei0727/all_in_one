@@ -52,7 +52,7 @@ export class UpdateIngredientHandler {
     const ingredient = await this.ingredientRepository.findById(command.userId, ingredientId)
 
     if (!ingredient) {
-      throw new IngredientNotFoundException()
+      throw new IngredientNotFoundException(command.id)
     }
 
     // 削除済みチェック

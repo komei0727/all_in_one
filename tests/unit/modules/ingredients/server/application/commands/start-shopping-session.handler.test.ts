@@ -128,7 +128,7 @@ describe('StartShoppingSessionHandler', () => {
       expect(result.location).toEqual({
         latitude: 35.6762,
         longitude: 139.6503,
-        placeName: '東京駅前スーパー',
+        name: '東京駅前スーパー',
       })
 
       // ファクトリが正しいパラメータで呼ばれた

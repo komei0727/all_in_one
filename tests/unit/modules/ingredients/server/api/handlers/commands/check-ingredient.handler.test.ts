@@ -2,224 +2,258 @@ import { faker } from '@faker-js/faker'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CheckIngredientApiHandler } from '@/modules/ingredients/server/api/handlers/commands/check-ingredient.handler'
+import { CheckIngredientCommand } from '@/modules/ingredients/server/application/commands/check-ingredient.command'
 import type { CheckIngredientHandler } from '@/modules/ingredients/server/application/commands/check-ingredient.handler'
-import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
+import { CheckIngredientResponseDto } from '@/modules/ingredients/server/application/dtos/check-ingredient-response.dto'
 import {
   BusinessRuleException,
   NotFoundException,
 } from '@/modules/ingredients/server/domain/exceptions'
+import { ApiBusinessRuleException } from '@/modules/shared/server/api/exceptions/api-business-rule.exception'
+import { ApiInternalException } from '@/modules/shared/server/api/exceptions/api-internal.exception'
+import { ApiNotFoundException } from '@/modules/shared/server/api/exceptions/api-not-found.exception'
 
 describe('CheckIngredientApiHandler', () => {
-  let apiHandler: CheckIngredientApiHandler
   let mockCommandHandler: CheckIngredientHandler
-  let userId: string
-  let sessionId: string
-  let ingredientId: string
+  let apiHandler: CheckIngredientApiHandler
 
   beforeEach(() => {
-    userId = faker.string.uuid()
-    sessionId = faker.string.uuid()
-    ingredientId = faker.string.uuid()
-
+    vi.clearAllMocks()
     mockCommandHandler = {
       handle: vi.fn(),
     } as unknown as CheckIngredientHandler
-
     apiHandler = new CheckIngredientApiHandler(mockCommandHandler)
   })
 
-  describe('handle', () => {
-    describe('正常系', () => {
-      it('食材を正常にチェックできる', async () => {
-        // Given: 正常なリクエスト
-        const expectedDto = new ShoppingSessionDto(
-          sessionId,
-          userId,
-          'ACTIVE',
-          new Date().toISOString(),
-          null,
-          null,
-          null,
-          []
-        )
+  // テストデータビルダー
+  const createValidSessionId = () => faker.string.uuid()
+  const createValidIngredientId = () => faker.string.uuid()
+  const createUserId = () => faker.string.uuid()
 
-        vi.mocked(mockCommandHandler.handle).mockResolvedValue(expectedDto)
+  describe('正常系', () => {
+    it('食材の確認が正常に実行される', async () => {
+      // Given: テストデータを準備
+      const sessionId = createValidSessionId()
+      const ingredientId = createValidIngredientId()
+      const userId = createUserId()
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
-
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
-
-        // Then: 200レスポンスが返される
-        expect(response.status).toBe(200)
-        const responseData = await response.json()
-        expect(responseData).toEqual({
-          data: {
-            data: {
-              sessionId: expectedDto.sessionId,
-              userId: expectedDto.userId,
-              status: expectedDto.status,
-              startedAt: expectedDto.startedAt,
-              completedAt: expectedDto.completedAt,
-              deviceType: expectedDto.deviceType,
-              location: expectedDto.location,
-              checkedItems: expectedDto.checkedItems,
-            },
+      const expectedResult = new CheckIngredientResponseDto(
+        sessionId,
+        ingredientId,
+        'トマト',
+        'cat_vegetable',
+        'IN_STOCK',
+        'FRESH',
+        {
+          amount: 5,
+          unit: {
+            id: 'unit_piece',
+            name: '個',
+            symbol: '個',
           },
-        })
+        },
+        null,
+        new Date().toISOString()
+      )
 
-        // 正しいコマンドが呼ばれる
-        expect(mockCommandHandler.handle).toHaveBeenCalledWith(
-          expect.objectContaining({
-            sessionId,
-            ingredientId,
-            userId,
-          })
-        )
-      })
+      vi.mocked(mockCommandHandler.handle).mockResolvedValue(expectedResult)
+
+      // When: APIハンドラーを実行
+      const requestData = { sessionId, ingredientId, userId }
+      const result = await apiHandler.handle(requestData, userId)
+
+      // Then: 正しい結果が返される
+      expect(result).toEqual({ data: expectedResult })
+
+      // コマンドハンドラーが正しく呼び出されることを確認
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(expect.any(CheckIngredientCommand))
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId,
+          ingredientId,
+          userId,
+        })
+      )
     })
 
-    describe('異常系', () => {
-      it('ingredientIdが無効な場合は400エラー', async () => {
-        // Given: 無効なingredientId
-        const invalidIngredientId = 'invalid-id'
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+    it('複数の食材確認リクエストを処理できる', async () => {
+      // Given: 複数のテストデータを準備
+      const sessionId = createValidSessionId()
+      const ingredientId1 = createValidIngredientId()
+      const ingredientId2 = createValidIngredientId()
+      const userId = createUserId()
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, invalidIngredientId)
+      const expectedResult1 = new CheckIngredientResponseDto(
+        sessionId,
+        ingredientId1,
+        'トマト',
+        'cat_vegetable',
+        'IN_STOCK',
+        'FRESH',
+        {
+          amount: 5,
+          unit: {
+            id: 'unit_piece',
+            name: '個',
+            symbol: '個',
+          },
+        },
+        null,
+        new Date().toISOString()
+      )
 
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Validation failed')
-        expect(responseData.errors).toBeDefined()
-      })
+      const expectedResult2 = new CheckIngredientResponseDto(
+        sessionId,
+        ingredientId2,
+        'にんじん',
+        'cat_vegetable',
+        'LOW_STOCK',
+        'NEAR_EXPIRY',
+        {
+          amount: 2,
+          unit: {
+            id: 'unit_piece',
+            name: '個',
+            symbol: '個',
+          },
+        },
+        3,
+        new Date().toISOString()
+      )
 
-      it('セッションが見つからない場合は404エラー', async () => {
-        // Given: 存在しないセッション
-        vi.mocked(mockCommandHandler.handle).mockRejectedValue(
-          new NotFoundException('買い物セッション', sessionId)
-        )
+      vi.mocked(mockCommandHandler.handle)
+        .mockResolvedValueOnce(expectedResult1)
+        .mockResolvedValueOnce(expectedResult2)
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+      // When: 複数のAPIハンドラーを実行
+      const result1 = await apiHandler.handle(
+        { sessionId, ingredientId: ingredientId1, userId },
+        userId
+      )
+      const result2 = await apiHandler.handle(
+        { sessionId, ingredientId: ingredientId2, userId },
+        userId
+      )
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
+      // Then: それぞれ正しい結果が返される
+      expect(result1).toEqual({ data: expectedResult1 })
+      expect(result2).toEqual({ data: expectedResult2 })
 
-        // Then: 404エラーが返される
-        expect(response.status).toBe(404)
-        const responseData = await response.json()
-        expect(responseData.message).toContain('買い物セッション')
-      })
+      expect(mockCommandHandler.handle).toHaveBeenCalledTimes(2)
+    })
+  })
 
-      it('食材が見つからない場合は404エラー', async () => {
-        // Given: 存在しない食材
-        vi.mocked(mockCommandHandler.handle).mockRejectedValue(
-          new NotFoundException('食材', ingredientId)
-        )
+  describe('バリデーション', () => {
+    it('無効な形式のセッションIDの場合はバリデーションエラーを投げる', async () => {
+      const invalidSessionId = 'invalid@session#id!' // 特殊文字を含む不正な形式
+      const ingredientId = createValidIngredientId()
+      const userId = createUserId()
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+      // BaseApiHandlerは例外を投げるのでexpect.rejectsでテスト
+      await expect(
+        apiHandler.handle({ sessionId: invalidSessionId, ingredientId, userId }, userId)
+      ).rejects.toThrow()
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
+      // コマンドハンドラーが呼び出されないことを確認
+      expect(mockCommandHandler.handle).not.toHaveBeenCalled()
+    })
 
-        // Then: 404エラーが返される
-        expect(response.status).toBe(404)
-        const responseData = await response.json()
-        expect(responseData.message).toContain('食材')
-      })
+    it('無効な形式の食材IDの場合はバリデーションエラーを投げる', async () => {
+      const sessionId = createValidSessionId()
+      const invalidIngredientId = 'invalid@ingredient#id!' // 特殊文字を含む不正な形式
+      const userId = createUserId()
 
-      it('権限がない場合は400エラー', async () => {
-        // Given: 権限のないユーザー
-        vi.mocked(mockCommandHandler.handle).mockRejectedValue(
-          new BusinessRuleException('このセッションで食材を確認する権限がありません')
-        )
+      // BaseApiHandlerは例外を投げるのでexpect.rejectsでテスト
+      await expect(
+        apiHandler.handle({ sessionId, ingredientId: invalidIngredientId, userId }, userId)
+      ).rejects.toThrow()
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+      // コマンドハンドラーが呼び出されないことを確認
+      expect(mockCommandHandler.handle).not.toHaveBeenCalled()
+    })
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
+    it('ユーザーIDが不正な場合はバリデーションエラーを投げる', async () => {
+      const sessionId = createValidSessionId()
+      const ingredientId = createValidIngredientId()
+      const invalidUserId = ''
 
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('このセッションで食材を確認する権限がありません')
-      })
+      // BaseApiHandlerは例外を投げるのでexpect.rejectsでテスト
+      await expect(
+        apiHandler.handle({ sessionId, ingredientId, userId: invalidUserId }, invalidUserId)
+      ).rejects.toThrow()
 
-      it('セッションがアクティブでない場合は400エラー', async () => {
-        // Given: 非アクティブなセッション
-        vi.mocked(mockCommandHandler.handle).mockRejectedValue(
-          new BusinessRuleException('アクティブでないセッションで食材を確認することはできません')
-        )
+      // コマンドハンドラーが呼び出されないことを確認
+      expect(mockCommandHandler.handle).not.toHaveBeenCalled()
+    })
+  })
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+  describe('例外処理', () => {
+    it('セッションが見つからない場合はNotFoundExceptionが伝播される', async () => {
+      const sessionId = createValidSessionId()
+      const ingredientId = createValidIngredientId()
+      const userId = createUserId()
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
+      vi.mocked(mockCommandHandler.handle).mockRejectedValueOnce(
+        new NotFoundException('Session', 'Session not found')
+      )
 
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe(
-          'アクティブでないセッションで食材を確認することはできません'
-        )
-      })
+      // ApiNotFoundExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId, ingredientId, userId }, userId)).rejects.toThrow(
+        ApiNotFoundException
+      )
 
-      it('既にチェック済みの食材の場合は400エラー', async () => {
-        // Given: 既にチェック済みの食材
-        vi.mocked(mockCommandHandler.handle).mockRejectedValue(
-          new BusinessRuleException('この食材は既にチェック済みです')
-        )
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(expect.any(CheckIngredientCommand))
+    })
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+    it('食材が見つからない場合はNotFoundExceptionが伝播される', async () => {
+      const sessionId = createValidSessionId()
+      const ingredientId = createValidIngredientId()
+      const userId = createUserId()
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
+      vi.mocked(mockCommandHandler.handle).mockRejectedValueOnce(
+        new NotFoundException('Ingredient', 'Ingredient not found')
+      )
 
-        // Then: 400エラーが返される
-        expect(response.status).toBe(400)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('この食材は既にチェック済みです')
-      })
+      // ApiNotFoundExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId, ingredientId, userId }, userId)).rejects.toThrow(
+        ApiNotFoundException
+      )
 
-      it('予期しないエラーの場合は500エラー', async () => {
-        // Given: 予期しないエラー
-        vi.mocked(mockCommandHandler.handle).mockRejectedValue(new Error('Unexpected error'))
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(expect.any(CheckIngredientCommand))
+    })
 
-        const request = new Request('http://localhost', {
-          method: 'POST',
-          body: JSON.stringify({}),
-        })
+    it('ビジネスルール違反の場合はBusinessRuleExceptionが伝播される', async () => {
+      const sessionId = createValidSessionId()
+      const ingredientId = createValidIngredientId()
+      const userId = createUserId()
 
-        // When: APIハンドラーを実行
-        const response = await apiHandler.handle(request, userId, sessionId, ingredientId)
+      vi.mocked(mockCommandHandler.handle).mockRejectedValueOnce(
+        new BusinessRuleException('Session is already completed')
+      )
 
-        // Then: 500エラーが返される
-        expect(response.status).toBe(500)
-        const responseData = await response.json()
-        expect(responseData.message).toBe('Internal server error')
-      })
+      // ApiBusinessRuleExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId, ingredientId, userId }, userId)).rejects.toThrow(
+        ApiBusinessRuleException
+      )
+
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(expect.any(CheckIngredientCommand))
+    })
+
+    it('予期しないエラーが発生した場合は適切に処理される', async () => {
+      const sessionId = createValidSessionId()
+      const ingredientId = createValidIngredientId()
+      const userId = createUserId()
+
+      vi.mocked(mockCommandHandler.handle).mockRejectedValueOnce(
+        new Error('Unexpected database error')
+      )
+
+      // ApiInternalExceptionに変換されることを確認
+      await expect(apiHandler.handle({ sessionId, ingredientId, userId }, userId)).rejects.toThrow(
+        ApiInternalException
+      )
+
+      expect(mockCommandHandler.handle).toHaveBeenCalledWith(expect.any(CheckIngredientCommand))
     })
   })
 })

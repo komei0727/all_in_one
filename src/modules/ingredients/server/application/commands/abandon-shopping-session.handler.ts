@@ -1,6 +1,5 @@
 import { NotFoundException } from '../../domain/exceptions'
 import { ShoppingSessionId } from '../../domain/value-objects'
-import { ShoppingSessionDto } from '../dtos/shopping-session.dto'
 
 import type { AbandonShoppingSessionCommand } from './abandon-shopping-session.command'
 import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
@@ -15,11 +14,10 @@ export class AbandonShoppingSessionHandler {
   /**
    * 買い物セッションを中断する
    * @param command 中断コマンド
-   * @returns 中断されたセッション情報
    * @throws {NotFoundException} セッションが見つからない場合
    * @throws {BusinessRuleException} セッションが既に完了または中断済みの場合
    */
-  async handle(command: AbandonShoppingSessionCommand): Promise<ShoppingSessionDto> {
+  async handle(command: AbandonShoppingSessionCommand): Promise<void> {
     // セッションIDの値オブジェクトを作成
     const sessionId = new ShoppingSessionId(command.sessionId)
 
@@ -35,12 +33,9 @@ export class AbandonShoppingSessionHandler {
     }
 
     // セッションを中断
-    session.abandon(command.reason)
+    session.abandon()
 
     // セッションを保存（既存なのでupdateを使用）
     await this.shoppingSessionRepository.update(session)
-
-    // DTOに変換して返す
-    return ShoppingSessionDto.fromEntity(session)
   }
 }

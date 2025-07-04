@@ -2,6 +2,11 @@ import type { PrismaClient } from '@/generated/prisma'
 import { prisma } from '@/lib/prisma'
 import type { EventBus } from '@/modules/shared/server/application/services/event-bus.interface'
 import type { TransactionManager } from '@/modules/shared/server/application/services/transaction-manager.interface'
+import { GetProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/get-profile.handler'
+import { UpdateProfileApiHandler } from '@/modules/user-authentication/server/api/handlers/update-profile.handler'
+import { UserApplicationService } from '@/modules/user-authentication/server/application/services/user-application.service'
+import { UserIntegrationService } from '@/modules/user-authentication/server/domain/services/user-integration.service'
+import { PrismaUserRepository } from '@/modules/user-authentication/server/infrastructure/repositories/prisma-user.repository'
 
 import { PrismaIngredientQueryService } from './query-services/prisma-ingredient-query-service'
 import { PrismaShoppingQueryService } from './query-services/prisma-shopping-query-service'
@@ -15,15 +20,20 @@ import { AbandonShoppingSessionApiHandler } from '../api/handlers/commands/aband
 import { CheckIngredientApiHandler } from '../api/handlers/commands/check-ingredient.handler'
 import { CompleteShoppingSessionApiHandler } from '../api/handlers/commands/complete-shopping-session.handler'
 import { CreateIngredientApiHandler } from '../api/handlers/commands/create-ingredient.handler'
+import { DeleteIngredientApiHandler } from '../api/handlers/commands/delete-ingredient.handler'
 import { StartShoppingSessionApiHandler } from '../api/handlers/commands/start-shopping-session.handler'
 import { UpdateIngredientApiHandler } from '../api/handlers/commands/update-ingredient.handler'
 import { GetActiveShoppingSessionApiHandler } from '../api/handlers/queries/get-active-shopping-session.handler'
+import { GetCategoriesApiHandler } from '../api/handlers/queries/get-categories.handler'
+import { GetIngredientByIdApiHandler } from '../api/handlers/queries/get-ingredient-by-id.handler'
 import { GetIngredientCheckStatisticsApiHandler } from '../api/handlers/queries/get-ingredient-check-statistics.handler'
 import { GetIngredientsByCategoryApiHandler } from '../api/handlers/queries/get-ingredients-by-category.handler'
+import { GetIngredientsApiHandler } from '../api/handlers/queries/get-ingredients.handler'
 import { GetQuickAccessIngredientsApiHandler } from '../api/handlers/queries/get-quick-access-ingredients.handler'
 import { GetRecentSessionsApiHandler } from '../api/handlers/queries/get-recent-sessions.handler'
 import { GetSessionHistoryApiHandler } from '../api/handlers/queries/get-session-history.handler'
 import { GetShoppingStatisticsApiHandler } from '../api/handlers/queries/get-shopping-statistics.handler'
+import { GetUnitsApiHandler } from '../api/handlers/queries/get-units.handler'
 import { AbandonShoppingSessionHandler } from '../application/commands/abandon-shopping-session.handler'
 import { CheckIngredientHandler } from '../application/commands/check-ingredient.handler'
 import { CompleteShoppingSessionHandler } from '../application/commands/complete-shopping-session.handler'
@@ -71,6 +81,7 @@ export class CompositionRoot {
   private shoppingQueryService: ShoppingQueryService | null = null
   private transactionManager: TransactionManager | null = null
   private eventBus: EventBus | null = null
+  private userApplicationService: UserApplicationService | null = null
 
   constructor(private readonly prismaClient: PrismaClient) {}
 
@@ -121,10 +132,24 @@ export class CompositionRoot {
   }
 
   /**
+   * Get GetCategoriesApiHandler instance (new instance each time)
+   */
+  public getGetCategoriesApiHandler(): GetCategoriesApiHandler {
+    return new GetCategoriesApiHandler(this.getGetCategoriesQueryHandler())
+  }
+
+  /**
    * Get GetUnitsQueryHandler instance (new instance each time)
    */
   public getGetUnitsQueryHandler(): GetUnitsQueryHandler {
     return new GetUnitsQueryHandler(this.getUnitRepository())
+  }
+
+  /**
+   * Get GetUnitsApiHandler instance (new instance each time)
+   */
+  public getGetUnitsApiHandler(): GetUnitsApiHandler {
+    return new GetUnitsApiHandler(this.getGetUnitsQueryHandler())
   }
 
   /**
@@ -205,6 +230,13 @@ export class CompositionRoot {
   }
 
   /**
+   * Get GetIngredientsApiHandler instance (new instance each time)
+   */
+  public getGetIngredientsApiHandler(): GetIngredientsApiHandler {
+    return new GetIngredientsApiHandler(this.getGetIngredientsHandler())
+  }
+
+  /**
    * Get IngredientQueryService instance (singleton)
    */
   public getIngredientQueryService(): IngredientQueryService {
@@ -220,6 +252,13 @@ export class CompositionRoot {
    */
   public getGetIngredientByIdHandler(): GetIngredientByIdHandler {
     return new GetIngredientByIdHandler(this.getIngredientQueryService())
+  }
+
+  /**
+   * Get GetIngredientByIdApiHandler instance (new instance each time)
+   */
+  public getGetIngredientByIdApiHandler(): GetIngredientByIdApiHandler {
+    return new GetIngredientByIdApiHandler(this.getGetIngredientByIdHandler())
   }
 
   /**
@@ -251,6 +290,13 @@ export class CompositionRoot {
       this.getRepositoryFactory(),
       this.getTransactionManager()
     )
+  }
+
+  /**
+   * Get DeleteIngredientApiHandler instance (new instance each time)
+   */
+  public getDeleteIngredientApiHandler(): DeleteIngredientApiHandler {
+    return new DeleteIngredientApiHandler(this.getDeleteIngredientHandler())
   }
 
   /**
@@ -335,7 +381,8 @@ export class CompositionRoot {
   public getCheckIngredientHandler(): CheckIngredientHandler {
     return new CheckIngredientHandler(
       this.getShoppingSessionRepository(),
-      this.getIngredientRepository()
+      this.getIngredientRepository(),
+      this.getUnitRepository()
     )
   }
 
@@ -418,7 +465,9 @@ export class CompositionRoot {
   public getGetIngredientsByCategoryHandler(): GetIngredientsByCategoryHandler {
     return new GetIngredientsByCategoryHandler(
       this.getCategoryRepository(),
-      this.getIngredientRepository()
+      this.getIngredientRepository(),
+      this.getUnitRepository(),
+      this.getShoppingSessionRepository()
     )
   }
 
@@ -441,5 +490,31 @@ export class CompositionRoot {
    */
   public getGetSessionHistoryApiHandler(): GetSessionHistoryApiHandler {
     return new GetSessionHistoryApiHandler(this.getGetSessionHistoryHandler())
+  }
+
+  /**
+   * Get UserApplicationService instance (singleton)
+   */
+  public getUserApplicationService(): UserApplicationService {
+    if (!this.userApplicationService) {
+      const userRepository = new PrismaUserRepository(this.prismaClient)
+      const userIntegrationService = new UserIntegrationService(userRepository)
+      this.userApplicationService = new UserApplicationService(userIntegrationService)
+    }
+    return this.userApplicationService
+  }
+
+  /**
+   * Get GetProfileApiHandler instance (new instance each time)
+   */
+  public getGetProfileApiHandler(): GetProfileApiHandler {
+    return new GetProfileApiHandler(this.getUserApplicationService())
+  }
+
+  /**
+   * Get UpdateProfileApiHandler instance (new instance each time)
+   */
+  public getUpdateProfileApiHandler(): UpdateProfileApiHandler {
+    return new UpdateProfileApiHandler(this.getUserApplicationService())
   }
 }

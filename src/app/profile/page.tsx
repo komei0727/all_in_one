@@ -19,6 +19,14 @@ interface UserProfile {
   lastLoginAt: string | null
 }
 
+interface ApiResponse<T> {
+  data: T
+  meta: {
+    timestamp: string
+    version: string
+  }
+}
+
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -47,16 +55,17 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
-        const response = await fetch('/api/auth/user/profile')
-        const data = (await response.json()) as { user: UserProfile; message?: string }
+        const response = await fetch('/api/v1/users/me')
 
         if (response.ok) {
-          setProfile(data.user)
-          setDisplayName(data.user.displayName || '')
-          setTimezone(data.user.timezone)
-          setLanguage(data.user.language)
+          const data = (await response.json()) as ApiResponse<UserProfile>
+          setProfile(data.data)
+          setDisplayName(data.data.displayName || '')
+          setTimezone(data.data.timezone)
+          setLanguage(data.data.language)
         } else {
-          setError(data.message || 'プロフィールの取得に失敗しました')
+          const errorData = (await response.json()) as { error: { message: string } }
+          setError(errorData.error.message || 'プロフィールの取得に失敗しました')
         }
       } catch (_error) {
         setError('プロフィールの取得に失敗しました')
@@ -76,7 +85,7 @@ export default function ProfilePage() {
     setSuccess(null)
 
     try {
-      const response = await fetch('/api/auth/user/profile', {
+      const response = await fetch('/api/v1/users/me', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -88,13 +97,13 @@ export default function ProfilePage() {
         }),
       })
 
-      const data = (await response.json()) as { user: UserProfile; message?: string }
-
       if (response.ok) {
-        setProfile(data.user)
+        const data = (await response.json()) as ApiResponse<UserProfile>
+        setProfile(data.data)
         setSuccess('プロフィールが更新されました')
       } else {
-        setError(data.message || 'プロフィールの更新に失敗しました')
+        const errorData = (await response.json()) as { error: { message: string } }
+        setError(errorData.error.message || 'プロフィールの更新に失敗しました')
       }
     } catch (_error) {
       setError('プロフィールの更新に失敗しました')

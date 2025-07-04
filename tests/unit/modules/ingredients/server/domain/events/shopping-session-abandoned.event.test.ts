@@ -9,24 +9,18 @@ describe('ShoppingSessionAbandoned', () => {
     sessionId: faker.string.nanoid(),
     userId: faker.string.nanoid(),
     durationMs: faker.number.int({ min: 0, max: 3600000 }), // 0～1時間
-    reason: faker.helpers.arrayElement(['timeout', 'user_cancelled', 'error']),
+    reason: 'user-action',
   })
 
   // 有効なイベントの作成
   it('有効なデータでイベントを作成できる', () => {
     const data = createValidData()
 
-    const event = new ShoppingSessionAbandoned(
-      data.sessionId,
-      data.userId,
-      data.durationMs,
-      data.reason
-    )
+    const event = new ShoppingSessionAbandoned(data.sessionId, data.userId, data.durationMs)
 
     expect(event.sessionId).toBe(data.sessionId)
     expect(event.userId).toBe(data.userId)
     expect(event.durationMs).toBe(data.durationMs)
-    expect(event.reason).toBe(data.reason)
     expect(event.aggregateId).toBe(data.sessionId)
   })
 
@@ -39,7 +33,7 @@ describe('ShoppingSessionAbandoned', () => {
       data.sessionId,
       data.userId,
       data.durationMs,
-      data.reason,
+      'user-action',
       metadata
     )
 
@@ -94,30 +88,12 @@ describe('ShoppingSessionAbandoned', () => {
     expect(event.durationMs).toBe(0)
   })
 
-  // 様々な中断理由のテスト
-  it('様々な中断理由でイベントを作成できる', () => {
-    const reasons = ['timeout', 'user_cancelled', 'error', 'network_issue', 'app_crash']
-
-    reasons.forEach((reason) => {
-      const data = { ...createValidData(), reason }
-
-      const event = new ShoppingSessionAbandoned(
-        data.sessionId,
-        data.userId,
-        data.durationMs,
-        reason
-      )
-
-      expect(event.reason).toBe(reason)
-    })
-  })
-
   // バリデーションエラー: セッションIDが空
   it('セッションIDが空の場合エラーを投げる', () => {
     const data = createValidData()
 
     expect(() => {
-      new ShoppingSessionAbandoned('', data.userId, data.durationMs, data.reason)
+      new ShoppingSessionAbandoned('', data.userId, data.durationMs)
     }).toThrow('セッションIDは必須です')
   })
 
@@ -126,7 +102,7 @@ describe('ShoppingSessionAbandoned', () => {
     const data = createValidData()
 
     expect(() => {
-      new ShoppingSessionAbandoned('   ', data.userId, data.durationMs, data.reason)
+      new ShoppingSessionAbandoned('   ', data.userId, data.durationMs)
     }).toThrow('セッションIDは必須です')
   })
 
@@ -135,7 +111,7 @@ describe('ShoppingSessionAbandoned', () => {
     const data = createValidData()
 
     expect(() => {
-      new ShoppingSessionAbandoned(data.sessionId, '', data.durationMs, data.reason)
+      new ShoppingSessionAbandoned(data.sessionId, '', data.durationMs)
     }).toThrow('ユーザーIDは必須です')
   })
 
@@ -144,26 +120,8 @@ describe('ShoppingSessionAbandoned', () => {
     const data = createValidData()
 
     expect(() => {
-      new ShoppingSessionAbandoned(data.sessionId, '   ', data.durationMs, data.reason)
+      new ShoppingSessionAbandoned(data.sessionId, '   ', data.durationMs)
     }).toThrow('ユーザーIDは必須です')
-  })
-
-  // バリデーションエラー: 中断理由が空
-  it('中断理由が空の場合エラーを投げる', () => {
-    const data = createValidData()
-
-    expect(() => {
-      new ShoppingSessionAbandoned(data.sessionId, data.userId, data.durationMs, '')
-    }).toThrow('中断理由は必須です')
-  })
-
-  // バリデーションエラー: 中断理由が空白文字のみ
-  it('中断理由が空白文字のみの場合エラーを投げる', () => {
-    const data = createValidData()
-
-    expect(() => {
-      new ShoppingSessionAbandoned(data.sessionId, data.userId, data.durationMs, '   ')
-    }).toThrow('中断理由は必須です')
   })
 
   // バリデーションエラー: 継続時間が負の値
@@ -171,7 +129,7 @@ describe('ShoppingSessionAbandoned', () => {
     const data = createValidData()
 
     expect(() => {
-      new ShoppingSessionAbandoned(data.sessionId, data.userId, -1, data.reason)
+      new ShoppingSessionAbandoned(data.sessionId, data.userId, -1)
     }).toThrow('継続時間は0以上である必要があります')
   })
 

@@ -1,119 +1,114 @@
-import { NotFoundException } from '../../../domain/exceptions'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
+import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
 
 import type { GetIngredientsByCategoryHandler } from '../../../application/queries/get-ingredients-by-category.handler'
 
 /**
- * カテゴリー別食材取得APIハンドラー
- * HTTPリクエストを処理し、アプリケーション層のハンドラーに委譲する
+ * GetIngredientsByCategoryリクエストの型定義
  */
-export class GetIngredientsByCategoryApiHandler {
-  constructor(private readonly queryHandler: GetIngredientsByCategoryHandler) {}
+interface GetIngredientsByCategoryRequest {
+  categoryId: string
+  sortBy: string
+}
+
+/**
+ * GetIngredientsByCategoryレスポンスの型定義
+ * IngredientsByCategoryDto.toJSON()の結果と同じ形式
+ */
+interface GetIngredientsByCategoryResponse {
+  category: {
+    id: string
+    name: string
+  }
+  ingredients: Array<{
+    id: string
+    name: string
+    stockStatus: string
+    expiryStatus?: string
+    lastCheckedAt?: string
+    currentQuantity: {
+      amount: number
+      unit: {
+        symbol: string
+      }
+    }
+  }>
+  summary: {
+    totalItems: number
+    outOfStockCount: number
+    lowStockCount: number
+    expiringSoonCount: number
+  }
+}
+
+/**
+ * カテゴリー別食材取得APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
+ */
+export class GetIngredientsByCategoryApiHandler extends BaseApiHandler<
+  GetIngredientsByCategoryRequest,
+  GetIngredientsByCategoryResponse
+> {
+  constructor(private readonly queryHandler: GetIngredientsByCategoryHandler) {
+    super()
+  }
 
   /**
-   * カテゴリー別食材取得APIを処理
-   * @param request HTTPリクエスト
-   * @param params パラメータ
-   * @param userId 認証済みユーザーID
-   * @returns HTTPレスポンス
+   * リクエストのバリデーション
+   * categoryIdとsortByパラメータの妥当性を検証
    */
-  async handle(
-    request: Request,
-    params: { categoryId: string; sortBy: string },
-    userId: string
-  ): Promise<Response> {
-    try {
-      // バリデーション
-      const categoryIdPattern = /^cat_[a-zA-Z0-9]{20,30}$/
-      if (!categoryIdPattern.test(params.categoryId)) {
-        return new Response(
-          JSON.stringify({
-            message: 'Validation failed',
-            errors: [
-              {
-                path: ['categoryId'],
-                message: 'Invalid category ID format',
-              },
-            ],
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
+  validate(data: unknown): GetIngredientsByCategoryRequest {
+    if (!data || typeof data !== 'object') {
+      throw new ValidationException('リクエストデータが不正です')
+    }
 
-      // ソート項目のバリデーション
-      const validSortOptions = ['stockStatus', 'name']
-      if (!validSortOptions.includes(params.sortBy)) {
-        return new Response(
-          JSON.stringify({
-            message: 'Validation failed',
-            errors: [
-              {
-                path: ['sortBy'],
-                message: 'Invalid sort option. Must be one of: stockStatus, name',
-              },
-            ],
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
+    const request = data as Record<string, unknown>
 
-      // クエリハンドラーを実行
-      const result = await this.queryHandler.handle({
-        categoryId: params.categoryId,
-        userId,
-        sortBy: params.sortBy as 'stockStatus' | 'name',
-      })
+    // categoryIdのバリデーション（idパラメータをcategoryIdとして扱う）
+    const categoryId = request.id || request.categoryId
+    if (!categoryId || typeof categoryId !== 'string') {
+      throw new ValidationException('categoryIdは必須です')
+    }
 
-      // DTOをレスポンス形式に変換
-      const responseData = result.toJSON()
+    const categoryIdPattern = /^cat_[a-zA-Z0-9]{20,30}$/
+    if (!categoryIdPattern.test(categoryId)) {
+      throw new ValidationException('無効なカテゴリーIDフォーマットです')
+    }
 
-      // 成功レスポンスを返す
-      return new Response(JSON.stringify(responseData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // ドメイン例外のハンドリング
-      if (error instanceof NotFoundException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
+    // sortByのバリデーション
+    if (!request.sortBy || typeof request.sortBy !== 'string') {
+      throw new ValidationException('sortByは必須です')
+    }
 
-      // エラーログを出力
-      console.error('Failed to get ingredients by category:', error)
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        type: error?.constructor?.name,
-        categoryId: params.categoryId,
-        userId,
-        sortBy: params.sortBy,
-      })
-
-      // 内部エラーレスポンスを返す（エラー詳細を含める）
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
+    const validSortOptions = ['stockStatus', 'name']
+    if (!validSortOptions.includes(request.sortBy)) {
+      throw new ValidationException(
+        `sortByは${validSortOptions.join(', ')}のいずれかである必要があります`
       )
     }
+
+    return {
+      categoryId: categoryId,
+      sortBy: request.sortBy,
+    }
+  }
+
+  /**
+   * ビジネスロジックの実行
+   * カテゴリー別食材一覧を取得する処理
+   */
+  async execute(
+    request: GetIngredientsByCategoryRequest,
+    userId: string
+  ): Promise<GetIngredientsByCategoryResponse> {
+    // クエリハンドラーを実行
+    const result = await this.queryHandler.handle({
+      categoryId: request.categoryId,
+      userId,
+      sortBy: request.sortBy as 'stockStatus' | 'name',
+    })
+
+    // DTOをレスポンス形式に変換
+    return result.toJSON()
   }
 }

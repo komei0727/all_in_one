@@ -77,13 +77,11 @@ describe('CheckedItemDto', () => {
 
       // Assert
       expect(json).toEqual({
-        data: {
-          ingredientId,
-          ingredientName,
-          stockStatus,
-          expiryStatus,
-          checkedAt,
-        },
+        ingredientId,
+        ingredientName,
+        stockStatus,
+        expiryStatus,
+        checkedAt,
       })
     })
 
@@ -107,13 +105,11 @@ describe('CheckedItemDto', () => {
 
       // Assert
       expect(json).toEqual({
-        data: {
-          ingredientId,
-          ingredientName,
-          stockStatus,
-          expiryStatus: null,
-          checkedAt,
-        },
+        ingredientId,
+        ingredientName,
+        stockStatus,
+        expiryStatus: null,
+        checkedAt,
       })
     })
   })

@@ -1,108 +1,57 @@
-import { ZodError } from 'zod'
-
 import { type CompleteShoppingSessionHandler } from '@/modules/ingredients/server/application/commands/complete-shopping-session.handler'
-import {
-  BusinessRuleException,
-  NotFoundException,
-} from '@/modules/ingredients/server/domain/exceptions'
-import { ValidationException } from '@/modules/shared/server/domain/exceptions/validation.exception'
+import { type CompleteShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/complete-shopping-session.dto'
+import { BaseApiHandler } from '@/modules/shared/server/api/base-api-handler'
 
 import { completeShoppingSessionValidator } from '../../validators/complete-shopping-session.validator'
 
-export class CompleteShoppingSessionApiHandler {
-  constructor(private readonly completeShoppingSessionHandler: CompleteShoppingSessionHandler) {}
+/**
+ * CompleteShoppingSessionリクエストの型定義
+ */
+interface CompleteShoppingSessionRequest {
+  sessionId: string
+}
 
-  async handle(request: Request, params: { sessionId: string }, userId: string): Promise<Response> {
-    try {
-      // パラメータのバリデーション
-      const validatedParams = completeShoppingSessionValidator.parse({
-        sessionId: params.sessionId,
-      })
+/**
+ * 買い物セッション完了APIハンドラー
+ * BaseApiHandlerを継承し、統一的な例外処理を実現
+ */
+export class CompleteShoppingSessionApiHandler extends BaseApiHandler<
+  CompleteShoppingSessionRequest,
+  CompleteShoppingSessionDto
+> {
+  constructor(private readonly completeShoppingSessionHandler: CompleteShoppingSessionHandler) {
+    super()
+  }
 
-      // コマンドハンドラーを実行
-      const result = await this.completeShoppingSessionHandler.handle({
-        sessionId: validatedParams.sessionId,
-        userId,
-      })
+  /**
+   * リクエストのバリデーション
+   * Zodスキーマを使用してsessionIdの形式を検証
+   */
+  validate(data: unknown): CompleteShoppingSessionRequest {
+    // dataはparamsから渡されるsessionIdを含むオブジェクト
+    const params = data as { sessionId?: string; params?: { sessionId: string } }
 
-      // レスポンスを作成
-      const response = {
-        sessionId: result.sessionId,
-        userId: result.userId,
-        status: result.status,
-        startedAt: result.startedAt,
-        completedAt: result.completedAt,
-        deviceType: result.deviceType,
-        location: result.location,
-      }
+    // sessionIdのバリデーション
+    return completeShoppingSessionValidator.parse({
+      sessionId: params.sessionId || params.params?.sessionId || '',
+    })
+  }
 
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (error) {
-      // エラーハンドリング
-      if (error instanceof ZodError) {
-        return new Response(
-          JSON.stringify({
-            message: 'Validation failed',
-            errors: error.errors,
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
+  /**
+   * ビジネスロジックの実行
+   * 買い物セッションを完了する処理
+   */
+  async execute(
+    request: CompleteShoppingSessionRequest,
+    userId: string
+  ): Promise<CompleteShoppingSessionDto> {
+    // コマンドハンドラーを実行
+    const result = await this.completeShoppingSessionHandler.handle({
+      sessionId: request.sessionId,
+      userId,
+    })
 
-      if (error instanceof ValidationException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      if (error instanceof NotFoundException) {
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      if (error instanceof BusinessRuleException) {
-        const statusCode = error.message.includes('権限がありません') ? 403 : 409
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-          }),
-          {
-            status: statusCode,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-
-      // 予期しないエラー
-      console.error('Unexpected error in CompleteShoppingSessionApiHandler:', error)
-      return new Response(
-        JSON.stringify({
-          message: 'Internal server error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    // DTOが返される前提（CompleteShoppingSessionHandlerの戻り値がShoppingSessionDto）
+    return result
   }
 }

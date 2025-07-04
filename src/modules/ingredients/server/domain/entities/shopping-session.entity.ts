@@ -6,7 +6,7 @@ import {
   ShoppingSessionCompleted,
   ShoppingSessionAbandoned,
 } from '../events'
-import { BusinessRuleException } from '../exceptions'
+import { BusinessRuleException, SessionAlreadyCompletedException } from '../exceptions'
 import {
   type ShoppingSessionId,
   SessionStatus,
@@ -249,7 +249,12 @@ export class ShoppingSession extends AggregateRoot {
    */
   complete(): void {
     if (!this.isActive()) {
-      throw new BusinessRuleException('アクティブでないセッションは完了できません')
+      // 既に完了済みの場合は専用例外、その他の場合は一般的なビジネスルール例外
+      if (this.status.isCompleted()) {
+        throw new SessionAlreadyCompletedException(this.id.getValue())
+      } else {
+        throw new BusinessRuleException('アクティブでないセッションは完了できません')
+      }
     }
 
     this.status = SessionStatus.COMPLETED
@@ -269,12 +274,17 @@ export class ShoppingSession extends AggregateRoot {
 
   /**
    * セッションを中断する
-   * @param reason 中断理由
+   * @param reason 中断理由（デフォルト: 'user-action'）
    * @throws {BusinessRuleException} セッションがアクティブでない場合
    */
-  abandon(reason = 'user-action'): void {
+  abandon(reason: string = 'user-action'): void {
     if (!this.isActive()) {
-      throw new BusinessRuleException('アクティブでないセッションは中断できません')
+      // 既に完了済みの場合は専用例外
+      if (this.status.isCompleted()) {
+        throw new SessionAlreadyCompletedException(this.id.getValue())
+      } else {
+        throw new BusinessRuleException('アクティブでないセッションは中断できません')
+      }
     }
 
     this.status = SessionStatus.ABANDONED
