@@ -505,7 +505,7 @@ describe('GET /api/v1/shopping-sessions/ingredient-check-statistics Integration 
         expect(response.status).toBe(401)
         expect(responseData.error).toBeDefined()
         expect(responseData.error.code).toBe('UNAUTHORIZED')
-        expect(responseData.error.message).toBe('Authentication required')
+        expect(responseData.error.message).toBe('認証が必要です')
       })
     })
   })

@@ -245,7 +245,7 @@ export class UnifiedRouteFactory {
 
     const session = await auth()
     if (!session?.user?.domainUserId) {
-      throw new ApiUnauthorizedException()
+      throw new ApiUnauthorizedException('認証が必要です')
     }
     return session.user.domainUserId
   }

@@ -274,6 +274,9 @@ export class PrismaIngredientRepository implements IngredientRepository {
         deletedAt: null,
       },
       orderBy: { createdAt: 'desc' },
+      include: {
+        unit: true,
+      },
     })
 
     return results.map((result) => this.toEntity(result))

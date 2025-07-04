@@ -79,7 +79,7 @@ describe('Error Handling Integration Tests', () => {
         expect(response.status).toBe(401)
         expect(data.error).toMatchObject({
           code: 'UNAUTHORIZED',
-          message: expect.stringContaining('Authentication required'),
+          message: expect.stringContaining('認証が必要です'),
           type: 'VALIDATION_ERROR',
         })
       })

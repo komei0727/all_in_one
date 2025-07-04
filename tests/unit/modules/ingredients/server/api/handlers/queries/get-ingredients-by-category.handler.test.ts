@@ -79,11 +79,9 @@ describe('GetIngredientsByCategoryApiHandler', () => {
       const requestData = { categoryId, sortBy: 'stockStatus' }
       const result = await apiHandler.handle(requestData, userId)
 
-      // Then: 正しい結果が返される（タイムスタンプは動的なので除外して比較）
+      // Then: 正しい結果が返される
       const expected = mockResponseDto.toJSON()
-      expect(result.data).toEqual(expected.data)
-      expect(result.meta.version).toEqual(expected.meta.version)
-      expect(result.meta.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+      expect(result).toEqual(expected)
 
       // クエリハンドラーが正しく呼び出されることを確認
       expect(mockQueryHandler.handle).toHaveBeenCalledWith({
@@ -140,11 +138,9 @@ describe('GetIngredientsByCategoryApiHandler', () => {
       // When: 名前でソートを指定
       const result = await apiHandler.handle({ categoryId, sortBy: 'name' }, userId)
 
-      // Then: 名前でソートされた結果が返される（タイムスタンプは動的なので除外して比較）
+      // Then: 名前でソートされた結果が返される
       const expected = mockResponseDto.toJSON()
-      expect(result.data).toEqual(expected.data)
-      expect(result.meta.version).toEqual(expected.meta.version)
-      expect(result.meta.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+      expect(result).toEqual(expected)
       expect(mockQueryHandler.handle).toHaveBeenCalledWith({
         categoryId,
         userId,
@@ -177,8 +173,8 @@ describe('GetIngredientsByCategoryApiHandler', () => {
       const result = await apiHandler.handle({ categoryId, sortBy: 'stockStatus' }, userId)
 
       // Then: 空の配列が返される
-      expect(result.data.ingredients).toEqual([])
-      expect(result.data.summary.totalItems).toBe(0)
+      expect(result.ingredients).toEqual([])
+      expect(result.summary.totalItems).toBe(0)
     })
   })
 

@@ -212,7 +212,7 @@ describe('GET /api/v1/users/me Integration Tests', () => {
         expect(response.status).toBe(401)
         const data = await response.json()
         expect(data.error.code).toBe('UNAUTHORIZED')
-        expect(data.error.message).toBe('Authentication required')
+        expect(data.error.message).toBe('認証が必要です')
       })
 
       it('TC102: 無効なセッション（401エラー）', async () => {
@@ -247,7 +247,7 @@ describe('GET /api/v1/users/me Integration Tests', () => {
         expect(response.status).toBe(401)
         const data = await response.json()
         expect(data.error.code).toBe('UNAUTHORIZED')
-        expect(data.error.message).toBe('Authentication required')
+        expect(data.error.message).toBe('認証が必要です')
       })
     })
 

@@ -522,7 +522,7 @@ describe('GET /api/v1/shopping-sessions/recent Integration Tests', () => {
         expect(response.status).toBe(401)
         expect(data.error).toBeDefined()
         expect(data.error.code).toBe('UNAUTHORIZED')
-        expect(data.error.message).toBe('Authentication required')
+        expect(data.error.message).toBe('認証が必要です')
       })
     })
   })

@@ -16,34 +16,28 @@ interface GetIngredientsByCategoryRequest {
  * IngredientsByCategoryDto.toJSON()の結果と同じ形式
  */
 interface GetIngredientsByCategoryResponse {
-  data: {
-    category: {
-      id: string
-      name: string
-    }
-    ingredients: Array<{
-      id: string
-      name: string
-      stockStatus: string
-      expiryStatus?: string
-      lastCheckedAt?: string
-      currentQuantity: {
-        amount: number
-        unit: {
-          symbol: string
-        }
-      }
-    }>
-    summary: {
-      totalItems: number
-      outOfStockCount: number
-      lowStockCount: number
-      expiringSoonCount: number
-    }
+  category: {
+    id: string
+    name: string
   }
-  meta: {
-    timestamp: string
-    version: string
+  ingredients: Array<{
+    id: string
+    name: string
+    stockStatus: string
+    expiryStatus?: string
+    lastCheckedAt?: string
+    currentQuantity: {
+      amount: number
+      unit: {
+        symbol: string
+      }
+    }
+  }>
+  summary: {
+    totalItems: number
+    outOfStockCount: number
+    lowStockCount: number
+    expiringSoonCount: number
   }
 }
 
@@ -70,13 +64,14 @@ export class GetIngredientsByCategoryApiHandler extends BaseApiHandler<
 
     const request = data as Record<string, unknown>
 
-    // categoryIdのバリデーション
-    if (!request.categoryId || typeof request.categoryId !== 'string') {
+    // categoryIdのバリデーション（idパラメータをcategoryIdとして扱う）
+    const categoryId = request.id || request.categoryId
+    if (!categoryId || typeof categoryId !== 'string') {
       throw new ValidationException('categoryIdは必須です')
     }
 
     const categoryIdPattern = /^cat_[a-zA-Z0-9]{20,30}$/
-    if (!categoryIdPattern.test(request.categoryId)) {
+    if (!categoryIdPattern.test(categoryId)) {
       throw new ValidationException('無効なカテゴリーIDフォーマットです')
     }
 
@@ -93,7 +88,7 @@ export class GetIngredientsByCategoryApiHandler extends BaseApiHandler<
     }
 
     return {
-      categoryId: request.categoryId,
+      categoryId: categoryId,
       sortBy: request.sortBy,
     }
   }

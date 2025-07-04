@@ -935,7 +935,7 @@ describe('PUT /api/v1/ingredients/{id} Integration Tests', () => {
       // Then: 401 Unauthorizedが返される
       expect(response.status).toBe(401)
       expect(data.error.code).toBe('UNAUTHORIZED')
-      expect(data.error.message).toContain('Authentication required')
+      expect(data.error.message).toContain('認証が必要です')
     })
 
     it('TC402: 無効なトークン（401エラー）', async () => {

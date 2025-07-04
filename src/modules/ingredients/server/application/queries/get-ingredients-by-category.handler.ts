@@ -3,8 +3,11 @@ import { CategoryId } from '../../domain/value-objects'
 import { IngredientsByCategoryDto } from '../dtos/ingredients-by-category.dto'
 
 import type { Ingredient } from '../../domain/entities/ingredient.entity'
+import type { Unit } from '../../domain/entities/unit.entity'
 import type { CategoryRepository } from '../../domain/repositories/category-repository.interface'
 import type { IngredientRepository } from '../../domain/repositories/ingredient-repository.interface'
+import type { ShoppingSessionRepository } from '../../domain/repositories/shopping-session-repository.interface'
+import type { UnitRepository } from '../../domain/repositories/unit-repository.interface'
 
 /**
  * カテゴリー別食材取得クエリ
@@ -22,7 +25,9 @@ export interface GetIngredientsByCategoryQuery {
 export class GetIngredientsByCategoryHandler {
   constructor(
     private readonly categoryRepository: CategoryRepository,
-    private readonly ingredientRepository: IngredientRepository
+    private readonly ingredientRepository: IngredientRepository,
+    private readonly unitRepository: UnitRepository,
+    private readonly shoppingSessionRepository: ShoppingSessionRepository
   ) {}
 
   /**
@@ -50,10 +55,36 @@ export class GetIngredientsByCategoryHandler {
     // ソート処理
     const sortedIngredients = this.sortIngredients(ingredients, query.sortBy)
 
+    // 単位情報を取得（食材で使用されている単位IDを収集）
+    const unitIds = [...new Set(sortedIngredients.map((i) => i.getIngredientStock().getUnitId()))]
+    const units = await Promise.all(unitIds.map((unitId) => this.unitRepository.findById(unitId)))
+
+    // 単位IDと単位情報のマップを作成
+    const unitMap = new Map<string, Unit>()
+    units.forEach((unit) => {
+      if (unit) {
+        unitMap.set(unit.getId(), unit)
+      }
+    })
+
+    // アクティブセッションを取得（存在しない場合はnull）
+    const activeSession = await this.shoppingSessionRepository.findActiveByUserId(query.userId)
+
+    // セッション内での確認履歴を取得
+    const checkedItemsMap = new Map<string, Date>()
+    if (activeSession) {
+      const checkedItems = activeSession.getCheckedItems()
+      checkedItems.forEach((item) => {
+        checkedItemsMap.set(item.getIngredientId().getValue(), item.getCheckedAt())
+      })
+    }
+
     // DTOに変換して返す
     return IngredientsByCategoryDto.fromDomain({
       category,
       ingredients: sortedIngredients,
+      unitMap,
+      checkedItemsMap,
     })
   }
 

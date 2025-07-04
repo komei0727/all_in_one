@@ -76,7 +76,7 @@ describe('UnifiedRouteFactory', () => {
         expect(body).toMatchObject({
           error: {
             code: 'UNAUTHORIZED',
-            message: 'Authentication required',
+            message: '認証が必要です',
             timestamp: expect.any(String),
             path: 'http://localhost/api/test',
           },
@@ -104,7 +104,7 @@ describe('UnifiedRouteFactory', () => {
         expect(body).toMatchObject({
           error: {
             code: 'UNAUTHORIZED',
-            message: 'Authentication required',
+            message: '認証が必要です',
           },
         })
       })

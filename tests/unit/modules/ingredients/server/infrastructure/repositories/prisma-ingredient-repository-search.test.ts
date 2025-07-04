@@ -79,6 +79,9 @@ describe('PrismaIngredientRepository - 分類・保存場所検索メソッド',
           deletedAt: null,
         },
         orderBy: { createdAt: 'desc' },
+        include: {
+          unit: true,
+        },
       })
 
       // 結果の確認

@@ -465,7 +465,9 @@ export class CompositionRoot {
   public getGetIngredientsByCategoryHandler(): GetIngredientsByCategoryHandler {
     return new GetIngredientsByCategoryHandler(
       this.getCategoryRepository(),
-      this.getIngredientRepository()
+      this.getIngredientRepository(),
+      this.getUnitRepository(),
+      this.getShoppingSessionRepository()
     )
   }
 

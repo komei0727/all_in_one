@@ -341,7 +341,7 @@ describe('POST /api/v1/shopping-sessions Integration Tests', () => {
       // Then: 401 Unauthorizedが返される
       expect(response.status).toBe(401)
       expect(errorData.error.code).toBe('UNAUTHORIZED')
-      expect(errorData.error.message).toContain('Authentication required')
+      expect(errorData.error.message).toContain('認証が必要です')
     })
 
     it('TC301: domainUserIdがない場合401エラー', async () => {
