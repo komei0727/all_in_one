@@ -34,10 +34,16 @@ export interface ShoppingQueryService {
   /**
    * よくチェックする食材のクイックアクセスリストを取得
    * @param userId ユーザーID
-   * @param limit 取得件数（デフォルト: 10）
-   * @returns クイックアクセス用食材リスト
+   * @param limit 取得件数（デフォルト: 20）
+   * @returns クイックアクセス用食材リスト（最近チェックと頻繁チェック）
    */
-  getQuickAccessIngredients(userId: string, limit?: number): Promise<QuickAccessIngredient[]>
+  getQuickAccessIngredients(
+    userId: string,
+    limit?: number
+  ): Promise<{
+    recentlyChecked: QuickAccessIngredient[]
+    frequentlyChecked: QuickAccessIngredient[]
+  }>
 
   /**
    * 食材ごとのチェック履歴統計を取得
@@ -144,6 +150,10 @@ export interface QuickAccessIngredient {
   ingredientId: string
   /** 食材名 */
   ingredientName: string
+  /** カテゴリーID */
+  categoryId: string
+  /** カテゴリー名 */
+  categoryName: string
   /** チェック回数 */
   checkCount: number
   /** 最終チェック日時 */

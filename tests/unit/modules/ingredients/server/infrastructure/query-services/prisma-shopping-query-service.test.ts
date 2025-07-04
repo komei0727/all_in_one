@@ -355,13 +355,18 @@ describe('PrismaShoppingQueryService', () => {
       const result = await service.getQuickAccessIngredients(userId)
 
       // Then: 食材リストが返される
-      expect(result).toHaveLength(2)
-      expect(result[0].ingredientName).toBe('トマト')
-      expect(result[0].checkCount).toBe(3)
-      expect(result[0].currentStockStatus).toBe('LOW_STOCK') // quantity(2) <= threshold(5)
-      expect(result[0].currentExpiryStatus).toBe('NEAR_EXPIRY') // 7日後なので
-      expect(result[1].ingredientName).toBe('きゅうり')
-      expect(result[1].checkCount).toBe(2)
+      expect(result.recentlyChecked).toBeDefined()
+      expect(result.frequentlyChecked).toBeDefined()
+      expect(result.recentlyChecked.length + result.frequentlyChecked.length).toBeGreaterThan(0)
+
+      // 頻繁にチェックされる食材を確認
+      const tomato = [...result.recentlyChecked, ...result.frequentlyChecked].find(
+        (item) => item.ingredientName === 'トマト'
+      )
+      expect(tomato).toBeDefined()
+      expect(tomato?.checkCount).toBe(3)
+      expect(tomato?.currentStockStatus).toBe('LOW_STOCK') // quantity(2) <= threshold(5)
+      expect(tomato?.currentExpiryStatus).toBe('NEAR_EXPIRY') // 7日後なので
 
       // 正しいクエリが実行される
       expect(mockPrismaClient.shoppingSessionItem.findMany).toHaveBeenCalledWith({
@@ -374,7 +379,11 @@ describe('PrismaShoppingQueryService', () => {
           },
         },
         include: {
-          ingredient: true,
+          ingredient: {
+            include: {
+              category: true,
+            },
+          },
         },
       })
     })
@@ -387,8 +396,9 @@ describe('PrismaShoppingQueryService', () => {
       // When: 指定件数でクイックアクセス食材を取得
       const result = await service.getQuickAccessIngredients(userId, limit)
 
-      // Then: 空の配列が返される
-      expect(result).toHaveLength(0)
+      // Then: 空のオブジェクトが返される
+      expect(result.recentlyChecked).toHaveLength(0)
+      expect(result.frequentlyChecked).toHaveLength(0)
     })
   })
 
@@ -546,7 +556,10 @@ describe('PrismaShoppingQueryService', () => {
       expect(Array.isArray(recentSessions.data)).toBe(true)
       expect(typeof statistics.totalSessions).toBe('number')
       expect(Array.isArray(statistics.topCheckedIngredients)).toBe(true)
-      expect(Array.isArray(quickAccess)).toBe(true)
+      expect(quickAccess).toHaveProperty('recentlyChecked')
+      expect(quickAccess).toHaveProperty('frequentlyChecked')
+      expect(Array.isArray(quickAccess.recentlyChecked)).toBe(true)
+      expect(Array.isArray(quickAccess.frequentlyChecked)).toBe(true)
       expect(Array.isArray(ingredientStats)).toBe(true)
     })
   })

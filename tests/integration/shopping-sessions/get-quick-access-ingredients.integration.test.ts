@@ -100,6 +100,23 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
           frequentlyCheckedIngredients.push(ingredient)
         }
 
+        // 過去によくチェックされていた食材（30日以上前のみ）
+        const oldFrequentIngredients = []
+        for (let i = 0; i < 2; i++) {
+          const ingredient = await prisma.ingredient.create({
+            data: {
+              name: `過去頻繁食材${i + 1}`,
+              categoryId: testDataIds.categories.meatFish,
+              unitId: testDataIds.units.gram,
+              quantity: 300,
+              purchaseDate: new Date(),
+              storageLocationType: 'FROZEN',
+              userId,
+            },
+          })
+          oldFrequentIngredients.push(ingredient)
+        }
+
         // たまにチェックされる食材を作成
         const occasionalIngredients = []
         for (let i = 0; i < 2; i++) {
@@ -133,9 +150,10 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         }
 
         // セッションを作成してチェック履歴を生成
-        for (let i = 0; i < 5; i++) {
+        // 過去40日間に渡ってセッションを作成（30日以内と以前の両方）
+        for (let i = 0; i < 10; i++) {
           const sessionId = faker.string.alphanumeric(20)
-          const startedAt = new Date(now.getTime() - i * 2 * 24 * 60 * 60 * 1000) // 2日ずつ過去
+          const startedAt = new Date(now.getTime() - i * 4 * 24 * 60 * 60 * 1000) // 4日ずつ過去
 
           await prisma.shoppingSession.create({
             data: {
@@ -176,9 +194,25 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
               })
             }
           }
+
+          // 過去頻繁食材は30日より前（i >= 8）でのみチェック
+          if (i >= 8) {
+            for (let j = 0; j < oldFrequentIngredients.length; j++) {
+              await prisma.shoppingSessionItem.create({
+                data: {
+                  sessionId,
+                  ingredientId: oldFrequentIngredients[j].id,
+                  ingredientName: oldFrequentIngredients[j].name,
+                  checkedAt: new Date(startedAt.getTime() + (10 + j) * 5 * 60 * 1000),
+                  stockStatus: 'IN_STOCK',
+                  expiryStatus: 'FRESH',
+                },
+              })
+            }
+          }
         }
 
-        // APIを呼び出し（デフォルトlimit=10）
+        // APIを呼び出し（デフォルトlimit=20）
         const request = new NextRequest(
           'http://localhost:3000/api/v1/shopping-sessions/quick-access-ingredients'
         )
@@ -188,24 +222,38 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         // レスポンスの検証
         expect(response.status).toBe(200)
         expect(responseData.data).toBeDefined()
-        expect(responseData.data.ingredients).toBeDefined()
-        expect(responseData.data.ingredients).toBeInstanceOf(Array)
-        expect(responseData.data.ingredients.length).toBeLessThanOrEqual(10) // デフォルトlimit
-        expect(responseData.data.ingredients.length).toBeGreaterThan(0)
+        expect(responseData.data.recentlyChecked).toBeDefined()
+        expect(responseData.data.recentlyChecked).toBeInstanceOf(Array)
+        expect(responseData.data.frequentlyChecked).toBeDefined()
+        expect(responseData.data.frequentlyChecked).toBeInstanceOf(Array)
 
-        // 最もチェックされた食材の検証
-        const topIngredient = responseData.data.ingredients[0]
-        expect(topIngredient.ingredientId).toBeDefined()
-        expect(topIngredient.ingredientName).toContain('頻繁食材')
-        expect(topIngredient.checkCount).toBe(5) // 5セッション全てでチェックされた
-        expect(topIngredient.lastCheckedAt).toBeDefined()
-        expect(topIngredient.currentStockStatus).toBeDefined()
-        expect(topIngredient.currentExpiryStatus).toBeDefined()
+        // 最近チェックした食材の検証
+        expect(responseData.data.recentlyChecked.length).toBeGreaterThan(0)
+        expect(responseData.data.recentlyChecked.length).toBeLessThanOrEqual(20) // デフォルトlimit
+        const topRecentIngredient = responseData.data.recentlyChecked[0]
+        expect(topRecentIngredient.ingredientId).toBeDefined()
+        expect(topRecentIngredient.name).toBeDefined()
+        expect(topRecentIngredient.categoryId).toBeDefined()
+        expect(topRecentIngredient.categoryName).toBeDefined()
+        expect(topRecentIngredient.stockStatus).toBeDefined()
+        expect(topRecentIngredient.lastCheckedAt).toBeDefined()
 
-        // チェック頻度の降順でソートされていることを確認
-        for (let i = 0; i < responseData.data.ingredients.length - 1; i++) {
-          const current = responseData.data.ingredients[i]
-          const next = responseData.data.ingredients[i + 1]
+        // 頻繁にチェックされる食材の検証
+        expect(responseData.data.frequentlyChecked.length).toBeGreaterThan(0)
+
+        // 過去頻繁食材がfrequentlyCheckedに含まれることを確認
+        const oldFrequentItem = responseData.data.frequentlyChecked.find((item: any) =>
+          item.name.includes('過去頻繁食材')
+        )
+        expect(oldFrequentItem).toBeDefined()
+        expect(oldFrequentItem.checkCount).toBe(2) // 過去2セッションでチェックされた
+        expect(oldFrequentItem.categoryId).toBeDefined()
+        expect(oldFrequentItem.categoryName).toBeDefined()
+
+        // 頻繁にチェックされる食材はチェック頻度の降順でソートされていることを確認
+        for (let i = 0; i < responseData.data.frequentlyChecked.length - 1; i++) {
+          const current = responseData.data.frequentlyChecked[i]
+          const next = responseData.data.frequentlyChecked[i + 1]
           expect(current.checkCount).toBeGreaterThanOrEqual(next.checkCount)
         }
       })
@@ -276,9 +324,18 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         let responseData = await response.json()
 
         expect(response.status).toBe(200)
-        expect(responseData.data.ingredients).toHaveLength(5)
-        expect(responseData.data.ingredients[0].ingredientName).toBe('テスト食材1')
-        expect(responseData.data.ingredients[0].checkCount).toBe(5)
+        expect(responseData.data.recentlyChecked).toBeDefined()
+        expect(responseData.data.frequentlyChecked).toBeDefined()
+        // 合計で最大5件（recentlyCheckedとfrequentlyCheckedがそれぞれ5件まで）
+        expect(
+          responseData.data.recentlyChecked.length + responseData.data.frequentlyChecked.length
+        ).toBeLessThanOrEqual(10)
+
+        // frequentlyCheckedの最初の食材を確認
+        if (responseData.data.frequentlyChecked.length > 0) {
+          expect(responseData.data.frequentlyChecked[0].name).toBe('テスト食材1')
+          expect(responseData.data.frequentlyChecked[0].checkCount).toBe(5)
+        }
 
         // limit=15での取得
         request = new NextRequest(
@@ -288,7 +345,8 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         responseData = await response.json()
 
         expect(response.status).toBe(200)
-        expect(responseData.data.ingredients).toHaveLength(10) // 最大のチェックされた食材数
+        expect(responseData.data.recentlyChecked).toBeDefined()
+        expect(responseData.data.frequentlyChecked).toBeDefined()
 
         // limit=30での取得（実際の食材数より多い）
         request = new NextRequest(
@@ -298,7 +356,8 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         responseData = await response.json()
 
         expect(response.status).toBe(200)
-        expect(responseData.data.ingredients.length).toBeLessThanOrEqual(10) // 実際の食材数まで
+        expect(responseData.data.recentlyChecked).toBeDefined()
+        expect(responseData.data.frequentlyChecked).toBeDefined()
       })
 
       it('TC003: チェック履歴がない場合', async () => {
@@ -327,7 +386,8 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         const responseData = await response.json()
 
         expect(response.status).toBe(200)
-        expect(responseData.data.ingredients).toHaveLength(0)
+        expect(responseData.data.recentlyChecked).toHaveLength(0)
+        expect(responseData.data.frequentlyChecked).toHaveLength(0)
       })
     })
 
@@ -427,19 +487,17 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         const responseData = await response.json()
 
         expect(response.status).toBe(200)
-        const ingredients = responseData.data.ingredients
 
-        // 最近の食材のみが含まれる（実装により期間が異なる可能性）
-        const recentItem = ingredients.find((i: any) => i.ingredientName === '最近の食材')
+        // recentlyCheckedには最近の食材のみが含まれる
+        const recentItem = responseData.data.recentlyChecked.find(
+          (i: any) => i.name === '最近の食材'
+        )
         expect(recentItem).toBeDefined()
-        expect(recentItem.checkCount).toBe(5)
 
-        // 古い食材も含まれる可能性がある
-        const oldItem = ingredients.find((i: any) => i.ingredientName === '古い食材')
-        if (oldItem) {
-          // APIの実装により、古いセッションも全てカウントされる
-          expect(oldItem.checkCount).toBe(10)
-        }
+        // frequentlyCheckedには古い食材が含まれる（チェック回数が多いため）
+        const oldItem = responseData.data.frequentlyChecked.find((i: any) => i.name === '古い食材')
+        expect(oldItem).toBeDefined()
+        expect(oldItem.checkCount).toBe(10)
       })
     })
   })
@@ -461,9 +519,9 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         expect(responseData.error).toBeDefined()
         expect(responseData.error.code).toBe('VALIDATION_ERROR')
 
-        // limit=101（最大値を超える）
+        // limit=51（最大値を超える）
         request = new NextRequest(
-          'http://localhost:3000/api/v1/shopping-sessions/quick-access-ingredients?limit=101'
+          'http://localhost:3000/api/v1/shopping-sessions/quick-access-ingredients?limit=51'
         )
         response = await GET(request)
         responseData = await response.json()
@@ -621,13 +679,14 @@ describe('GET /api/v1/shopping-sessions/quick-access-ingredients Integration Tes
         const responseData = await response.json()
 
         expect(response.status).toBe(200)
-        const ingredients = responseData.data.ingredients
-        expect(ingredients).toHaveLength(1)
-        expect(ingredients[0].ingredientName).toBe('ユーザー1のクイック食材')
+        const allIngredients = [
+          ...responseData.data.recentlyChecked,
+          ...responseData.data.frequentlyChecked,
+        ]
+        expect(allIngredients).toHaveLength(1)
+        expect(allIngredients[0].name).toBe('ユーザー1のクイック食材')
         // ユーザー2の食材は含まれない
-        const user2Item = ingredients.find(
-          (i: any) => i.ingredientName === 'ユーザー2のクイック食材'
-        )
+        const user2Item = allIngredients.find((i: any) => i.name === 'ユーザー2のクイック食材')
         expect(user2Item).toBeUndefined()
       })
     })

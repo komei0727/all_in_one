@@ -16,13 +16,24 @@ interface GetQuickAccessIngredientsRequest {
  * GetQuickAccessIngredientsレスポンスの型定義
  */
 interface GetQuickAccessIngredientsResponse {
-  ingredients: Array<{
+  recentlyChecked: Array<{
     ingredientId: string
-    ingredientName: string
+    name: string
+    categoryId: string
+    categoryName: string
+    stockStatus: string
+    expiryStatus?: string
+    lastCheckedAt: string
+  }>
+  frequentlyChecked: Array<{
+    ingredientId: string
+    name: string
+    categoryId: string
+    categoryName: string
+    stockStatus: string
+    expiryStatus?: string
     checkCount: number
     lastCheckedAt: string
-    currentStockStatus: string
-    currentExpiryStatus: string
   }>
 }
 
@@ -73,9 +84,9 @@ export class GetQuickAccessIngredientsApiHandler extends BaseApiHandler<
         throw new ValidationException('limitは数値である必要があります')
       }
 
-      // 範囲チェック（1-100）
-      if (parsedLimit < 1 || parsedLimit > 100) {
-        throw new ValidationException('limitは1以上100以下である必要があります')
+      // 範囲チェック（1-50）
+      if (parsedLimit < 1 || parsedLimit > 50) {
+        throw new ValidationException('limitは1以上50以下である必要があります')
       }
 
       result.limit = parsedLimit
@@ -93,17 +104,35 @@ export class GetQuickAccessIngredientsApiHandler extends BaseApiHandler<
     userId: string
   ): Promise<GetQuickAccessIngredientsResponse> {
     // デフォルト値の設定
-    const limit = request.limit || 10
+    const limit = request.limit || 20
 
     // クエリオブジェクトを作成
     const query = new GetQuickAccessIngredientsQuery(userId, limit)
 
     // クエリを実行
-    const ingredients = await this.getQuickAccessIngredientsHandler.handle(query)
+    const result = await this.getQuickAccessIngredientsHandler.handle(query)
 
-    // レスポンスを作成
+    // レスポンスを作成（API設計書に合わせた形式に変換）
     return {
-      ingredients,
+      recentlyChecked: result.recentlyChecked.map((item) => ({
+        ingredientId: item.ingredientId,
+        name: item.ingredientName,
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        stockStatus: item.currentStockStatus,
+        expiryStatus: item.currentExpiryStatus !== 'FRESH' ? item.currentExpiryStatus : undefined,
+        lastCheckedAt: item.lastCheckedAt,
+      })),
+      frequentlyChecked: result.frequentlyChecked.map((item) => ({
+        ingredientId: item.ingredientId,
+        name: item.ingredientName,
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        stockStatus: item.currentStockStatus,
+        expiryStatus: item.currentExpiryStatus !== 'FRESH' ? item.currentExpiryStatus : undefined,
+        checkCount: item.checkCount,
+        lastCheckedAt: item.lastCheckedAt,
+      })),
     }
   }
 }

@@ -38,6 +38,8 @@ describe('GetQuickAccessIngredientsHandler', () => {
       {
         ingredientId: faker.string.uuid(),
         ingredientName: 'トマト',
+        categoryId: 'cat1',
+        categoryName: '野菜',
         checkCount: 25,
         lastCheckedAt: faker.date.recent().toISOString(),
         currentStockStatus: 'LOW_STOCK',
@@ -46,6 +48,8 @@ describe('GetQuickAccessIngredientsHandler', () => {
       {
         ingredientId: faker.string.uuid(),
         ingredientName: 'きゅうり',
+        categoryId: 'cat1',
+        categoryName: '野菜',
         checkCount: 18,
         lastCheckedAt: faker.date.recent().toISOString(),
         currentStockStatus: 'IN_STOCK',
@@ -53,16 +57,21 @@ describe('GetQuickAccessIngredientsHandler', () => {
       },
     ]
 
-    mockQueryService.getQuickAccessIngredients.mockResolvedValue(mockIngredients)
+    mockQueryService.getQuickAccessIngredients.mockResolvedValue({
+      recentlyChecked: mockIngredients.slice(0, 1),
+      frequentlyChecked: mockIngredients.slice(1),
+    })
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
-    // Then: デフォルト値（10）でサービスが呼ばれる
-    expect(mockQueryService.getQuickAccessIngredients).toHaveBeenCalledWith(userId, 10)
-    expect(result).toEqual(mockIngredients)
-    expect(result).toHaveLength(2)
-    expect(result[0].ingredientName).toBe('トマト')
+    // Then: デフォルト値（20）でサービスが呼ばれる
+    expect(mockQueryService.getQuickAccessIngredients).toHaveBeenCalledWith(userId, 20)
+    expect(result).toHaveProperty('recentlyChecked')
+    expect(result).toHaveProperty('frequentlyChecked')
+    expect(result.recentlyChecked).toHaveLength(1)
+    expect(result.frequentlyChecked).toHaveLength(1)
+    expect(result.recentlyChecked[0].ingredientName).toBe('トマト')
   })
 
   it('指定されたlimitでクイックアクセス食材を取得できる', async () => {
@@ -71,15 +80,18 @@ describe('GetQuickAccessIngredientsHandler', () => {
     const limit = 5
     const query = new GetQuickAccessIngredientsQuery(userId, limit)
 
-    const mockIngredients: QuickAccessIngredient[] = []
-    mockQueryService.getQuickAccessIngredients.mockResolvedValue(mockIngredients)
+    const mockResult = {
+      recentlyChecked: [],
+      frequentlyChecked: [],
+    }
+    mockQueryService.getQuickAccessIngredients.mockResolvedValue(mockResult)
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
     // Then: 指定されたlimitでサービスが呼ばれる
     expect(mockQueryService.getQuickAccessIngredients).toHaveBeenCalledWith(userId, limit)
-    expect(result).toEqual(mockIngredients)
+    expect(result).toEqual(mockResult)
   })
 
   it('空のリストも正常に処理できる', async () => {
@@ -87,14 +99,18 @@ describe('GetQuickAccessIngredientsHandler', () => {
     const userId = faker.string.uuid()
     const query = new GetQuickAccessIngredientsQuery(userId, 20)
 
-    mockQueryService.getQuickAccessIngredients.mockResolvedValue([])
+    mockQueryService.getQuickAccessIngredients.mockResolvedValue({
+      recentlyChecked: [],
+      frequentlyChecked: [],
+    })
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
     // Then: 空の配列が返される
-    expect(result).toEqual([])
-    expect(result).toHaveLength(0)
+    expect(result).toEqual({ recentlyChecked: [], frequentlyChecked: [] })
+    expect(result.recentlyChecked).toHaveLength(0)
+    expect(result.frequentlyChecked).toHaveLength(0)
   })
 
   it('様々な在庫・期限状態の食材を正しく返す', async () => {
@@ -106,6 +122,8 @@ describe('GetQuickAccessIngredientsHandler', () => {
       {
         ingredientId: 'ing1',
         ingredientName: '新鮮な食材',
+        categoryId: 'cat1',
+        categoryName: '野菜',
         checkCount: 30,
         lastCheckedAt: '2025-07-01T10:00:00Z',
         currentStockStatus: 'IN_STOCK',
@@ -114,6 +132,8 @@ describe('GetQuickAccessIngredientsHandler', () => {
       {
         ingredientId: 'ing2',
         ingredientName: '期限切れ食材',
+        categoryId: 'cat2',
+        categoryName: '肉魚',
         checkCount: 20,
         lastCheckedAt: '2025-07-01T09:00:00Z',
         currentStockStatus: 'OUT_OF_STOCK',
@@ -122,6 +142,8 @@ describe('GetQuickAccessIngredientsHandler', () => {
       {
         ingredientId: 'ing3',
         ingredientName: '在庫少の食材',
+        categoryId: 'cat3',
+        categoryName: '調味料',
         checkCount: 15,
         lastCheckedAt: '2025-07-01T08:00:00Z',
         currentStockStatus: 'LOW_STOCK',
@@ -129,25 +151,29 @@ describe('GetQuickAccessIngredientsHandler', () => {
       },
     ]
 
-    mockQueryService.getQuickAccessIngredients.mockResolvedValue(mockIngredients)
+    mockQueryService.getQuickAccessIngredients.mockResolvedValue({
+      recentlyChecked: mockIngredients.slice(0, 2),
+      frequentlyChecked: mockIngredients.slice(2),
+    })
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
     // Then: 様々な状態の食材が正しく返される
-    expect(result).toHaveLength(3)
+    expect(result.recentlyChecked).toHaveLength(2)
+    expect(result.frequentlyChecked).toHaveLength(1)
 
     // 新鮮な食材
-    expect(result[0].currentStockStatus).toBe('IN_STOCK')
-    expect(result[0].currentExpiryStatus).toBe('FRESH')
+    expect(result.recentlyChecked[0].currentStockStatus).toBe('IN_STOCK')
+    expect(result.recentlyChecked[0].currentExpiryStatus).toBe('FRESH')
 
     // 期限切れ食材
-    expect(result[1].currentStockStatus).toBe('OUT_OF_STOCK')
-    expect(result[1].currentExpiryStatus).toBe('EXPIRED')
+    expect(result.recentlyChecked[1].currentStockStatus).toBe('OUT_OF_STOCK')
+    expect(result.recentlyChecked[1].currentExpiryStatus).toBe('EXPIRED')
 
     // 在庫少の食材
-    expect(result[2].currentStockStatus).toBe('LOW_STOCK')
-    expect(result[2].currentExpiryStatus).toBe('EXPIRING_SOON')
+    expect(result.frequentlyChecked[0].currentStockStatus).toBe('LOW_STOCK')
+    expect(result.frequentlyChecked[0].currentExpiryStatus).toBe('EXPIRING_SOON')
   })
 
   it('エラーが発生した場合は適切に伝播される', async () => {

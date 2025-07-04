@@ -263,8 +263,18 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
   /**
    * よくチェックする食材のクイックアクセスリストを取得
    */
-  async getQuickAccessIngredients(userId: string, limit = 10): Promise<QuickAccessIngredient[]> {
-    // Prisma ORMを使用してクエリを構築（SQLiteとPostgreSQL両方で動作）
+  async getQuickAccessIngredients(
+    userId: string,
+    limit = 20
+  ): Promise<{
+    recentlyChecked: QuickAccessIngredient[]
+    frequentlyChecked: QuickAccessIngredient[]
+  }> {
+    // 現在の日付を取得
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    // 食材情報を含めて全チェック履歴を取得
     const sessionItems = await this.prisma.shoppingSessionItem.findMany({
       where: {
         session: {
@@ -275,7 +285,11 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         },
       },
       include: {
-        ingredient: true,
+        ingredient: {
+          include: {
+            category: true,
+          },
+        },
       },
     })
 
@@ -283,8 +297,11 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
     interface GroupedIngredient {
       ingredientId: string
       ingredientName: string
+      categoryId: string | null
+      categoryName: string | null
       checkCount: number
       lastCheckedAt: Date
+      recentCheckCount: number // 30日以内のチェック回数
       ingredient: {
         quantity: number
         threshold: number | null
@@ -299,8 +316,11 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
           acc[key] = {
             ingredientId: item.ingredientId,
             ingredientName: item.ingredientName,
+            categoryId: item.ingredient.categoryId,
+            categoryName: item.ingredient.category?.name ?? null,
             checkCount: 0,
             lastCheckedAt: item.checkedAt,
+            recentCheckCount: 0,
             ingredient: item.ingredient,
           }
         }
@@ -308,13 +328,25 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
         if (item.checkedAt > acc[key].lastCheckedAt) {
           acc[key].lastCheckedAt = item.checkedAt
         }
+        // 30日以内のチェックをカウント
+        if (item.checkedAt >= thirtyDaysAgo) {
+          acc[key].recentCheckCount++
+        }
         return acc
       },
       {} as Record<string, GroupedIngredient>
     )
 
-    // 配列に変換してソート
-    const sorted = Object.values(groupedData)
+    const allItems = Object.values(groupedData)
+
+    // 最近チェックした食材（30日以内にチェックされた食材を最新順でソート）
+    const recentlyCheckedItems = allItems
+      .filter((item) => item.lastCheckedAt >= thirtyDaysAgo)
+      .sort((a, b) => b.lastCheckedAt.getTime() - a.lastCheckedAt.getTime())
+      .slice(0, limit)
+
+    // 頻繁にチェックされる食材（全期間でチェック回数が多い順）
+    const frequentlyCheckedItems = allItems
       .sort((a, b) => {
         if (b.checkCount !== a.checkCount) {
           return b.checkCount - a.checkCount
@@ -323,10 +355,14 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
       })
       .slice(0, limit)
 
-    // 現在の日付を取得
-    const now = new Date()
+    // 重複を除去（recentlyCheckedに含まれる食材をfrequentlyCheckedから除外）
+    const recentlyCheckedIds = new Set(recentlyCheckedItems.map((item) => item.ingredientId))
+    const uniqueFrequentlyCheckedItems = frequentlyCheckedItems
+      .filter((item) => !recentlyCheckedIds.has(item.ingredientId))
+      .slice(0, limit)
 
-    return sorted.map((item) => {
+    // QuickAccessIngredient形式に変換する関数
+    const mapToQuickAccessIngredient = (item: GroupedIngredient): QuickAccessIngredient => {
       // 在庫状態を計算
       let currentStockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
       if (item.ingredient.quantity <= 0) {
@@ -361,12 +397,19 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
       return {
         ingredientId: item.ingredientId,
         ingredientName: item.ingredientName,
+        categoryId: item.categoryId ?? '',
+        categoryName: item.categoryName ?? '未分類',
         checkCount: item.checkCount,
         lastCheckedAt: item.lastCheckedAt.toISOString(),
         currentStockStatus,
         currentExpiryStatus,
       }
-    })
+    }
+
+    return {
+      recentlyChecked: recentlyCheckedItems.map(mapToQuickAccessIngredient),
+      frequentlyChecked: uniqueFrequentlyCheckedItems.map(mapToQuickAccessIngredient),
+    }
   }
 
   /**

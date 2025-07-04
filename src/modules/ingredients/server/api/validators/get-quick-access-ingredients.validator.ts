@@ -8,9 +8,9 @@ export const getQuickAccessIngredientsSchema = z.object({
   limit: z
     .number()
     .int('取得件数は整数である必要があります')
-    .min(1, '取得件数は1以上100以下である必要があります')
-    .max(100, '取得件数は1以上100以下である必要があります')
-    .default(10),
+    .min(1, '取得件数は1以上50以下である必要があります')
+    .max(50, '取得件数は1以上50以下である必要があります')
+    .default(20),
 })
 
 /**

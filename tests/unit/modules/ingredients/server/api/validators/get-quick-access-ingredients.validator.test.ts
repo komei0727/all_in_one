@@ -9,7 +9,7 @@ describe('getQuickAccessIngredientsSchema', () => {
       // Given: 有効なリクエスト
       const request = {
         userId: faker.string.uuid(),
-        limit: faker.number.int({ min: 1, max: 100 }),
+        limit: faker.number.int({ min: 1, max: 50 }),
       }
 
       // When: バリデーションを実行
@@ -19,7 +19,7 @@ describe('getQuickAccessIngredientsSchema', () => {
       expect(result).toEqual(request)
     })
 
-    it('limitを省略した場合、デフォルト値10が設定される', () => {
+    it('limitを省略した場合、デフォルト値20が設定される', () => {
       // Given: limitなしのリクエスト
       const request = {
         userId: faker.string.uuid(),
@@ -31,7 +31,7 @@ describe('getQuickAccessIngredientsSchema', () => {
       // Then: デフォルト値が設定される
       expect(result).toEqual({
         userId: request.userId,
-        limit: 10,
+        limit: 20,
       })
     })
 
@@ -49,11 +49,11 @@ describe('getQuickAccessIngredientsSchema', () => {
       expect(result).toEqual(request)
     })
 
-    it('限界値100のlimitを検証できる', () => {
-      // Given: limit=100のリクエスト
+    it('限界値50のlimitを検証できる', () => {
+      // Given: limit=50のリクエスト
       const request = {
         userId: faker.string.uuid(),
-        limit: 100,
+        limit: 50,
       }
 
       // When: バリデーションを実行
@@ -119,7 +119,7 @@ describe('getQuickAccessIngredientsSchema', () => {
 
       // When & Then: エラーがスローされる
       expect(() => getQuickAccessIngredientsSchema.parse(request)).toThrow(
-        '取得件数は1以上100以下である必要があります'
+        '取得件数は1以上50以下である必要があります'
       )
     })
 
@@ -132,20 +132,20 @@ describe('getQuickAccessIngredientsSchema', () => {
 
       // When & Then: エラーがスローされる
       expect(() => getQuickAccessIngredientsSchema.parse(request)).toThrow(
-        '取得件数は1以上100以下である必要があります'
+        '取得件数は1以上50以下である必要があります'
       )
     })
 
-    it('limitが100を超える場合はエラーになる', () => {
-      // Given: limit=101のリクエスト
+    it('limitが50を超える場合はエラーになる', () => {
+      // Given: limit=51のリクエスト
       const request = {
         userId: faker.string.uuid(),
-        limit: 101,
+        limit: 51,
       }
 
       // When & Then: エラーがスローされる
       expect(() => getQuickAccessIngredientsSchema.parse(request)).toThrow(
-        '取得件数は1以上100以下である必要があります'
+        '取得件数は1以上50以下である必要があります'
       )
     })
 
@@ -184,7 +184,7 @@ describe('getQuickAccessIngredientsSchema', () => {
   })
 
   describe('境界値テスト', () => {
-    it('limitの境界値（1, 100）を受け入れる', () => {
+    it('limitの境界値（1, 50）を受け入れる', () => {
       // Given: 境界値のlimit
       const minRequest = {
         userId: faker.string.uuid(),
@@ -192,7 +192,7 @@ describe('getQuickAccessIngredientsSchema', () => {
       }
       const maxRequest = {
         userId: faker.string.uuid(),
-        limit: 100,
+        limit: 50,
       }
 
       // When & Then: 両方とも正常に検証される
@@ -200,7 +200,7 @@ describe('getQuickAccessIngredientsSchema', () => {
       expect(() => getQuickAccessIngredientsSchema.parse(maxRequest)).not.toThrow()
     })
 
-    it('limitの境界値外（0, 101）を拒否する', () => {
+    it('limitの境界値外（0, 51）を拒否する', () => {
       // Given: 境界値外のlimit
       const belowMinRequest = {
         userId: faker.string.uuid(),
@@ -208,7 +208,7 @@ describe('getQuickAccessIngredientsSchema', () => {
       }
       const aboveMaxRequest = {
         userId: faker.string.uuid(),
-        limit: 101,
+        limit: 51,
       }
 
       // When & Then: 両方ともエラーになる

@@ -13,11 +13,14 @@ export class GetQuickAccessIngredientsHandler {
   /**
    * クイックアクセス食材を取得
    * @param query 取得クエリ
-   * @returns クイックアクセス食材リスト
+   * @returns クイックアクセス食材リスト（最近チェックと頻繁チェック）
    */
-  async handle(query: GetQuickAccessIngredientsQuery): Promise<QuickAccessIngredient[]> {
-    // デフォルト値は10件
-    const limit = query.limit ?? 10
+  async handle(query: GetQuickAccessIngredientsQuery): Promise<{
+    recentlyChecked: QuickAccessIngredient[]
+    frequentlyChecked: QuickAccessIngredient[]
+  }> {
+    // デフォルト値は20件
+    const limit = query.limit ?? 20
 
     return this.queryService.getQuickAccessIngredients(query.userId, limit)
   }
