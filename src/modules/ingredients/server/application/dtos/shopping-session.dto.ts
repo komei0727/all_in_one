@@ -18,7 +18,8 @@ export class ShoppingSessionDto {
       longitude?: number
       name?: string
     } | null,
-    public readonly checkedItems?: CheckedItemDto[]
+    public readonly checkedItems?: CheckedItemDto[],
+    public readonly totalSpent?: number
   ) {}
 
   /**
@@ -42,6 +43,7 @@ export class ShoppingSessionDto {
           expiryStatus: item.expiryStatus,
           checkedAt: item.checkedAt,
         })) || null,
+      totalSpent: this.totalSpent,
     }
   }
 
@@ -65,7 +67,8 @@ export class ShoppingSessionDto {
             name: entity.getLocation()!.getName() ?? undefined,
           }
         : null,
-      undefined // checkedItemsは必要に応じて追加
+      undefined, // checkedItemsは必要に応じて追加
+      undefined // totalSpentは必要に応じて追加
     )
   }
 }

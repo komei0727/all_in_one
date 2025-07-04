@@ -42,13 +42,16 @@ describe('PrismaShoppingQueryService', () => {
         startedAt: faker.date.recent(),
         completedAt: faker.date.recent(),
         deviceType: null,
-        location: null,
+        locationLat: null,
+        locationLng: null,
+        locationName: null,
         createdAt: faker.date.recent(),
         updatedAt: faker.date.recent(),
         sessionItems: [],
       }))
 
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue(mockSessions)
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(5)
 
       // When: 直近セッション履歴を取得
       const result = await service.getRecentSessions(userId)
@@ -65,17 +68,27 @@ describe('PrismaShoppingQueryService', () => {
         },
         orderBy: { startedAt: 'desc' },
         take: 10,
+        skip: 0,
       })
 
-      // 結果がShoppingSessionDtoの配列として返される
-      expect(result).toHaveLength(5)
-      expect(result[0]).toBeInstanceOf(ShoppingSessionDto)
+      // 結果がページネーション情報を含むオブジェクトとして返される
+      expect(result.data).toHaveLength(5)
+      expect(result.data[0]).toBeInstanceOf(ShoppingSessionDto)
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 5,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      })
     })
 
     it('指定した件数の履歴を取得できる', async () => {
       // Given: カスタム件数を指定
       const limit = 20
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue([])
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(0)
 
       // When: 指定件数で履歴を取得
       await service.getRecentSessions(userId, limit)
@@ -97,7 +110,9 @@ describe('PrismaShoppingQueryService', () => {
         startedAt: faker.date.recent(),
         completedAt: faker.date.recent(),
         deviceType: null,
-        location: null,
+        locationLat: null,
+        locationLng: null,
+        locationName: null,
         createdAt: faker.date.recent(),
         updatedAt: faker.date.recent(),
         sessionItems: [
@@ -113,19 +128,21 @@ describe('PrismaShoppingQueryService', () => {
             ingredient: {
               id: faker.string.uuid(),
               name: faker.commerce.productName(),
+              price: null,
             },
           },
         ],
       }
 
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue([mockSessionWithItems])
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(1)
 
       // When: セッション履歴を取得
       const result = await service.getRecentSessions(userId)
 
       // Then: セッションアイテムが含まれる
-      expect(result[0].checkedItems).toHaveLength(1)
-      expect(result[0].checkedItems![0].ingredientName).toBe(
+      expect(result.data[0].checkedItems).toHaveLength(1)
+      expect(result.data[0].checkedItems![0].ingredientName).toBe(
         mockSessionWithItems.sessionItems[0].ingredientName
       )
     })
@@ -498,12 +515,13 @@ describe('PrismaShoppingQueryService', () => {
       // Given: 無効なユーザーID
       const invalidUserId = ''
       mockPrismaClient.shoppingSession.findMany.mockResolvedValue([])
+      mockPrismaClient.shoppingSession.count.mockResolvedValue(0)
 
       // When: 無効なユーザーIDで実行
       const result = await service.getRecentSessions(invalidUserId)
 
       // Then: 例外は発生せず、空の結果が返される
-      expect(result).toHaveLength(0)
+      expect(result.data).toHaveLength(0)
     })
   })
 
@@ -523,7 +541,9 @@ describe('PrismaShoppingQueryService', () => {
       const ingredientStats = await service.getIngredientCheckStatistics(userId)
 
       // Then: 返り値の型が正しい
-      expect(Array.isArray(recentSessions)).toBe(true)
+      expect(recentSessions).toHaveProperty('data')
+      expect(recentSessions).toHaveProperty('pagination')
+      expect(Array.isArray(recentSessions.data)).toBe(true)
       expect(typeof statistics.totalSessions).toBe('number')
       expect(Array.isArray(statistics.topCheckedIngredients)).toBe(true)
       expect(Array.isArray(quickAccess)).toBe(true)

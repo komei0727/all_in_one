@@ -14,6 +14,7 @@ import type {
   MonthlyCheckCount,
   SessionHistoryCriteria,
   SessionHistoryResult,
+  RecentSessionsResult,
 } from '../../application/query-services/shopping-query-service.interface'
 
 /**
@@ -25,21 +26,32 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
   /**
    * ユーザーの直近の買い物セッション履歴を取得
    */
-  async getRecentSessions(userId: string, limit = 10): Promise<ShoppingSessionDto[]> {
-    const sessions = await this.prisma.shoppingSession.findMany({
-      where: { userId },
-      include: {
-        sessionItems: {
-          include: {
-            ingredient: true,
+  async getRecentSessions(userId: string, limit = 10, page = 1): Promise<RecentSessionsResult> {
+    // オフセットを計算
+    const offset = (page - 1) * limit
+
+    // 並行してデータと総件数を取得
+    const [sessions, totalCount] = await Promise.all([
+      this.prisma.shoppingSession.findMany({
+        where: { userId },
+        include: {
+          sessionItems: {
+            include: {
+              ingredient: true,
+            },
           },
         },
-      },
-      orderBy: { startedAt: 'desc' },
-      take: limit,
-    })
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.shoppingSession.count({
+        where: { userId },
+      }),
+    ])
 
-    return sessions.map((session) => {
+    // セッションデータをDTOに変換
+    const sessionDtos = sessions.map((session) => {
       // チェック済みアイテムをDTOに変換
       const checkedItems = session.sessionItems.map(
         (item) =>
@@ -51,6 +63,12 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
             item.checkedAt.toISOString()
           )
       )
+
+      // セッション中に確認した食材の価格を合計
+      const totalSpent = session.sessionItems
+        .map((item) => item.ingredient.price)
+        .filter((price): price is Decimal => price !== null)
+        .reduce((sum, price) => sum.add(price), new Decimal(0))
 
       return new ShoppingSessionDto(
         session.id,
@@ -66,9 +84,27 @@ export class PrismaShoppingQueryService implements ShoppingQueryService {
               name: session.locationName ?? undefined,
             }
           : null,
-        checkedItems
+        checkedItems,
+        totalSpent.gt(0) ? Number(totalSpent) : undefined
       )
     })
+
+    // ページネーション情報を計算
+    const totalPages = Math.ceil(totalCount / limit)
+    const hasNext = page < totalPages
+    const hasPrev = page > 1
+
+    return {
+      data: sessionDtos,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    }
   }
 
   /**

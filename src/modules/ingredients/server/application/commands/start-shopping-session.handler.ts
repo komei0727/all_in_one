@@ -49,7 +49,8 @@ export class StartShoppingSessionHandler {
             name: savedSession.getLocationName() ?? undefined,
           }
         : null,
-      [] // checkedItems - 新規セッションなので空
+      [], // checkedItems - 新規セッションなので空
+      undefined // totalSpent - 新規セッションなのでundefined
     )
   }
 }

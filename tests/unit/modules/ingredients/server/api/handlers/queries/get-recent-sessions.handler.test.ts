@@ -28,32 +28,42 @@ describe('GetRecentSessionsApiHandler', () => {
   describe('正常系', () => {
     it('デフォルト件数で履歴セッションを取得できる', async () => {
       // Given: 履歴セッションのモックデータ
-      const mockSessions = [
-        {
-          sessionId: 'ses_test123',
-          userId,
-          status: 'COMPLETED',
-          startedAt: '2025-07-01T10:00:00.000Z',
-          completedAt: '2025-07-01T10:30:00.000Z',
-          deviceType: 'MOBILE',
-          location: {
-            name: 'イオン',
-            address: '東京都',
-            storeType: 'SUPERMARKET',
-          },
-          checkedItems: [
-            {
-              ingredientId: 'ing_test456',
-              ingredientName: 'トマト',
-              stockStatus: 'IN_STOCK',
-              expiryStatus: 'FRESH',
-              checkedAt: '2025-07-01T10:15:00.000Z',
+      const mockResult = {
+        data: [
+          {
+            sessionId: 'ses_test123',
+            userId,
+            status: 'COMPLETED',
+            startedAt: '2025-07-01T10:00:00.000Z',
+            completedAt: '2025-07-01T10:30:00.000Z',
+            deviceType: 'MOBILE',
+            location: {
+              name: 'イオン',
+              address: '東京都',
+              storeType: 'SUPERMARKET',
             },
-          ],
+            checkedItems: [
+              {
+                ingredientId: 'ing_test456',
+                ingredientName: 'トマト',
+                stockStatus: 'IN_STOCK',
+                expiryStatus: 'FRESH',
+                checkedAt: '2025-07-01T10:15:00.000Z',
+              },
+            ],
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
         },
-      ]
+      }
 
-      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
+      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockResult)
 
       // When: デフォルト件数でリクエスト
       const data = await handler.handle({}, userId)
@@ -103,26 +113,35 @@ describe('GetRecentSessionsApiHandler', () => {
 
     it('カスタム件数で履歴セッションを取得できる', async () => {
       // Given: 履歴セッションのモックデータ
-      const mockSessions = [
-        {
-          sessionId: 'ses_test789',
-          userId,
-          status: 'COMPLETED',
-          startedAt: '2025-06-30T15:00:00.000Z',
-          completedAt: '2025-06-30T15:20:00.000Z',
-          deviceType: 'DESKTOP',
-          location: null,
-          checkedItems: [],
+      const mockResult = {
+        data: [
+          {
+            sessionId: 'ses_test789',
+            userId,
+            status: 'COMPLETED',
+            startedAt: '2025-06-30T15:00:00.000Z',
+            completedAt: '2025-06-30T15:20:00.000Z',
+            deviceType: 'DESKTOP',
+            location: null,
+            checkedItems: [],
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 5,
+          total: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
         },
-      ]
+      }
 
-      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
+      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockResult)
 
       // When: カスタム件数でリクエスト
       const data = await handler.handle({ limit: 5 }, userId)
 
       // Then: 正常なレスポンスが返される
-
       expect(data.data).toHaveLength(1)
       expect(data.data[0].sessionId).toBe('ses_test789')
       expect(data.pagination.limit).toBe(5)
@@ -153,20 +172,31 @@ describe('GetRecentSessionsApiHandler', () => {
         })
       }
 
-      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockSessions)
+      const mockResult = {
+        data: mockSessions,
+        pagination: {
+          page: 2,
+          limit: 5,
+          total: 50,
+          totalPages: 10,
+          hasNext: true,
+          hasPrev: true,
+        },
+      }
+
+      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockResult)
 
       // When: ページ2、limit5でリクエスト
       const data = await handler.handle({ page: 2, limit: 5 }, userId)
 
       // Then: 正常なレスポンスが返される
-
       expect(data.data).toHaveLength(5)
       expect(data.pagination).toEqual({
         page: 2,
         limit: 5,
-        total: 5,
-        totalPages: 1, // 現在の実装では正確な総ページ数は計算できない
-        hasNext: false,
+        total: 50,
+        totalPages: 10,
+        hasNext: true,
         hasPrev: true,
       })
 
@@ -182,13 +212,23 @@ describe('GetRecentSessionsApiHandler', () => {
 
     it('履歴セッションが0件の場合でも正常なレスポンスを返す', async () => {
       // Given: 空の履歴セッション
-      mockGetRecentSessionsHandler.handle.mockResolvedValue([])
+      const mockResult = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+      }
+      mockGetRecentSessionsHandler.handle.mockResolvedValue(mockResult)
 
       // When: リクエスト
       const data = await handler.handle({}, userId)
 
       // Then: 空配列で正常レスポンス
-
       expect(data.data).toEqual([])
       expect(data.pagination).toEqual({
         page: 1,

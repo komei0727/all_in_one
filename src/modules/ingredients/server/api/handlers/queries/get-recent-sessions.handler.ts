@@ -26,7 +26,7 @@ interface GetRecentSessionsResponse {
     checkedItemsCount: number
     totalSpent?: number
     deviceType: string | null
-    location: { latitude?: number; longitude?: number; placeName?: string } | null
+    location: { latitude?: number; longitude?: number; name?: string } | null
   }>
   pagination: {
     page: number
@@ -141,19 +141,11 @@ export class GetRecentSessionsApiHandler extends BaseApiHandler<
     const query = new GetRecentSessionsQuery(userId, limit, page)
 
     // クエリを実行
-    const sessions = await this.getRecentSessionsHandler.handle(query)
-
-    // ページネーション情報の計算
-    // TODO: 現在の実装では総件数が取得できないため、仮の実装
-    // 将来的にはShoppingQueryServiceでページネーション対応が必要
-    const totalSessions = sessions.length
-    const totalPages = Math.ceil(totalSessions / limit)
-    const hasNext = page < totalPages
-    const hasPrev = page > 1
+    const result = await this.getRecentSessionsHandler.handle(query)
 
     // API仕様書に準拠したレスポンスフォーマット
     return {
-      data: sessions.map((session) => ({
+      data: result.data.map((session) => ({
         sessionId: session.sessionId,
         status: session.status,
         startedAt: session.startedAt,
@@ -165,17 +157,17 @@ export class GetRecentSessionsApiHandler extends BaseApiHandler<
             )
           : 0, // 秒単位
         checkedItemsCount: session.checkedItems?.length || 0,
-        totalSpent: undefined, // TODO: 将来の実装で追加
+        totalSpent: session.totalSpent,
         deviceType: session.deviceType,
         location: session.location,
       })),
       pagination: {
-        page,
-        limit,
-        total: totalSessions,
-        totalPages,
-        hasNext,
-        hasPrev,
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        total: result.pagination.total,
+        totalPages: result.pagination.totalPages,
+        hasNext: result.pagination.hasNext,
+        hasPrev: result.pagination.hasPrev,
       },
       meta: {
         timestamp: new Date().toISOString(),

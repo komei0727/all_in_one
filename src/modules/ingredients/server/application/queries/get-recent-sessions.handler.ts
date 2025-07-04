@@ -1,5 +1,5 @@
 import type { GetRecentSessionsQuery } from './get-recent-sessions.query'
-import type { ShoppingSessionDto } from '../dtos/shopping-session.dto'
+import type { RecentSessionsResult } from '../query-services/shopping-query-service.interface'
 import type { ShoppingQueryService } from '../query-services/shopping-query-service.interface'
 
 /**
@@ -11,12 +11,13 @@ export class GetRecentSessionsHandler {
   /**
    * セッション履歴を取得
    * @param query 取得クエリ
-   * @returns セッション履歴のDTO配列
+   * @returns セッション履歴とページネーション情報
    */
-  async handle(query: GetRecentSessionsQuery): Promise<ShoppingSessionDto[]> {
-    // デフォルト値は10件
+  async handle(query: GetRecentSessionsQuery): Promise<RecentSessionsResult> {
+    // デフォルト値
     const limit = query.limit ?? 10
+    const page = query.page ?? 1
 
-    return this.queryService.getRecentSessions(query.userId, limit)
+    return this.queryService.getRecentSessions(query.userId, limit, page)
   }
 }

@@ -112,10 +112,10 @@ describe('GET /api/v1/shopping-sessions/recent Integration Tests', () => {
         expect(responseData.data.pagination).toBeDefined()
         expect(responseData.data.pagination.page).toBe(1)
         expect(responseData.data.pagination.limit).toBe(10)
-        expect(responseData.data.pagination.total).toBe(10) // 現在の実装では取得件数が総数となる
-        expect(responseData.data.pagination.totalPages).toBe(1)
-        expect(responseData.data.pagination.hasNext).toBe(false)
-        expect(responseData.data.pagination.hasPrev).toBe(false)
+        expect(responseData.data.pagination.total).toBe(15) // 実際のデータ件数
+        expect(responseData.data.pagination.totalPages).toBe(2) // 15件を10件ずつなので2ページ
+        expect(responseData.data.pagination.hasNext).toBe(true) // 2ページ目があるのでtrue
+        expect(responseData.data.pagination.hasPrev).toBe(false) // 1ページ目なのでfalse
 
         // 最新のセッションから順に取得されていることを確認
         for (let i = 0; i < 9; i++) {
@@ -187,6 +187,172 @@ describe('GET /api/v1/shopping-sessions/recent Integration Tests', () => {
         expect(responseData.data.pagination.totalPages).toBe(0)
         expect(responseData.data.pagination.hasNext).toBe(false)
         expect(responseData.data.pagination.hasPrev).toBe(false)
+      })
+
+      it('TC003-2: ページング機能の検証', async () => {
+        // 認証ユーザーをモック
+        const userId = mockAuthUser()
+
+        // 25件のセッションデータを作成
+        for (let i = 0; i < 25; i++) {
+          await prisma.shoppingSession.create({
+            data: {
+              id: faker.string.alphanumeric(20),
+              userId,
+              status: 'COMPLETED',
+              startedAt: new Date(Date.now() - i * 60 * 60 * 1000),
+              completedAt: new Date(Date.now() - i * 60 * 60 * 1000 + 30 * 60 * 1000),
+            },
+          })
+        }
+
+        // 1ページ目の取得
+        let request = new NextRequest(
+          'http://localhost:3000/api/v1/shopping-sessions/recent?limit=10&page=1'
+        )
+        let response = await GET(request)
+        let responseData = await response.json()
+
+        expect(response.status).toBe(200)
+        expect(responseData.data.data).toHaveLength(10)
+        expect(responseData.data.pagination.page).toBe(1)
+        expect(responseData.data.pagination.total).toBe(25)
+        expect(responseData.data.pagination.totalPages).toBe(3)
+        expect(responseData.data.pagination.hasNext).toBe(true)
+        expect(responseData.data.pagination.hasPrev).toBe(false)
+
+        // 2ページ目の取得
+        request = new NextRequest(
+          'http://localhost:3000/api/v1/shopping-sessions/recent?limit=10&page=2'
+        )
+        response = await GET(request)
+        responseData = await response.json()
+
+        expect(response.status).toBe(200)
+        expect(responseData.data.data).toHaveLength(10)
+        expect(responseData.data.pagination.page).toBe(2)
+        expect(responseData.data.pagination.hasNext).toBe(true)
+        expect(responseData.data.pagination.hasPrev).toBe(true)
+
+        // 3ページ目の取得（最終ページ）
+        request = new NextRequest(
+          'http://localhost:3000/api/v1/shopping-sessions/recent?limit=10&page=3'
+        )
+        response = await GET(request)
+        responseData = await response.json()
+
+        expect(response.status).toBe(200)
+        expect(responseData.data.data).toHaveLength(5) // 残り5件
+        expect(responseData.data.pagination.page).toBe(3)
+        expect(responseData.data.pagination.hasNext).toBe(false)
+        expect(responseData.data.pagination.hasPrev).toBe(true)
+      })
+
+      it('TC003-3: totalSpentフィールドの計算', async () => {
+        // 認証ユーザーをモック
+        const userId = mockAuthUser()
+        const testDataIds = getTestDataIds()
+
+        // 食材を作成（価格付き）
+        const ingredient1 = await prisma.ingredient.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            userId,
+            name: 'テスト食材1',
+            categoryId: testDataIds.categories.vegetable,
+            unitId: testDataIds.units.piece,
+            quantity: 5,
+            price: 100.5,
+            purchaseDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2日前
+            storageLocationType: 'REFRIGERATED',
+          },
+        })
+
+        const ingredient2 = await prisma.ingredient.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            userId,
+            name: 'テスト食材2',
+            categoryId: testDataIds.categories.meatFish,
+            unitId: testDataIds.units.gram,
+            quantity: 200,
+            price: 250.75,
+            purchaseDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2日前
+            storageLocationType: 'FROZEN',
+          },
+        })
+
+        const ingredient3 = await prisma.ingredient.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            userId,
+            name: 'テスト食材3（価格なし）',
+            categoryId: testDataIds.categories.seasoning,
+            unitId: testDataIds.units.piece,
+            quantity: 1,
+            price: null,
+            purchaseDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2日前
+            storageLocationType: 'ROOM_TEMPERATURE',
+          },
+        })
+
+        // セッションを作成
+        const session = await prisma.shoppingSession.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            userId,
+            status: 'COMPLETED',
+            startedAt: new Date(Date.now() - 60 * 60 * 1000),
+            completedAt: new Date(Date.now() - 30 * 60 * 1000),
+          },
+        })
+
+        // セッションアイテムを作成
+        await prisma.shoppingSessionItem.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            sessionId: session.id,
+            ingredientId: ingredient1.id,
+            ingredientName: ingredient1.name,
+            stockStatus: 'IN_STOCK',
+            checkedAt: new Date(Date.now() - 45 * 60 * 1000),
+          },
+        })
+
+        await prisma.shoppingSessionItem.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            sessionId: session.id,
+            ingredientId: ingredient2.id,
+            ingredientName: ingredient2.name,
+            stockStatus: 'LOW_STOCK',
+            checkedAt: new Date(Date.now() - 40 * 60 * 1000),
+          },
+        })
+
+        await prisma.shoppingSessionItem.create({
+          data: {
+            id: faker.string.alphanumeric(20),
+            sessionId: session.id,
+            ingredientId: ingredient3.id,
+            ingredientName: ingredient3.name,
+            stockStatus: 'OUT_OF_STOCK',
+            checkedAt: new Date(Date.now() - 35 * 60 * 1000),
+          },
+        })
+
+        // APIを呼び出し
+        const request = new NextRequest('http://localhost:3000/api/v1/shopping-sessions/recent')
+        const response = await GET(request)
+        const responseData = await response.json()
+
+        expect(response.status).toBe(200)
+        expect(responseData.data.data).toHaveLength(1)
+
+        const sessionData = responseData.data.data[0]
+        expect(sessionData.sessionId).toBe(session.id)
+        expect(sessionData.totalSpent).toBe(351.25) // 100.5 + 250.75
+        expect(sessionData.checkedItemsCount).toBe(3)
       })
     })
 

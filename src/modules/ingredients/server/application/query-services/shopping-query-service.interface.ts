@@ -10,9 +10,10 @@ export interface ShoppingQueryService {
    * ユーザーの直近の買い物セッション履歴を取得
    * @param userId ユーザーID
    * @param limit 取得件数（デフォルト: 10）
-   * @returns 買い物セッション履歴
+   * @param page ページ番号（デフォルト: 1）
+   * @returns 買い物セッション履歴とページネーション情報
    */
-  getRecentSessions(userId: string, limit?: number): Promise<ShoppingSessionDto[]>
+  getRecentSessions(userId: string, limit?: number, page?: number): Promise<RecentSessionsResult>
 
   /**
    * ユーザーの買い物セッション履歴を検索条件付きで取得
@@ -64,6 +65,23 @@ export interface SessionHistoryCriteria {
   to?: string
   /** ステータスフィルタ */
   status?: 'COMPLETED' | 'ABANDONED'
+}
+
+/**
+ * 最近のセッション取得結果
+ */
+export interface RecentSessionsResult {
+  /** セッション履歴データ */
+  data: ShoppingSessionDto[]
+  /** ページネーション情報 */
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
 }
 
 /**

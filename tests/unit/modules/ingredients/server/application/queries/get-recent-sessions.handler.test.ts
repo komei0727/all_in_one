@@ -5,7 +5,10 @@ import { CheckedItemDto } from '@/modules/ingredients/server/application/dtos/ch
 import { ShoppingSessionDto } from '@/modules/ingredients/server/application/dtos/shopping-session.dto'
 import { GetRecentSessionsHandler } from '@/modules/ingredients/server/application/queries/get-recent-sessions.handler'
 import { GetRecentSessionsQuery } from '@/modules/ingredients/server/application/queries/get-recent-sessions.query'
-import type { ShoppingQueryService } from '@/modules/ingredients/server/application/query-services/shopping-query-service.interface'
+import type {
+  ShoppingQueryService,
+  RecentSessionsResult,
+} from '@/modules/ingredients/server/application/query-services/shopping-query-service.interface'
 
 describe('GetRecentSessionsHandler', () => {
   let handler: GetRecentSessionsHandler
@@ -31,37 +34,49 @@ describe('GetRecentSessionsHandler', () => {
     const userId = faker.string.uuid()
     const query = new GetRecentSessionsQuery(userId)
 
-    const mockSessions = [
-      new ShoppingSessionDto(
-        faker.string.uuid(),
-        userId,
-        'COMPLETED',
-        faker.date.recent().toISOString(),
-        faker.date.recent().toISOString(),
-        null,
-        null,
-        [
-          new CheckedItemDto(
-            faker.string.uuid(),
-            'トマト',
-            'IN_STOCK',
-            'FRESH',
-            faker.date.recent().toISOString()
-          ),
-        ]
-      ),
-    ]
+    const mockResult: RecentSessionsResult = {
+      data: [
+        new ShoppingSessionDto(
+          faker.string.uuid(),
+          userId,
+          'COMPLETED',
+          faker.date.recent().toISOString(),
+          faker.date.recent().toISOString(),
+          null,
+          null,
+          [
+            new CheckedItemDto(
+              faker.string.uuid(),
+              'トマト',
+              'IN_STOCK',
+              'FRESH',
+              faker.date.recent().toISOString()
+            ),
+          ]
+        ),
+      ],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
 
-    mockQueryService.getRecentSessions.mockResolvedValue(mockSessions)
+    mockQueryService.getRecentSessions.mockResolvedValue(mockResult)
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
-    // Then: デフォルト値（10）でサービスが呼ばれる
-    expect(mockQueryService.getRecentSessions).toHaveBeenCalledWith(userId, 10)
-    expect(result).toEqual(mockSessions)
-    expect(result).toHaveLength(1)
-    expect(result[0]).toBeInstanceOf(ShoppingSessionDto)
+    // Then: デフォルト値（limit: 10, page: 1）でサービスが呼ばれる
+    expect(mockQueryService.getRecentSessions).toHaveBeenCalledWith(userId, 10, 1)
+    expect(result).toEqual(mockResult)
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0]).toBeInstanceOf(ShoppingSessionDto)
+    expect(result.pagination.page).toBe(1)
+    expect(result.pagination.limit).toBe(10)
   })
 
   it('指定されたlimit値でセッション履歴を取得できる', async () => {
@@ -70,15 +85,25 @@ describe('GetRecentSessionsHandler', () => {
     const limit = 20
     const query = new GetRecentSessionsQuery(userId, limit)
 
-    const mockSessions: ShoppingSessionDto[] = []
-    mockQueryService.getRecentSessions.mockResolvedValue(mockSessions)
+    const mockResult: RecentSessionsResult = {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
+    mockQueryService.getRecentSessions.mockResolvedValue(mockResult)
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
     // Then: 指定されたlimit値でサービスが呼ばれる
-    expect(mockQueryService.getRecentSessions).toHaveBeenCalledWith(userId, limit)
-    expect(result).toEqual(mockSessions)
+    expect(mockQueryService.getRecentSessions).toHaveBeenCalledWith(userId, limit, 1)
+    expect(result).toEqual(mockResult)
   })
 
   it('空の履歴も正常に処理できる', async () => {
@@ -86,14 +111,26 @@ describe('GetRecentSessionsHandler', () => {
     const userId = faker.string.uuid()
     const query = new GetRecentSessionsQuery(userId, 5)
 
-    mockQueryService.getRecentSessions.mockResolvedValue([])
+    const mockResult: RecentSessionsResult = {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 5,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
+    mockQueryService.getRecentSessions.mockResolvedValue(mockResult)
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
-    // Then: 空の配列が返される
-    expect(result).toEqual([])
-    expect(result).toHaveLength(0)
+    // Then: 空の結果が返される
+    expect(result.data).toEqual([])
+    expect(result.data).toHaveLength(0)
+    expect(result.pagination.total).toBe(0)
   })
 
   it('複数のセッションを正しい順序で返す', async () => {
@@ -101,46 +138,57 @@ describe('GetRecentSessionsHandler', () => {
     const userId = faker.string.uuid()
     const query = new GetRecentSessionsQuery(userId, 3)
 
-    const mockSessions = [
-      new ShoppingSessionDto(
-        'session-1',
-        userId,
-        'COMPLETED',
-        '2025-07-01T10:00:00Z',
-        '2025-07-01T10:30:00Z',
-        null,
-        null
-      ),
-      new ShoppingSessionDto(
-        'session-2',
-        userId,
-        'ACTIVE',
-        '2025-07-01T11:00:00Z',
-        null,
-        null,
-        null
-      ),
-      new ShoppingSessionDto(
-        'session-3',
-        userId,
-        'COMPLETED',
-        '2025-07-01T09:00:00Z',
-        '2025-07-01T09:20:00Z',
-        null,
-        null
-      ),
-    ]
+    const mockResult: RecentSessionsResult = {
+      data: [
+        new ShoppingSessionDto(
+          'session-1',
+          userId,
+          'COMPLETED',
+          '2025-07-01T10:00:00Z',
+          '2025-07-01T10:30:00Z',
+          null,
+          null
+        ),
+        new ShoppingSessionDto(
+          'session-2',
+          userId,
+          'ACTIVE',
+          '2025-07-01T11:00:00Z',
+          null,
+          null,
+          null
+        ),
+        new ShoppingSessionDto(
+          'session-3',
+          userId,
+          'COMPLETED',
+          '2025-07-01T09:00:00Z',
+          '2025-07-01T09:20:00Z',
+          null,
+          null
+        ),
+      ],
+      pagination: {
+        page: 1,
+        limit: 3,
+        total: 3,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
 
-    mockQueryService.getRecentSessions.mockResolvedValue(mockSessions)
+    mockQueryService.getRecentSessions.mockResolvedValue(mockResult)
 
     // When: ハンドラーを実行
     const result = await handler.handle(query)
 
     // Then: サービスから返された順序が保持される
-    expect(result).toHaveLength(3)
-    expect(result[0].sessionId).toBe('session-1')
-    expect(result[1].sessionId).toBe('session-2')
-    expect(result[2].sessionId).toBe('session-3')
+    expect(result.data).toHaveLength(3)
+    expect(result.data[0].sessionId).toBe('session-1')
+    expect(result.data[1].sessionId).toBe('session-2')
+    expect(result.data[2].sessionId).toBe('session-3')
+    expect(result.pagination.total).toBe(3)
   })
 
   it('エラーが発生した場合は適切に伝播される', async () => {
